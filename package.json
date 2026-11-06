@@ -4,12 +4,13 @@
   "packageManager": "pnpm@11.15.1",
   "scripts": {
     "lint": "eslint .",
-    "typecheck": "pnpm -r typecheck",
+    "typecheck": "pnpm --filter @shanye/shared build && pnpm -r typecheck",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:contract": "vitest run --config vitest.contract.config.ts",
     "ci": "pnpm lint && pnpm typecheck && pnpm test:coverage && pnpm build:api",
-    "build:api": "pnpm --filter @shanye/api build"
+    "build:api": "pnpm --filter @shanye/api build",
+    "prepare:types": "pnpm --filter @shanye/shared build && pnpm --filter @shanye/api exec prisma generate"
   },
   "devDependencies": {
     "@vitest/coverage-v8": "^3.2.4",

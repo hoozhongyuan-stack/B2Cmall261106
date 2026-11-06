@@ -44,6 +44,10 @@ jobs:
       - name: 安装依赖
         run: pnpm install --frozen-lockfile
 
+      # 生成类型产物：shared 需先构建（types 指向 dist），Prisma Client 需生成
+      - name: Prepare types
+        run: pnpm prepare:types
+
       # 1) 静态检查：裸色值、魔法字号、手写状态判断、跨层 import
       - name: Lint
         run: pnpm lint
