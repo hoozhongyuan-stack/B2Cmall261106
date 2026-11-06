@@ -9,7 +9,11 @@ const CONFIG_ID = 'singleton';
 const MAX_SECRET_BYTES = 200 * 1024;
 
 /** 需要以文件形式保存的密钥（AppSecret 改为后台文本录入，不再走文件） */
-export const SECRET_FIELDS = ['wechatPayApiV3Key', 'wechatPayPrivateKey'] as const;
+export const SECRET_FIELDS = [
+  'miniappUploadKey',
+  'wechatPayApiV3Key',
+  'wechatPayPrivateKey',
+] as const;
 
 export type SecretField = (typeof SECRET_FIELDS)[number];
 
@@ -19,6 +23,7 @@ interface SecretSpec {
 }
 
 const SECRET_SPEC: Record<SecretField, SecretSpec> = {
+  miniappUploadKey: { label: '小程序代码上传密钥', extensions: ['.key', '.pem'] },
   wechatPayApiV3Key: { label: '微信支付 APIv3 密钥', extensions: ['.txt', '.key', '.secret'] },
   wechatPayPrivateKey: {
     label: '微信支付商户私钥',
@@ -61,6 +66,7 @@ export class IntegrationService {
     return {
       miniappAppId: config.miniappAppId,
       miniappAppSecret: { configured: Boolean(config.miniappAppSecret) },
+      miniappUploadKey: this.meta(config.miniappUploadKeyFile, config.miniappUploadKeyName),
       paymentProvider: config.paymentProvider,
       wechatPayMchId: config.wechatPayMchId,
       wechatPayCertSerial: config.wechatPayCertSerial,
@@ -93,6 +99,20 @@ export class IntegrationService {
   async paymentProvider(): Promise<'mock' | 'wechat'> {
     const config = await this.ensureConfig();
     return config.paymentProvider === 'wechat' ? 'wechat' : 'mock';
+  }
+
+  /** 小程序发布用：AppID、代码上传密钥路径、API 地址 */
+  async miniappPublishConfig(): Promise<{
+    appId: string;
+    uploadKeyPath: string | null;
+    apiBaseUrl: string;
+  }> {
+    const config = await this.ensureConfig();
+    return {
+      appId: config.miniappAppId ?? process.env.MINIAPP_APPID ?? '',
+      uploadKeyPath: config.miniappUploadKeyFile,
+      apiBaseUrl: config.apiBaseUrl ?? process.env.MINIAPP_API_BASE ?? '',
+    };
   }
 
   /* ---------------- 写入 ---------------- */
@@ -228,16 +248,21 @@ export class IntegrationService {
 
   private oldFile(
     config: {
+      miniappUploadKeyFile: string | null;
       wechatPayApiV3KeyFile: string | null;
       wechatPayPrivateKeyFile: string | null;
     },
     field: SecretField,
   ): string | null {
+    if (field === 'miniappUploadKey') return config.miniappUploadKeyFile;
     if (field === 'wechatPayApiV3Key') return config.wechatPayApiV3KeyFile;
     return config.wechatPayPrivateKeyFile;
   }
 
   private fileColumns(field: string, file: string, name: string) {
+    if (field === 'miniappUploadKey') {
+      return { miniappUploadKeyFile: file, miniappUploadKeyName: name };
+    }
     if (field === 'wechatPayApiV3Key') {
       return { wechatPayApiV3KeyFile: file, wechatPayApiV3KeyName: name };
     }
@@ -245,6 +270,9 @@ export class IntegrationService {
   }
 
   private clearColumns(field: string) {
+    if (field === 'miniappUploadKey') {
+      return { miniappUploadKeyFile: null, miniappUploadKeyName: null };
+    }
     if (field === 'wechatPayApiV3Key') {
       return { wechatPayApiV3KeyFile: null, wechatPayApiV3KeyName: null };
     }

@@ -15,7 +15,8 @@ export default defineConfig({
   designWidth: 750,
   deviceRatio: { 640: 2.34 / 2, 750: 1, 375: 2, 828: 1.81 / 2 },
   sourceRoot: 'src',
-  outputRoot: 'dist',
+  // H5 与 weapp 分目录产物：H5 走 dist 供 nginx 托管，weapp 走 dist-weapp 供 CI 上传
+  outputRoot: process.env.TARO_OUTPUT_ROOT ?? 'dist',
   plugins: [],
   defineConstants: {
     // 真机联调时改这里（或在 CI 用环境变量注入）

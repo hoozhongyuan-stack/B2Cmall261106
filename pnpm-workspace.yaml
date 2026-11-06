@@ -15,3 +15,5 @@ allowBuilds:
   '@tarojs/cli': true
   core-js: false
   core-js-pure: false
+  less: false
+  protobufjs: false

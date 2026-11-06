@@ -490,6 +490,9 @@ model IntegrationConfig {
   // 小程序登录
   miniappAppId            String?
   miniappAppSecret        String?
+  // 小程序代码上传密钥（miniprogram-ci 使用）
+  miniappUploadKeyFile    String?
+  miniappUploadKeyName    String?
   // 支付渠道与微信支付参数
   paymentProvider         String   @default("mock")
   wechatPayMchId          String?
@@ -505,4 +508,23 @@ model IntegrationConfig {
   apiBaseUrl              String?
   businessDomain          String?
   updatedAt               DateTime @updatedAt @db.Timestamptz(3)
+}
+
+// 小程序发布记录：服务器构建 → miniprogram-ci 上传开发版 → 生成体验版二维码
+// 审核与发布在微信公众平台完成，这里记录结果供团队追踪
+model MiniappRelease {
+  id           String   @id @default(cuid())
+  version      String
+  description  String
+  // BUILDING | UPLOADED | FAILED | RELEASED
+  status       String   @default("BUILDING")
+  qrCodePath   String?
+  size         Int      @default(0)
+  log          String?  @db.Text
+  operatorId   String?
+  operatorName String?
+  createdAt    DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime @updatedAt @db.Timestamptz(3)
+
+  @@index([createdAt])
 }

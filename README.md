@@ -48,6 +48,7 @@ pnpm --filter @shanye/miniapp dev:weapp          # 微信开发者工具导入 a
 | `pnpm codegen:api` | 由 openapi.yaml 生成 `packages/api-types` |
 | `pnpm db:demo-reset` | 重置数据库并重新灌入演示数据（演示/录屏前执行，会清空契约测试留下的订单与评价） |
 | `pnpm db:backup` | 逻辑备份到 `backups/`（gzip，保留 7 天，可用 `RETENTION_DAYS` 覆盖） |
+| `pnpm deploy:remote` | 构建后台/H5 并部署到联调服务器（`car.aition.art`），含迁移与健康检查 |
 | `pnpm build:api` | 构建 API |
 | `pnpm build:web` | 构建管理后台与小程序 H5 |
 | `pnpm verify` | 本地跑完 CI 全链路 |
@@ -90,4 +91,5 @@ CI（`.github/workflows/ci.yml`）在每次 push 与 PR 上运行 9 个检查：
 - **M4 完成**：补齐地址簿、商品/分类/标签、店铺设置/运费/素材、子账号、操作日志（写操作自动审计）、数据概览接口；`openapi-typescript` 接入类型生成；管理后台 24 页（React + Vite）与小程序 21 页（Taro 4）全部接通真实接口；CI 增加两端构建。契约测试共 33 条。
 - **工程质量加固完成**：契约测试独立测试库、Playwright 主链路 E2E、客户端错误上报（`POST /api/telemetry/client-error` + 5xx/慢请求结构化日志 + `x-request-id` 响应头）、登录与上报接口限流、生产环境 `JWT_SECRET` 强度校验、数据库备份脚本。
 - **集成配置完成**：后台「设置 → 集成配置」维护小程序 AppID/AppSecret、微信支付商户参数、订阅消息模板与业务域名；AppSecret 为文本框录入（接口不回显），支付密钥/证书以文件上传并仅存服务端（`apps/api/uploads/secrets`），接口与审计日志均不返回明文，小程序登录与支付渠道按配置生效。
+- **小程序发布完成**：后台「设置 → 小程序发布」可一键构建 weapp（`dist-weapp`）、用 miniprogram-ci 上传开发版并生成体验版二维码，记录版本与日志；审核/发布在微信公众平台完成（官方未开放自建小程序的审核发布 API），支持标记已发布。
 - **下一步**：真机联调、订阅消息、图片素材接入 CDN、弱网与空数据回归。
