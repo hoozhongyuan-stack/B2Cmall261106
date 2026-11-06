@@ -45,6 +45,26 @@ pnpm --filter @shanye/api dev                    # http://127.0.0.1:3000/api/doc
 | cs@shanye.com | cs123456 | 客服 |
 | wms@shanye.com | wms12345 | 仓储 |
 
+## 开发流程与门禁
+
+CI（`.github/workflows/ci.yml`）在每次 push 与 PR 上运行 8 个检查：Prepare types → Lint → Typecheck → Unit tests → Prisma migrate → Contract tests → Build → TODO guard。
+
+`main` 已启用分支保护：**PR 的 `verify` 检查未通过时无法合并**。当前 `enforce_admins=false`，管理员可直接 push main 或 `--admin` 合并，属于单人开发的效率取舍。
+
+**必须走 PR 的改动**（改动即契约，需要 CI 全绿作为证据）：
+
+| 目录 / 文件 | 原因 |
+|---|---|
+| `packages/shared/` | 金额与状态机唯一实现，错了影响所有链路 |
+| `openapi.yaml` | 接口契约来源，需契约测试验证 |
+| `apps/api/prisma/` | 迁移只增不毁，需在空库验证可执行性 |
+| `packages/tokens/`、`eslint.config.mjs` | 视觉与静态规则本身 |
+| `.github/`、`CODEOWNERS` | 门禁配置自身 |
+
+其余改动（页面文案、样式微调、内部实现）可直接推 main，CI 仍会跑，红灯当次修复。
+
+**有第二名开发者加入时**，必须把 `enforce_admins` 改为 `true`，否则分支保护对管理员无效。
+
 ## 当前进度
 
 - **M0 完成**：monorepo、共享金额/状态机（30 个单测，覆盖率 98%）、Prisma 19 表迁移、种子数据、四角色登录、统一响应与错误码、Swagger、CI 与 ESLint 契约门禁。
