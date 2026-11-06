@@ -169,6 +169,8 @@ async function main(): Promise<void> {
       openid: 'dev_seed_user',
       nickname: '王先生',
       phone: '13800006621',
+      // 累计消费与等级一致：60000 分已达到「山民」门槛
+      totalSpentCents: 60000,
       levelId: (await prisma.memberLevel.findFirst({ where: { name: '山民' } }))?.id,
     },
   });
@@ -204,6 +206,8 @@ async function main(): Promise<void> {
       expiresAt: new Date('2026-11-30T23:59:59+08:00'),
     },
   });
+  // 领取数与发放记录保持一致
+  await prisma.coupon.update({ where: { id: coupon.id }, data: { claimed: { increment: 1 } } });
 
   console.log('种子数据完成。');
 }

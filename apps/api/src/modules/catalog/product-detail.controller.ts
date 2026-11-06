@@ -21,11 +21,18 @@ export class ProductDetailController {
     });
     if (!product) throw new NotFoundException('商品不存在或已下架');
 
-    const reviews = await this.prisma.review.findMany({
-      where: { status: 'SHOWN', orderItem: { sku: { productId: id } } },
-      orderBy: { createdAt: 'desc' },
-      take: 3,
-    });
+    const [reviews, reviewAgg] = await Promise.all([
+      this.prisma.review.findMany({
+        where: { status: 'SHOWN', orderItem: { sku: { productId: id } } },
+        orderBy: { createdAt: 'desc' },
+        take: 3,
+      }),
+      this.prisma.review.aggregate({
+        where: { status: 'SHOWN', orderItem: { sku: { productId: id } } },
+        _count: { _all: true },
+        _avg: { rating: true },
+      }),
+    ]);
 
     return {
       id: product.id,
@@ -45,7 +52,8 @@ export class ProductDetailController {
         status: s.status,
       })),
       reviewSummary: {
-        count: reviews.length,
+        count: reviewAgg._count._all,
+        avgRating: Math.round((reviewAgg._avg.rating ?? 0) * 10) / 10,
         items: reviews.map((r) => ({
           rating: r.rating,
           content: r.content,

@@ -15,9 +15,11 @@ import { OrderTimeoutService } from './order/order-timeout.service';
 import { AdminOrderOpsController, ShipmentController } from './order/shipment.controller';
 import { JwtAuthGuard, RolesGuard } from '../common/auth.guards';
 import { UserJwtGuard } from '../common/user-auth.guard';
+import { GrowthModule } from './growth.module';
 
 @Module({
   imports: [
+    GrowthModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],

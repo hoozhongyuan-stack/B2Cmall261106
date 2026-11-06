@@ -95,6 +95,11 @@ export function isBeforeShipment(status: OrderStatus): boolean {
   return status === 'PAID';
 }
 
+/** 是否已完成：评价入口以此为准 */
+export function isCompleted(status: OrderStatus): boolean {
+  return status === 'COMPLETED';
+}
+
 /** 买家侧可执行的操作，用于按钮显隐（不替代服务端校验） */
 export function buyerActions(status: OrderStatus): OrderAction[] {
   switch (status) {

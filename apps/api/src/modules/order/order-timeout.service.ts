@@ -2,6 +2,7 @@ import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/commo
 import { nextStatus } from '@shanye/shared';
 
 import { PrismaService } from '../../prisma/prisma.module';
+import { CouponService } from '../coupon/coupon.service';
 
 const INTERVAL_MS = 60_000;
 
@@ -14,7 +15,10 @@ export class OrderTimeoutService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(OrderTimeoutService.name);
   private timer: NodeJS.Timeout | null = null;
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly coupons: CouponService,
+  ) {}
 
   onModuleInit(): void {
     this.timer = setInterval(() => {
@@ -59,6 +63,9 @@ export class OrderTimeoutService implements OnModuleInit, OnModuleDestroy {
             data: { reserved: { decrement: item.quantity } },
           });
         }
+
+        // 超时关单等同取消：已锁定的券在有效期内退回
+        await this.coupons.releaseForOrder(tx, order.id);
         return true;
       });
 

@@ -547,6 +547,345 @@ paths:
         '201': { description: 返回本次关闭数量 }
         '403': { description: 仅超管 }
 
+  /orders/{id}/confirm:
+    post:
+      tags: [orders]
+      summary: 确认收货（待收货 → 已完成，之后可评价）
+      security: [{ userToken: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { description: OK }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /coupons:
+    get:
+      tags: [coupons]
+      summary: 领券中心：可领取的优惠券（含剩余量与我的领取数）
+      security: [{ userToken: [] }]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      items:
+                        type: array
+                        items: { $ref: '#/components/schemas/Coupon' }
+
+  /coupons/mine:
+    get:
+      tags: [coupons]
+      summary: 我的优惠券
+      security: [{ userToken: [] }]
+      parameters:
+        - name: status
+          in: query
+          schema: { type: string, enum: [UNUSED, USED, EXPIRED] }
+      responses:
+        '200': { description: OK }
+
+  /coupons/{id}/claim:
+    post:
+      tags: [coupons]
+      summary: 领取优惠券（每人限领、总量控制，并发安全）
+      security: [{ userToken: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { description: 领取成功 }
+        '409':
+          description: 已达每人限领张数 / 已领完 / 未开始或已过期
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /admin/coupons:
+    get:
+      tags: [admin-coupons]
+      summary: 优惠券列表（含已领取数）
+      security: [{ adminToken: [] }]
+      responses:
+        '200': { description: OK }
+        '403': { description: 角色无权限 }
+    post:
+      tags: [admin-coupons]
+      summary: 新建优惠券（满减 / 无门槛）
+      security: [{ adminToken: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [name, faceValueCents, total, startAt, endAt]
+              properties:
+                name: { type: string }
+                thresholdCents: { type: integer, minimum: 0, description: 0 表示无门槛券 }
+                faceValueCents: { type: integer, minimum: 1 }
+                total: { type: integer, minimum: 1 }
+                perLimit: { type: integer, minimum: 1 }
+                channel: { type: string }
+                startAt: { type: string, format: date-time }
+                endAt: { type: string, format: date-time }
+      responses:
+        '201': { description: 创建成功 }
+        '400': { $ref: '#/components/responses/BadRequest' }
+
+  /admin/coupons/{id}/toggle:
+    post:
+      tags: [admin-coupons]
+      summary: 启用 / 停用优惠券
+      security: [{ adminToken: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { description: OK }
+
+  /admin/coupons/{id}/grant:
+    post:
+      tags: [admin-coupons]
+      summary: 后台发放：指定客户或全部客户（逐条跳过超限对象）
+      security: [{ adminToken: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                userIds: { type: array, items: { type: string } }
+                all: { type: boolean }
+      responses:
+        '200': { description: 返回发放成功数与跳过原因 }
+        '400': { $ref: '#/components/responses/BadRequest' }
+
+  /admin/coupons/{id}/claims:
+    get:
+      tags: [admin-coupons]
+      summary: 发放记录
+      security: [{ adminToken: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { description: OK }
+
+  /member/profile:
+    get:
+      tags: [member]
+      summary: 会员中心：等级、成长值（累计消费）、积分与券数量
+      security: [{ userToken: [] }]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/MemberProfile' }
+
+  /member/points:
+    get:
+      tags: [member]
+      summary: 积分明细（仅记录发放与扣回，不参与订单抵扣）
+      security: [{ userToken: [] }]
+      responses:
+        '200': { description: OK }
+
+  /admin/member-levels:
+    get:
+      tags: [admin-member]
+      summary: 等级规则列表（含各等级人数）
+      security: [{ adminToken: [] }]
+      responses:
+        '200': { description: OK }
+    post:
+      tags: [admin-member]
+      summary: 新建等级规则
+      security: [{ adminToken: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/MemberLevelInput' }
+      responses:
+        '201': { description: 创建成功 }
+        '400': { $ref: '#/components/responses/BadRequest' }
+
+  /admin/member-levels/{id}:
+    patch:
+      tags: [admin-member]
+      summary: 修改等级门槛或折扣
+      security: [{ adminToken: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                name: { type: string }
+                thresholdCents: { type: integer, minimum: 0 }
+                discountRate: { type: number, minimum: 0.01, maximum: 1 }
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/BadRequest' }
+
+  /admin/customers:
+    get:
+      tags: [admin-customers]
+      summary: 客户列表：消费统计、等级与积分
+      security: [{ adminToken: [] }]
+      parameters:
+        - { name: keyword, in: query, schema: { type: string } }
+        - { name: levelId, in: query, schema: { type: string } }
+      responses:
+        '200': { description: OK }
+
+  /admin/customers/{id}:
+    get:
+      tags: [admin-customers]
+      summary: 客户详情：资产、最近订单与积分流水
+      security: [{ adminToken: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { description: OK }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /admin/customers/{id}/points:
+    post:
+      tags: [admin-customers]
+      summary: 手动发放 / 扣减积分（写入流水，余额不为负）
+      security: [{ adminToken: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [delta, reason]
+              properties:
+                delta: { type: integer, description: 正数发放，负数扣减 }
+                reason: { type: string }
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/BadRequest' }
+
+  /reviews:
+    post:
+      tags: [reviews]
+      summary: 发布评价（仅已完成订单，先审后显）
+      security: [{ userToken: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [orderItemId, rating]
+              properties:
+                orderItemId: { type: string }
+                rating: { type: integer, minimum: 1, maximum: 5 }
+                content: { type: string }
+                images: { type: array, items: { type: string } }
+                anonymous: { type: boolean }
+      responses:
+        '201': { description: 创建成功，状态为 PENDING }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '409':
+          description: 已评价或订单未完成
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /reviews/mine:
+    get:
+      tags: [reviews]
+      summary: 我的评价（含审核状态与商家回复）
+      security: [{ userToken: [] }]
+      responses:
+        '200': { description: OK }
+
+  /products/{id}/reviews:
+    get:
+      tags: [reviews]
+      summary: 商品评价与评分分布（仅展示审核通过的评价）
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { description: OK }
+
+  /admin/reviews:
+    get:
+      tags: [admin-reviews]
+      summary: 评价列表（含各状态数量）
+      security: [{ adminToken: [] }]
+      parameters:
+        - name: status
+          in: query
+          schema: { type: string, enum: [PENDING, SHOWN, HIDDEN] }
+      responses:
+        '200': { description: OK }
+
+  /admin/reviews/{id}/moderate:
+    post:
+      tags: [admin-reviews]
+      summary: 审核评价：通过展示 / 隐藏
+      security: [{ adminToken: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [action]
+              properties:
+                action: { type: string, enum: [show, hide] }
+      responses:
+        '200': { description: OK }
+        '403': { description: 角色无权限 }
+
+  /admin/reviews/{id}/reply:
+    post:
+      tags: [admin-reviews]
+      summary: 商家回复评价
+      security: [{ adminToken: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [content]
+              properties:
+                content: { type: string }
+      responses:
+        '200': { description: OK }
+
 components:
   securitySchemes:
     userToken:
@@ -766,6 +1105,83 @@ components:
               time: { type: string, format: date-time }
               title: { type: string }
               desc: { type: string }
+
+    Coupon:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        type: { type: string, enum: [THRESHOLD, NO_THRESHOLD] }
+        thresholdCents: { type: integer, description: 0 表示无门槛 }
+        faceValueCents: { type: integer }
+        startAt: { type: string, format: date-time }
+        endAt: { type: string, format: date-time }
+        remaining: { type: integer }
+        claimedByMe: { type: integer }
+        perLimit: { type: integer }
+        canClaim: { type: boolean }
+
+    MemberProfile:
+      type: object
+      required: [points, totalSpentCents, coupons]
+      properties:
+        nickname: { type: string, nullable: true }
+        avatarKey: { type: string, nullable: true }
+        points: { type: integer, description: 仅记录，不参与订单抵扣 }
+        totalSpentCents: { type: integer, description: 成长值：累计实付，退款扣减 }
+        level:
+          type: object
+          nullable: true
+          properties:
+            name: { type: string }
+            discountRate: { type: number }
+            thresholdCents: { type: integer }
+        nextLevel:
+          type: object
+          nullable: true
+          properties:
+            name: { type: string }
+            thresholdCents: { type: integer }
+            remainCents: { type: integer }
+        coupons:
+          type: object
+          properties:
+            unused: { type: integer }
+            used: { type: integer }
+            expired: { type: integer }
+
+    MemberLevelInput:
+      type: object
+      additionalProperties: false
+      required: [name, thresholdCents, discountRate]
+      properties:
+        name: { type: string }
+        thresholdCents: { type: integer, minimum: 0 }
+        discountRate: { type: number, minimum: 0.01, maximum: 1 }
+
+    PointsEntry:
+      type: object
+      properties:
+        id: { type: string }
+        delta: { type: integer }
+        source: { type: string, enum: [ORDER_PAID, REFUND, ADMIN] }
+        reason: { type: string, nullable: true }
+        orderId: { type: string, nullable: true }
+        balanceAfter: { type: integer }
+        createdAt: { type: string, format: date-time }
+
+    Review:
+      type: object
+      required: [id, rating, status]
+      properties:
+        id: { type: string }
+        rating: { type: integer, minimum: 1, maximum: 5 }
+        content: { type: string, nullable: true }
+        images: { type: array, items: { type: string } }
+        anonymous: { type: boolean }
+        status: { type: string, enum: [PENDING, SHOWN, HIDDEN] }
+        reply: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time }
 
     Error:
       type: object

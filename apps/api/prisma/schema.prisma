@@ -396,6 +396,8 @@ model PointsLedger {
   userId       String
   delta        Int
   source       String
+  /** 流水说明：订单支付、退款扣回、后台手动调整等 */
+  reason       String?
   orderId      String?
   balanceAfter Int
   createdAt    DateTime @default(now()) @db.Timestamptz(3)

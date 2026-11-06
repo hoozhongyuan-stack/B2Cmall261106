@@ -1,0 +1,145 @@
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { nextMemberLevel, resolveMemberLevel } from '@shanye/shared';
+
+import { PrismaService } from '../../prisma/prisma.module';
+
+@Injectable()
+export class CustomerService {
+  constructor(private readonly prisma: PrismaService) {}
+
+  /** 客户列表：订单数、实付、退款与最近下单时间一次性聚合 */
+  async list(input: { keyword?: string; levelId?: string }) {
+    const users = await this.prisma.user.findMany({
+      where: {
+        ...(input.levelId ? { levelId: input.levelId } : {}),
+        ...(input.keyword
+          ? {
+              OR: [
+                { nickname: { contains: input.keyword, mode: 'insensitive' as const } },
+                { phone: { contains: input.keyword } },
+                { openid: { contains: input.keyword } },
+              ],
+            }
+          : {}),
+      },
+      include: { level: true },
+      orderBy: { createdAt: 'desc' },
+      take: 100,
+    });
+
+    const stats = await this.prisma.order.groupBy({
+      by: ['userId'],
+      where: { userId: { in: users.map((u) => u.id) } },
+      _sum: { payableCents: true, refundedCents: true },
+      _count: { _all: true },
+      _max: { createdAt: true },
+    });
+    const byUser = new Map(stats.map((s) => [s.userId, s]));
+
+    return {
+      items: users.map((u) => {
+        const stat = byUser.get(u.id);
+        const paidCents = stat?._sum.payableCents ?? 0;
+        const refundedCents = stat?._sum.refundedCents ?? 0;
+        return {
+          id: u.id,
+          nickname: u.nickname,
+          phone: u.phone,
+          avatarKey: u.avatarKey,
+          levelName: u.level?.name ?? null,
+          points: u.points,
+          totalSpentCents: u.totalSpentCents,
+          orderCount: stat?._count._all ?? 0,
+          paidCents,
+          refundedCents,
+          netCents: paidCents - refundedCents,
+          lastOrderAt: stat?._max.createdAt ?? null,
+          createdAt: u.createdAt,
+        };
+      }),
+    };
+  }
+
+  /** 客户详情：资产、消费统计、最近订单与积分流水 */
+  async detail(id: string) {
+    const user = await this.prisma.user.findUnique({ where: { id }, include: { level: true } });
+    if (!user) throw new NotFoundException('客户不存在');
+
+    const [agg, orders, ledger, levels, couponClaims] = await Promise.all([
+      this.prisma.order.aggregate({
+        where: { userId: id, status: { not: 'CLOSED' } },
+        _sum: { payableCents: true, refundedCents: true },
+        _count: { _all: true },
+        _max: { createdAt: true },
+      }),
+      this.prisma.order.findMany({
+        where: { userId: id },
+        orderBy: { createdAt: 'desc' },
+        take: 10,
+        include: { items: { select: { title: true, quantity: true } } },
+      }),
+      this.prisma.pointsLedger.findMany({
+        where: { userId: id },
+        orderBy: { createdAt: 'desc' },
+        take: 10,
+      }),
+      this.prisma.memberLevel.findMany({ orderBy: { thresholdCents: 'asc' } }),
+      this.prisma.couponClaim.groupBy({
+        by: ['status'],
+        where: { userId: id },
+        _count: { _all: true },
+      }),
+    ]);
+
+    const paidCents = agg._sum.payableCents ?? 0;
+    const refundedCents = agg._sum.refundedCents ?? 0;
+    const current = user.level ?? resolveMemberLevel(levels, user.totalSpentCents);
+    const next = nextMemberLevel(levels, user.totalSpentCents);
+
+    return {
+      id: user.id,
+      nickname: user.nickname,
+      phone: user.phone,
+      avatarKey: user.avatarKey,
+      openid: user.openid,
+      createdAt: user.createdAt,
+      points: user.points,
+      totalSpentCents: user.totalSpentCents,
+      level: current
+        ? { name: current.name, discountRate: current.discountRate, thresholdCents: current.thresholdCents }
+        : null,
+      nextLevel: next
+        ? {
+            name: next.name,
+            thresholdCents: next.thresholdCents,
+            remainCents: Math.max(next.thresholdCents - user.totalSpentCents, 0),
+          }
+        : null,
+      stats: {
+        orderCount: agg._count._all,
+        paidCents,
+        refundedCents,
+        netCents: paidCents - refundedCents,
+        lastOrderAt: agg._max.createdAt,
+      },
+      coupons: couponClaims.map((c) => ({ status: c.status, count: c._count._all })),
+      recentOrders: orders.map((o) => ({
+        id: o.id,
+        orderNo: o.orderNo,
+        status: o.status,
+        payableCents: o.payableCents,
+        createdAt: o.createdAt,
+        itemCount: o.items.reduce((sum, i) => sum + i.quantity, 0),
+        firstItemTitle: o.items[0]?.title ?? '',
+      })),
+      recentPoints: ledger.map((l) => ({
+        id: l.id,
+        delta: l.delta,
+        source: l.source,
+        reason: l.reason,
+        balanceAfter: l.balanceAfter,
+        createdAt: l.createdAt,
+      })),
+    };
+  }
+}

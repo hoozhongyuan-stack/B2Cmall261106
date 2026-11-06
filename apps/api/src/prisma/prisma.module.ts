@@ -6,6 +6,9 @@ export function isUniqueViolation(err: unknown): boolean {
   return err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002';
 }
 
+/** 事务客户端类型：业务层需要复用同一事务时使用，避免直接依赖 @prisma/client */
+export type TxClient = Parameters<Parameters<PrismaService['$transaction']>[0]>[0];
+
 @Injectable()
 export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
   async onModuleInit(): Promise<void> {

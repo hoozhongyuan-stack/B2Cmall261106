@@ -16,6 +16,8 @@ import {
 
 import { PrismaService } from '../../prisma/prisma.module';
 import { MockRefundProvider, type RefundProvider } from '../payment/refund.provider';
+import { CouponService } from '../coupon/coupon.service';
+import { LoyaltyService } from '../member/loyalty.service';
 
 const REFUNDABLE_ORDER_STATUS: OrderStatus[] = ['PAID', 'SHIPPED', 'COMPLETED'];
 
@@ -23,7 +25,11 @@ const REFUNDABLE_ORDER_STATUS: OrderStatus[] = ['PAID', 'SHIPPED', 'COMPLETED'];
 export class AfterSaleService {
   private readonly refundProvider: RefundProvider = new MockRefundProvider();
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly coupons: CouponService,
+    private readonly loyalty: LoyaltyService,
+  ) {}
 
   /** 买家提交售后：校验归属、期限、金额上限与是否重复申请 */
   async apply(
@@ -376,6 +382,16 @@ export class AfterSaleService {
           previousStatus: fullyRefunded ? null : previous,
         },
       });
+
+      // 退款成功：累计消费与积分按退款额扣回（余额不为负），等级随之下调
+      await this.loyalty.revokeForRefund(tx, {
+        userId: record.order.userId,
+        orderId: record.orderId,
+        refundCents: pending.amountCents,
+      });
+
+      // 整单退款：已使用的券在有效期内退回，可再次使用
+      if (fullyRefunded) await this.coupons.releaseForOrder(tx, record.orderId);
     });
 
     return { refundNo: pending.refundNo, status: 'SUCCESS' };
