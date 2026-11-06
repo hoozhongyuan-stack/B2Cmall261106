@@ -44,20 +44,25 @@ export class UserAuthController {
 
   /**
    * 真实环境：用后台配置的 AppID + AppSecret 调用 jscode2session 换取 openid。
-   * 未上传 AppSecret 时使用 code 派生稳定 openid，保证同一 code 可重复登录、便于联调。
+   * `dev_` 前缀是 H5 预览的固定 code，非生产环境下直接派生 openid，
+   * 避免后台上传 AppSecret 后本地预览无法登录；生产环境一律走微信。
    */
   private async resolveOpenid(code: string): Promise<string> {
-    const { appId, appSecret } = await this.integration.miniappCredentials();
+    const devPreview = code.startsWith('dev_') && process.env.NODE_ENV !== 'production';
 
-    if (appSecret) {
-      const url =
-        'https://api.weixin.qq.com/sns/jscode2session' +
-        `?appid=${encodeURIComponent(appId)}&secret=${encodeURIComponent(appSecret)}` +
-        `&js_code=${encodeURIComponent(code)}&grant_type=authorization_code`;
-      const res = await fetch(url);
-      const data = (await res.json()) as { openid?: string; errmsg?: string };
-      if (!data.openid) throw new Error(`微信登录失败：${data.errmsg ?? 'unknown'}`);
-      return data.openid;
+    if (!devPreview) {
+      const { appId, appSecret } = await this.integration.miniappCredentials();
+
+      if (appSecret) {
+        const url =
+          'https://api.weixin.qq.com/sns/jscode2session' +
+          `?appid=${encodeURIComponent(appId)}&secret=${encodeURIComponent(appSecret)}` +
+          `&js_code=${encodeURIComponent(code)}&grant_type=authorization_code`;
+        const res = await fetch(url);
+        const data = (await res.json()) as { openid?: string; errmsg?: string };
+        if (!data.openid) throw new Error(`微信登录失败：${data.errmsg ?? 'unknown'}`);
+        return data.openid;
+      }
     }
     return `dev_${code}`.slice(0, 64);
   }

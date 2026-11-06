@@ -298,7 +298,7 @@ describe('集成配置契约', () => {
     );
     expect(patched.status).toBe(200);
 
-    const plain = 'contract-app-secret-value';
+    const plain = 'Ab3'.repeat(10) + 'Zx';
     const uploaded = await api(
       '/admin/integration/secrets/miniappAppSecret',
       {
@@ -352,6 +352,20 @@ describe('集成配置契约', () => {
       superToken,
     );
     expect(badExt.status).toBe(400);
+
+    // AppSecret 必须是 32 位字母数字，误传私钥文件应被拒绝
+    const badContent = await api(
+      '/admin/integration/secrets/miniappAppSecret',
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          fileName: 'private.wx.key',
+          contentBase64: Buffer.from('-----BEGIN PRIVATE KEY-----\nabc').toString('base64'),
+        }),
+      },
+      superToken,
+    );
+    expect(badContent.status).toBe(400);
   });
 
   it('非超管不能修改集成配置', async () => {
