@@ -56,7 +56,8 @@ export async function api<T>(path: string, options: RequestOptions = {}): Promis
 
   if (res.status === 401) {
     clearToken();
-    if (!window.location.pathname.startsWith('/login')) window.location.assign('/login');
+    const loginPath = `${import.meta.env.BASE_URL}login`;
+    if (!window.location.pathname.startsWith(loginPath)) window.location.assign(loginPath);
   }
   if (!res.ok) {
     throw new ApiError(payload?.code ?? 'HTTP_ERROR', payload?.message ?? '请求失败', res.status);

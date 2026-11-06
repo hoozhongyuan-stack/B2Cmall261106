@@ -32,7 +32,8 @@ export function saveSession(token: string, user: AdminSession): void {
 export function logout(): void {
   clearToken();
   localStorage.removeItem(USER_KEY);
-  window.location.assign('/login');
+  // 兼容部署在子路径（如 /admin/）的情况
+  window.location.assign(`${import.meta.env.BASE_URL}login`);
 }
 
 /** 角色权限：与后端 @Roles 保持一致，前端仅做菜单与按钮显隐 */
