@@ -272,6 +272,108 @@ describe('子账号与操作日志契约', () => {
   });
 });
 
+describe('集成配置契约', () => {
+  it('读取 / 修改 / 上传密钥 / 删除密钥，接口不回显文件内容', async () => {
+    const before = await api('/admin/integration', {}, superToken);
+    expect(before.status).toBe(200);
+    expect(before.body.data.miniappAppSecret).toHaveProperty('configured');
+    expect(before.body.data.subscribeTemplateIds).toHaveProperty('orderPaid');
+
+    const patched = await api(
+      '/admin/integration',
+      {
+        method: 'PATCH',
+        body: JSON.stringify({
+          miniappAppId: 'wx1234567890abcdef',
+          paymentProvider: 'mock',
+          wechatPayMchId: '1900000001',
+          wechatPayCertSerial: 'SERIAL-001',
+          wechatPayNotifyUrl: 'https://example.com/api/payments/callback',
+          subscribeTemplateIds: { orderPaid: 'tpl-paid', orderShipped: '', refundResult: '' },
+          apiBaseUrl: 'https://api.example.com/api',
+          businessDomain: 'api.example.com',
+        }),
+      },
+      superToken,
+    );
+    expect(patched.status).toBe(200);
+
+    const plain = 'contract-app-secret-value';
+    const uploaded = await api(
+      '/admin/integration/secrets/miniappAppSecret',
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          fileName: 'appsecret.txt',
+          contentBase64: Buffer.from(plain).toString('base64'),
+        }),
+      },
+      superToken,
+    );
+    expect(uploaded.status).toBe(201);
+
+    const afterUpload = await api('/admin/integration', {}, superToken);
+    expect(afterUpload.body.data.miniappAppSecret.configured).toBe(true);
+    expect(afterUpload.body.data.miniappAppSecret.fileName).toBe('appsecret.txt');
+    expect(JSON.stringify(afterUpload.body.data)).not.toContain(plain);
+
+    // 审计日志同样不能落密钥明文
+    const logs = await api('/admin/logs?page=1&pageSize=20', {}, superToken);
+    expect(JSON.stringify(logs.body.data.items)).not.toContain(plain);
+
+    const removed = await api(
+      '/admin/integration/secrets/miniappAppSecret',
+      { method: 'DELETE' },
+      superToken,
+    );
+    expect(removed.status).toBe(200);
+
+    const afterRemove = await api('/admin/integration', {}, superToken);
+    expect(afterRemove.body.data.miniappAppSecret.configured).toBe(false);
+  });
+
+  it('非法密钥类型或文件格式返回 400', async () => {
+    const badField = await api(
+      '/admin/integration/secrets/unknownField',
+      {
+        method: 'POST',
+        body: JSON.stringify({ fileName: 'x.txt', contentBase64: 'YWJj' }),
+      },
+      superToken,
+    );
+    expect(badField.status).toBe(400);
+
+    const badExt = await api(
+      '/admin/integration/secrets/wechatPayPrivateKey',
+      {
+        method: 'POST',
+        body: JSON.stringify({ fileName: 'key.exe', contentBase64: 'YWJj' }),
+      },
+      superToken,
+    );
+    expect(badExt.status).toBe(400);
+  });
+
+  it('非超管不能修改集成配置', async () => {
+    const ops = await api(
+      '/admin/auth/login',
+      { method: 'POST', body: JSON.stringify({ account: 'ops@shanye.com', password: 'ops12345' }) },
+      '',
+    );
+    const opsToken = ops.body.data.token as string;
+
+    const read = await api('/admin/integration', {}, opsToken);
+    expect(read.status).toBe(200);
+
+    const patched = await api(
+      '/admin/integration',
+      { method: 'PATCH', body: JSON.stringify({ paymentProvider: 'mock' }) },
+      opsToken,
+    );
+    expect(patched.status).toBe(403);
+  });
+});
+
 describe('数据概览契约', () => {
   it('返回今日指标、待办、7 日趋势与热销商品', async () => {
     const res = await api('/admin/dashboard', {}, superToken);

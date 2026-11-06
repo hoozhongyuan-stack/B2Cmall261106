@@ -78,9 +78,7 @@ async function main(): Promise<void> {
 
   await prisma.shopConfig.upsert({
     where: { id: 'singleton' },
-    update: {
-      miniappAppId: 'wx04619aa796c2188f',
-    },
+    update: {},
     create: {
       id: 'singleton',
       shopName: '山野',
@@ -91,7 +89,17 @@ async function main(): Promise<void> {
       payTimeoutMinutes: 15,
       afterSaleDays: 7,
       autoConfirmDays: 10,
+    },
+  });
+
+  // 集成参数：开发阶段先用 mock 支付；AppSecret 由后台上传，不写进代码
+  await prisma.integrationConfig.upsert({
+    where: { id: 'singleton' },
+    update: {},
+    create: {
+      id: 'singleton',
       miniappAppId: 'wx04619aa796c2188f',
+      paymentProvider: 'mock',
     },
   });
 

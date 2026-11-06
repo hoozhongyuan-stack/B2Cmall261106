@@ -24,6 +24,7 @@ const Coupons = lazy(() => import('./pages/Coupons'));
 const CouponNew = lazy(() => import('./pages/CouponNew'));
 const CouponClaims = lazy(() => import('./pages/CouponClaims'));
 const ShopSettings = lazy(() => import('./pages/ShopSettings'));
+const Integration = lazy(() => import('./pages/Integration'));
 const Freight = lazy(() => import('./pages/Freight'));
 const PaymentSettings = lazy(() => import('./pages/PaymentSettings'));
 const Assets = lazy(() => import('./pages/Assets'));
@@ -68,6 +69,7 @@ export function App() {
           <Route path="coupons/new" element={<CouponNew />} />
           <Route path="coupons/:id/claims" element={<CouponClaims />} />
           <Route path="settings/shop" element={<ShopSettings />} />
+          <Route path="settings/integration" element={<Integration />} />
           <Route path="settings/freight" element={<Freight />} />
           <Route path="settings/payment" element={<PaymentSettings />} />
           <Route path="assets" element={<Assets />} />

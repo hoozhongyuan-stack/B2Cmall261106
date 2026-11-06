@@ -26,9 +26,25 @@ const TARGET_TYPE_BY_SEGMENT: Record<string, string> = {
   shop: 'ShopSetting',
   assets: 'Asset',
   accounts: 'AdminAccount',
+  integration: 'Integration',
 };
 
-/** 递归剔除请求体中的密码字段，避免明文落库 */
+/** 敏感字段：密钥、密码、文件内容一律不落审计日志 */
+const SECRET_KEYS = new Set([
+  'password',
+  'passwordHash',
+  'contentBase64',
+  'content',
+  'secret',
+  'appSecret',
+  'miniappAppSecret',
+  'apiKey',
+  'apiV3Key',
+  'privateKey',
+  'mchKey',
+]);
+
+/** 递归剔除请求体中的密码与密钥字段，避免明文落库 */
 function scrubSecrets(value: unknown): unknown {
   if (!value || typeof value !== 'object') return value;
   if (Array.isArray(value)) return value.map((item) => scrubSecrets(item));
@@ -36,7 +52,7 @@ function scrubSecrets(value: unknown): unknown {
   const source = value as Record<string, unknown>;
   const result: Record<string, unknown> = {};
   for (const [key, item] of Object.entries(source)) {
-    if (key === 'password' || key === 'passwordHash') continue;
+    if (SECRET_KEYS.has(key)) continue;
     result[key] = scrubSecrets(item);
   }
   return result;

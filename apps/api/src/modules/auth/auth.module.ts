@@ -6,9 +6,11 @@ import { AdminAuthController } from './admin-auth.controller';
 import { AdminAuthService } from './admin-auth.service';
 import { UserAuthController } from './user-auth.controller';
 import { JwtAuthGuard, RolesGuard } from '../../common/auth.guards';
+import { IntegrationModule } from '../integration/integration.module';
 
 @Module({
   imports: [
+    IntegrationModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],

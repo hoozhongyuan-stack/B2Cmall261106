@@ -15,6 +15,7 @@ tags:
   - name: orders
   - name: payments
   - name: admin-orders
+  - name: admin-integration
   - name: telemetry
 
 paths:
@@ -1287,7 +1288,6 @@ paths:
                 payTimeoutMinutes: { type: integer, minimum: 0 }
                 afterSaleDays: { type: integer, minimum: 0 }
                 autoConfirmDays: { type: integer, minimum: 0 }
-                miniappAppId: { type: string }
       responses:
         '200': { description: OK }
         '400': { $ref: '#/components/responses/BadRequest' }
@@ -1548,6 +1548,80 @@ paths:
       responses:
         '204': { description: 已记录 }
         '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /admin/integration:
+    get:
+      tags: [admin-integration]
+      summary: 集成配置（密钥只返回是否已配置与文件名）
+      security: [{ adminToken: [] }]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/IntegrationConfig' }
+    patch:
+      tags: [admin-integration]
+      summary: 修改集成配置（小程序 / 支付 / 订阅消息 / 域名）
+      security: [{ adminToken: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                miniappAppId: { type: string, maxLength: 64 }
+                paymentProvider: { type: string, enum: [mock, wechat] }
+                wechatPayMchId: { type: string, maxLength: 64 }
+                wechatPayCertSerial: { type: string, maxLength: 128 }
+                wechatPayNotifyUrl: { type: string, maxLength: 300 }
+                subscribeTemplateIds:
+                  type: object
+                  properties:
+                    orderPaid: { type: string, maxLength: 64 }
+                    orderShipped: { type: string, maxLength: 64 }
+                    refundResult: { type: string, maxLength: 64 }
+                apiBaseUrl: { type: string, maxLength: 300 }
+                businessDomain: { type: string, maxLength: 200 }
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/BadRequest' }
+
+  /admin/integration/secrets/{field}:
+    post:
+      tags: [admin-integration]
+      summary: 上传密钥或证书文件（base64，≤200KB）
+      security: [{ adminToken: [] }]
+      parameters:
+        - { name: field, in: path, required: true, schema: { type: string, enum: [miniappAppSecret, wechatPayApiV3Key, wechatPayPrivateKey] } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [fileName, contentBase64]
+              properties:
+                fileName: { type: string, maxLength: 200 }
+                contentBase64: { type: string, maxLength: 400000 }
+      responses:
+        '201': { description: 已保存 }
+        '400': { $ref: '#/components/responses/BadRequest' }
+    delete:
+      tags: [admin-integration]
+      summary: 删除已上传的密钥或证书
+      security: [{ adminToken: [] }]
+      parameters:
+        - { name: field, in: path, required: true, schema: { type: string, enum: [miniappAppSecret, wechatPayApiV3Key, wechatPayPrivateKey] } }
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/BadRequest' }
 
 components:
   securitySchemes:
@@ -1994,7 +2068,6 @@ components:
         payTimeoutMinutes: { type: integer }
         afterSaleDays: { type: integer }
         autoConfirmDays: { type: integer }
-        miniappAppId: { type: string, nullable: true }
         regions:
           type: array
           items:
@@ -2015,6 +2088,34 @@ components:
         group: { type: string }
         refCount: { type: integer }
         createdAt: { type: string, format: date-time }
+
+    SecretMeta:
+      type: object
+      required: [configured, fileName]
+      properties:
+        configured: { type: boolean }
+        fileName: { type: string, nullable: true }
+
+    IntegrationConfig:
+      type: object
+      properties:
+        miniappAppId: { type: string, nullable: true }
+        miniappAppSecret: { $ref: '#/components/schemas/SecretMeta' }
+        paymentProvider: { type: string, enum: [mock, wechat] }
+        wechatPayMchId: { type: string, nullable: true }
+        wechatPayCertSerial: { type: string, nullable: true }
+        wechatPayNotifyUrl: { type: string, nullable: true }
+        wechatPayApiV3Key: { $ref: '#/components/schemas/SecretMeta' }
+        wechatPayPrivateKey: { $ref: '#/components/schemas/SecretMeta' }
+        subscribeTemplateIds:
+          type: object
+          properties:
+            orderPaid: { type: string }
+            orderShipped: { type: string }
+            refundResult: { type: string }
+        apiBaseUrl: { type: string, nullable: true }
+        businessDomain: { type: string, nullable: true }
+        updatedAt: { type: string, format: date-time }
 
     AdminAccount:
       type: object

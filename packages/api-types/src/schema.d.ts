@@ -2964,7 +2964,6 @@ export interface paths {
                         payTimeoutMinutes?: number;
                         afterSaleDays?: number;
                         autoConfirmDays?: number;
-                        miniappAppId?: string;
                     };
                 };
             };
@@ -3505,6 +3504,146 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/integration": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 集成配置（密钥只返回是否已配置与文件名） */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: components["schemas"]["IntegrationConfig"];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** 修改集成配置（小程序 / 支付 / 订阅消息 / 域名） */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        miniappAppId?: string;
+                        /** @enum {string} */
+                        paymentProvider?: "mock" | "wechat";
+                        wechatPayMchId?: string;
+                        wechatPayCertSerial?: string;
+                        wechatPayNotifyUrl?: string;
+                        subscribeTemplateIds?: {
+                            orderPaid?: string;
+                            orderShipped?: string;
+                            refundResult?: string;
+                        };
+                        apiBaseUrl?: string;
+                        businessDomain?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                400: components["responses"]["BadRequest"];
+            };
+        };
+        trace?: never;
+    };
+    "/admin/integration/secrets/{field}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 上传密钥或证书文件（base64，≤200KB） */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    field: "miniappAppSecret" | "wechatPayApiV3Key" | "wechatPayPrivateKey";
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        fileName: string;
+                        contentBase64: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description 已保存 */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                400: components["responses"]["BadRequest"];
+            };
+        };
+        /** 删除已上传的密钥或证书 */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    field: "miniappAppSecret" | "wechatPayApiV3Key" | "wechatPayPrivateKey";
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                400: components["responses"]["BadRequest"];
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -3856,7 +3995,6 @@ export interface components {
             payTimeoutMinutes?: number;
             afterSaleDays?: number;
             autoConfirmDays?: number;
-            miniappAppId?: string | null;
             regions?: {
                 id?: string;
                 regionName?: string;
@@ -3873,6 +4011,30 @@ export interface components {
             refCount?: number;
             /** Format: date-time */
             createdAt?: string;
+        };
+        SecretMeta: {
+            configured: boolean;
+            fileName: string | null;
+        };
+        IntegrationConfig: {
+            miniappAppId?: string | null;
+            miniappAppSecret?: components["schemas"]["SecretMeta"];
+            /** @enum {string} */
+            paymentProvider?: "mock" | "wechat";
+            wechatPayMchId?: string | null;
+            wechatPayCertSerial?: string | null;
+            wechatPayNotifyUrl?: string | null;
+            wechatPayApiV3Key?: components["schemas"]["SecretMeta"];
+            wechatPayPrivateKey?: components["schemas"]["SecretMeta"];
+            subscribeTemplateIds?: {
+                orderPaid?: string;
+                orderShipped?: string;
+                refundResult?: string;
+            };
+            apiBaseUrl?: string | null;
+            businessDomain?: string | null;
+            /** Format: date-time */
+            updatedAt?: string;
         };
         AdminAccount: {
             id?: string;

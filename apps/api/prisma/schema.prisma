@@ -462,7 +462,6 @@ model ShopConfig {
   payTimeoutMinutes  Int     @default(15)
   afterSaleDays      Int     @default(7)
   autoConfirmDays    Int     @default(10)
-  miniappAppId       String?
   updatedAt          DateTime @updatedAt @db.Timestamptz(3)
 }
 
@@ -482,4 +481,29 @@ model Asset {
   group    String   @default("default")
   refCount Int      @default(0)
   createdAt DateTime @default(now()) @db.Timestamptz(3)
+}
+
+// 对外集成参数：小程序登录、微信支付、订阅消息、业务域名
+// 敏感内容只存服务端文件路径，接口不回传明文
+model IntegrationConfig {
+  id                      String   @id @default("singleton")
+  // 小程序登录
+  miniappAppId            String?
+  miniappAppSecretFile    String?
+  miniappAppSecretName    String?
+  // 支付渠道与微信支付参数
+  paymentProvider         String   @default("mock")
+  wechatPayMchId          String?
+  wechatPayCertSerial     String?
+  wechatPayNotifyUrl      String?
+  wechatPayApiV3KeyFile   String?
+  wechatPayApiV3KeyName   String?
+  wechatPayPrivateKeyFile String?
+  wechatPayPrivateKeyName String?
+  // 订阅消息模板：{ orderPaid, orderShipped, refundResult }
+  subscribeTemplateIds    Json?
+  // 小程序业务域名 / 服务端 API 地址
+  apiBaseUrl              String?
+  businessDomain          String?
+  updatedAt               DateTime @updatedAt @db.Timestamptz(3)
 }

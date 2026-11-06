@@ -55,21 +55,27 @@ async function raw<T>(path: string, options: RequestOptions, auth: boolean): Pro
   return (payload?.data ?? (null as T)) as T;
 }
 
+/**
+ * 登录 code：真机用 Taro.login() 获取，H5 预览沿用固定 code。
+ * 后端未上传 AppSecret 时会把 code 派生为稳定 openid，便于本地联调。
+ */
+async function loginCode(): Promise<string> {
+  if (process.env.TARO_ENV === 'weapp') {
+    const result = await Taro.login();
+    if (result.code) return result.code;
+  }
+  return 'dev_miniapp_user';
+}
+
 let loginTask: Promise<void> | null = null;
 
-/**
- * 静默登录：开发阶段用固定 code 派生稳定 openid，避免每次进页面都变成新用户。
- * 接入真实 jscode2session 后，改为 Taro.login() 取 code 传给后端即可。
- */
+/** 静默登录：进页面时自动换取 token，失败由调用方兜底提示 */
 export function ensureLogin(): Promise<void> {
   if (getToken()) return Promise.resolve();
   if (loginTask) return loginTask;
 
-  loginTask = raw<{ token: string }>(
-    '/auth/wechat-login',
-    { method: 'POST', body: { code: 'dev_miniapp_user' } },
-    false,
-  )
+  loginTask = loginCode()
+    .then((code) => raw<{ token: string }>('/auth/wechat-login', { method: 'POST', body: { code } }, false))
     .then((data) => {
       setToken(data.token);
     })

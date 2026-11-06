@@ -52,10 +52,6 @@ class UpdateShopDto {
   @IsOptional()
   @IsInt()
   autoConfirmDays?: number;
-
-  @IsOptional()
-  @IsString()
-  miniappAppId?: string;
 }
 
 class CreateRegionDto {
