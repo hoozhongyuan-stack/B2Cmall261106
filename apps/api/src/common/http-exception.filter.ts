@@ -16,6 +16,9 @@ const ERROR_CODE_MAP: Record<string, string> = {
   '账号已锁定': 'AUTH_LOCKED',
   '未登录或登录已失效': 'AUTH_UNAUTHORIZED',
   '无权限执行该操作': 'FORBIDDEN',
+  '已有售后单': 'AFTER_SALE_EXISTS',
+  '售后期': 'AFTER_SALE_EXPIRED',
+  '累计退款金额超过': 'REFUND_OVER_LIMIT',
 };
 
 @Catch()

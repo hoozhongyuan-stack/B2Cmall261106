@@ -4,7 +4,13 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { calculateOrderAmount, can, nextStatus, type OrderAmount } from '@shanye/shared';
+import {
+  allocateLinePaidCents,
+  calculateOrderAmount,
+  can,
+  nextStatus,
+  type OrderAmount,
+} from '@shanye/shared';
 
 import { PrismaService, isUniqueViolation } from '../../prisma/prisma.module';
 import { generateOrderNo } from '../../common/password';
@@ -159,6 +165,16 @@ export class OrderService {
           });
         }
 
+        // 行实付分摊：会员折扣与券按商品金额占比摊到每一行，作为退款上限依据
+        const linePaid = allocateLinePaidCents({
+          lines: itemsForAmount.map((i) => ({
+            priceCents: i.sku.priceCents,
+            quantity: i.quantity,
+          })),
+          memberDiscountCents: amount.memberDiscountCents,
+          couponCents: amount.couponCents,
+        });
+
         const order = await tx.order.create({
           data: {
             orderNo: generateOrderNo(),
@@ -179,7 +195,7 @@ export class OrderService {
             remark: dto.remark,
             payDeadlineAt: new Date(Date.now() + config.payTimeoutMinutes * 60_000),
             items: {
-              create: itemsForAmount.map((i) => ({
+              create: itemsForAmount.map((i, idx) => ({
                 skuId: i.sku.id,
                 title: i.sku.title,
                 specText: Object.values(i.sku.specJson as Record<string, string>).join(' / '),
@@ -187,6 +203,7 @@ export class OrderService {
                 priceCents: i.sku.priceCents,
                 quantity: i.quantity,
                 subtotalCents: i.sku.priceCents * i.quantity,
+                paidCents: linePaid[idx],
               })),
             },
           },

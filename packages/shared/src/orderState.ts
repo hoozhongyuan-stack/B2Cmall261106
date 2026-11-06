@@ -22,6 +22,7 @@ export const ORDER_ACTIONS = {
   confirm: 'confirm',
   refundApply: 'refund_apply',
   refundSuccess: 'refund_success',
+  refundPartialSuccess: 'refund_partial_success',
   refundReject: 'refund_reject',
 } as const;
 
@@ -46,6 +47,8 @@ const ORDER_TRANSITIONS: Record<OrderStatus, Partial<Record<OrderAction, OrderSt
   },
   REFUNDING: {
     refund_success: 'REFUNDED',
+    // 部分退款：金额未退完，订单回到申请前状态，仍可继续履约
+    refund_partial_success: 'PREVIOUS',
     refund_reject: 'PREVIOUS',
   },
   REFUNDED: {},
@@ -86,6 +89,11 @@ export const ORDER_STATUS_LABEL: Record<OrderStatus, string> = {
   REFUNDED: '已退款',
   CLOSED: '已关闭',
 };
+
+/** 是否尚未发货：仅退款时库存可回滚二次销售 */
+export function isBeforeShipment(status: OrderStatus): boolean {
+  return status === 'PAID';
+}
 
 /** 买家侧可执行的操作，用于按钮显隐（不替代服务端校验） */
 export function buyerActions(status: OrderStatus): OrderAction[] {

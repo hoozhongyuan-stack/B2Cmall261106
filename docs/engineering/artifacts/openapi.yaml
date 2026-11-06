@@ -387,6 +387,166 @@ paths:
         '200': { description: OK }
         '409': { $ref: '#/components/responses/Conflict' }
 
+  /after-sales:
+    post:
+      tags: [after-sales]
+      summary: 提交售后申请（退款额默认按行实付，上限不超过行实付）
+      security: [{ userToken: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [orderItemId, type, reason]
+              properties:
+                orderItemId: { type: string }
+                type: { type: string, enum: [REFUND_ONLY, RETURN_REFUND] }
+                reason: { type: string }
+                description: { type: string }
+                refundCents: { type: integer, minimum: 1 }
+                evidence: { type: array, items: { type: string } }
+      responses:
+        '201':
+          description: 创建成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/AfterSale' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '409':
+          description: 重复申请、超出售后期或订单状态不支持
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+    get:
+      tags: [after-sales]
+      summary: 我的售后列表
+      security: [{ userToken: [] }]
+      responses:
+        '200': { description: OK }
+
+  /after-sales/{id}:
+    get:
+      tags: [after-sales]
+      summary: 售后详情
+      security: [{ userToken: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/AfterSale' }
+
+  /after-sales/{id}/ship-back:
+    post:
+      tags: [after-sales]
+      summary: 买家填写寄回单号
+      security: [{ userToken: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [trackingNo]
+              properties:
+                trackingNo: { type: string }
+      responses:
+        '200': { description: OK }
+
+  /after-sales/{id}/cancel:
+    post:
+      tags: [after-sales]
+      summary: 买家撤销售后（仅待审核阶段）
+      security: [{ userToken: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { description: OK }
+
+  /admin/after-sales:
+    get:
+      tags: [admin-after-sales]
+      summary: 售后列表（含各状态数量）
+      security: [{ adminToken: [] }]
+      parameters:
+        - { name: status, in: query, schema: { type: string } }
+      responses:
+        '200': { description: OK }
+        '403': { description: 角色无权限 }
+
+  /admin/after-sales/{id}/moderate:
+    post:
+      tags: [admin-after-sales]
+      summary: 审核售后（同意仅退款 / 同意退货 / 拒绝）
+      security: [{ adminToken: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [action]
+              properties:
+                action: { type: string, enum: [approve_only_refund, approve_return, reject] }
+                rejectReason: { type: string, description: action=reject 时必填 }
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { description: 角色无权限 }
+
+  /admin/after-sales/{id}/receive:
+    post:
+      tags: [admin-after-sales]
+      summary: 确认收到退货并发起退款
+      security: [{ adminToken: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { description: OK }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /orders/{id}/shipment:
+    get:
+      tags: [shipment]
+      summary: 物流详情（节点时间线）
+      security: [{ userToken: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/ShipmentTrace' }
+
+  /admin/orders/close-expired:
+    post:
+      tags: [admin-orders]
+      summary: 手动触发超时关单（定时任务每分钟自动执行）
+      security: [{ adminToken: [] }]
+      responses:
+        '201': { description: 返回本次关闭数量 }
+        '403': { description: 仅超管 }
+
 components:
   securitySchemes:
     userToken:
@@ -561,6 +721,51 @@ components:
         status: { type: string, enum: [SUCCESS, FAILED] }
         amountCents: { type: integer }
         paidAt: { type: string, format: date-time }
+
+    AfterSale:
+      type: object
+      required: [id, afterSaleNo, type, status, refundCents]
+      properties:
+        id: { type: string }
+        afterSaleNo: { type: string, example: AS20261106000123456 }
+        type: { type: string, enum: [REFUND_ONLY, RETURN_REFUND] }
+        reason: { type: string }
+        description: { type: string, nullable: true }
+        evidence: { type: array, items: { type: string } }
+        refundCents: { type: integer, description: 退款金额（不含运费） }
+        status:
+          type: string
+          enum: [APPLIED, WAIT_BUYER_SHIP, WAIT_SELLER_RECEIVE, REFUNDING, COMPLETED, REJECTED]
+        rejectReason: { type: string, nullable: true }
+        buyerTrackingNo: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time }
+        finishedAt: { type: string, format: date-time, nullable: true }
+        orderNo: { type: string, nullable: true }
+        refund:
+          type: object
+          nullable: true
+          properties:
+            refundNo: { type: string }
+            status: { type: string, enum: [PENDING, SUCCESS, FAILED] }
+            refundedAt: { type: string, format: date-time, nullable: true }
+
+    ShipmentTrace:
+      type: object
+      required: [shipped, nodes, traceSource]
+      properties:
+        shipped: { type: boolean }
+        expressName: { type: string, nullable: true }
+        expressCode: { type: string, nullable: true }
+        trackingNo: { type: string, nullable: true }
+        traceSource: { type: string, enum: [INTERNAL, courier] }
+        nodes:
+          type: array
+          items:
+            type: object
+            properties:
+              time: { type: string, format: date-time }
+              title: { type: string }
+              desc: { type: string }
 
     Error:
       type: object

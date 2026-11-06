@@ -105,3 +105,33 @@ export function assertAmountSelfConsistent(amount: OrderAmount): void {
     throw new Error(`金额不自洽：期望 ${expected}，实际 ${amount.payableCents}`);
   }
 }
+
+/**
+ * 把整单优惠按商品金额占比分摊到行（用于订单行实付与退款上限）。
+ * 余数给最后一行，保证分摊合计精确等于总优惠。
+ */
+export function allocateDiscount(totalDiscountCents: number, weightsCents: number[]): number[] {
+  if (!weightsCents.length) return [];
+  if (totalDiscountCents <= 0) return weightsCents.map(() => 0);
+
+  const sum = weightsCents.reduce((a, b) => a + b, 0);
+  if (sum <= 0) return weightsCents.map(() => 0);
+
+  const result = weightsCents.map((w) => Math.floor((totalDiscountCents * w) / sum));
+  const allocated = result.reduce((a, b) => a + b, 0);
+  const rest = totalDiscountCents - allocated;
+  if (rest > 0) result[result.length - 1] += rest;
+  return result;
+}
+
+/** 计算每行实付（不含运费），返回与输入等长的数组 */
+export function allocateLinePaidCents(input: {
+  lines: { priceCents: number; quantity: number }[];
+  memberDiscountCents: number;
+  couponCents: number;
+}): number[] {
+  const goods = input.lines.map((l) => l.priceCents * l.quantity);
+  const memberAlloc = allocateDiscount(input.memberDiscountCents, goods);
+  const couponAlloc = allocateDiscount(input.couponCents, goods);
+  return goods.map((g, i) => g - memberAlloc[i] - couponAlloc[i]);
+}
