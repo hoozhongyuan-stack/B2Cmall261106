@@ -1,0 +1,37 @@
+:root {
+  --canvas: #F6F6F5;
+  --surface: #FFFFFF;
+  --surface-2: #FAFAF9;
+  --sand: #F4EFE4;
+  --ink: #16181A;
+  --ink-2: #55585C;
+  --ink-3: #8E9399;
+  --line: #EBEBE8;
+  --line-2: #DEDEDA;
+  --brand: #E2231A;
+  --brand-2: #C21B14;
+  --brand-soft: #FDEDEB;
+  --gold: #BC8A2E;
+  --gold-soft: #FBF3E2;
+  --ok: #1F7A4C;
+  --warn: #A9691A;
+  --danger: #C22C1E;
+
+  --radius-xs: 2px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --radius-pill: 999px;
+
+  --text-display-1: 34px;
+  --text-display-2: 27px;
+  --text-title: 17px;
+  --text-body: 14px;
+  --text-caption: 12px;
+  --text-micro: 11px;
+
+  --ease: cubic-bezier(.2, .7, .3, 1);
+  --motion-enter: 200ms;
+  --motion-hover: 320ms;
+  --motion-switch: 200ms;
+}

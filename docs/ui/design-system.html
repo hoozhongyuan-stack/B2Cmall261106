@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#F6F6F5">
+<title>山野商城 · 设计规范 v1.2</title>
+<style>
+  :root{
+    --paper:#F6F6F5;
+    --surface:#FFFFFF;
+    --surface-2:#FAFAF9;
+    --sand:#F4F1EB;
+    --ink:#16181A;
+    --ink-2:#55585C;
+    --ink-3:#8E9399;
+    --line:#EBEBE8;
+    --line-2:#DEDEDA;
+    --brand:#E2231A;
+    --brand-2:#C21B14;
+    --brand-soft:#FDEDEB;
+    --price:#E2231A;
+    --price-soft:#FDEDEB;
+    --gold:#BC8A2E;
+    --gold-soft:#FBF3E2;
+    --ok:#1F7A4C;
+    --warn:#A9691A;
+    --danger:#C22C1E;
+    --radius-xs:2px; --radius-sm:8px; --radius-md:12px; --radius-lg:20px; --radius-pill:999px;
+    --mono:"SFMono-Regular",Menlo,Consolas,monospace;
+    --serif:"Songti SC","Noto Serif SC",Georgia,"Times New Roman",serif;
+    --sans:"PingFang SC",-apple-system,BlinkMacSystemFont,"Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    --ease:cubic-bezier(.2,.7,.3,1);
+    --dur:180ms;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);
+    font-size:15px;line-height:1.7;-webkit-font-smoothing:antialiased;
+    font-feature-settings:"tnum" 0;
+  }
+
+  .shell{display:flex;align-items:flex-start;min-height:100vh;}
+  aside.rail{
+    width:236px;flex:0 0 236px;position:sticky;top:0;height:100vh;overflow-y:auto;
+    padding:30px 20px 48px;border-right:1px solid var(--line);background:var(--surface-2);
+  }
+  .brandmark{display:flex;align-items:center;gap:10px;margin-bottom:26px;}
+  .brandmark .sq{
+    width:26px;height:26px;border-radius:6px;background:var(--brand);color:#fff;
+    display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-size:15px;line-height:1;
+  }
+  .brandmark .nm{font-family:var(--serif);font-size:15px;letter-spacing:.06em;}
+  .brandmark .sub{font-size:11px;color:var(--ink-3);letter-spacing:.04em;}
+  .rail nav a{
+    display:block;font-size:12.5px;color:var(--ink-3);text-decoration:none;padding:6px 10px;border-radius:6px;
+    border-left:2px solid transparent;transition:color 160ms var(--ease),background-color 160ms var(--ease);
+  }
+  .rail nav a:hover{color:var(--brand);background:var(--brand-soft);}
+  .rail nav a:focus-visible{outline:2px solid var(--brand);outline-offset:2px;}
+  .rail nav a.on{color:var(--brand);background:var(--brand-soft);border-left-color:var(--brand);font-weight:600;}
+  .rail-foot{margin-top:28px;padding-top:16px;border-top:1px solid var(--line);font-size:11.5px;color:var(--ink-3);line-height:1.6;}
+  .rail-foot a{color:var(--brand);text-decoration:none;display:block;margin-bottom:4px;}
+
+  main{flex:1;min-width:0;padding:56px 56px 120px;max-width:1020px;}
+  .head{border-bottom:1px solid var(--line-2);padding-bottom:30px;margin-bottom:44px;}
+  .kicker{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--brand);font-weight:700;margin-bottom:14px;}
+  h1{font-family:var(--serif);font-size:38px;line-height:1.22;margin:0 0 16px;font-weight:600;letter-spacing:-.01em;text-wrap:balance;}
+  .lede{font-size:15px;color:var(--ink-2);max-width:66ch;margin:0 0 20px;}
+  .meta{display:flex;flex-wrap:wrap;gap:8px;}
+  .pill{font-size:11.5px;padding:3px 10px;border-radius:var(--radius-pill);border:1px solid var(--line-2);background:var(--surface);color:var(--ink-3);}
+  .pill b{color:var(--ink);font-weight:600;}
+
+  section{margin-bottom:56px;scroll-margin-top:24px;}
+  h2{font-family:var(--serif);font-size:24px;font-weight:600;margin:0 0 8px;letter-spacing:-.005em;display:flex;gap:12px;align-items:baseline;}
+  h2 .n{font-family:var(--mono);font-size:12px;color:var(--brand);letter-spacing:.08em;font-weight:500;}
+  .sub{font-size:13px;color:var(--ink-3);margin:0 0 26px;padding-bottom:16px;border-bottom:1px solid var(--line);}
+  h3{font-size:15.5px;font-weight:650;margin:32px 0 12px;}
+  h4{font-size:13.5px;font-weight:650;color:var(--ink-2);margin:22px 0 8px;}
+  p{margin:0 0 12px;}
+  ul,ol{margin:0 0 14px;padding-left:22px;}
+  li{margin-bottom:6px;}
+  code{font-family:var(--mono);font-size:12.5px;background:#EFEDE7;padding:1px 5px;border-radius:4px;color:#2B3B34;}
+
+  /* ---------- principle cards (cardless list w/ dividers) ---------- */
+  .principles{border-top:1px solid var(--line);margin:18px 0 8px;}
+  .pr{display:grid;grid-template-columns:34px 1fr;gap:16px;padding:18px 0;border-bottom:1px solid var(--line);}
+  .pr .idx{font-family:var(--mono);font-size:11.5px;color:var(--brand);padding-top:3px;letter-spacing:.06em;}
+  .pr .t{font-size:14.5px;font-weight:650;margin-bottom:4px;}
+  .pr .d{font-size:13px;color:var(--ink-2);line-height:1.65;}
+
+  /* ---------- swatches ---------- */
+  .sw-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:2px;border:1px solid var(--line);border-radius:var(--radius-md);overflow:hidden;background:var(--line);}
+  .sw{background:var(--surface);padding:0 0 12px;}
+  .sw .chipbox{height:68px;display:block;}
+  .sw .nm{font-size:12.5px;font-weight:650;margin:10px 14px 1px;}
+  .sw .hex{font-family:var(--mono);font-size:11px;color:var(--ink-3);margin:0 14px;}
+  .sw .use{font-size:11.5px;color:var(--ink-3);margin:6px 14px 0;line-height:1.5;}
+
+  .ratio{display:flex;height:56px;border-radius:var(--radius-sm);overflow:hidden;margin:16px 0 6px;border:1px solid var(--line);}
+  .ratio span{display:flex;align-items:center;justify-content:center;font-size:11px;letter-spacing:.04em;}
+
+  /* ---------- tables ---------- */
+  .tw{overflow-x:auto;margin:14px 0 20px;border:1px solid var(--line);border-radius:var(--radius-md);background:var(--surface);}
+  table{width:100%;border-collapse:collapse;font-size:13px;line-height:1.6;}
+  th{text-align:left;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);background:var(--surface-2);padding:10px 12px;border-bottom:1px solid var(--line-2);white-space:nowrap;font-weight:600;}
+  td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top;color:var(--ink-2);}
+  td:first-child{color:var(--ink);font-weight:600;white-space:nowrap;}
+  tr:last-child td{border-bottom:none;}
+  td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;}
+  td.mn{font-family:var(--mono);font-size:11.5px;color:var(--brand);font-weight:500;}
+
+  /* ---------- type specimen ---------- */
+  .type-row{display:grid;grid-template-columns:110px 1fr;gap:18px;padding:16px 0;border-bottom:1px solid var(--line);align-items:baseline;}
+  .type-row .lbl{font-family:var(--mono);font-size:11px;color:var(--ink-3);line-height:1.5;}
+  .spec-serif{font-family:var(--serif);}
+
+  /* ---------- component demos ---------- */
+  .demo{border:1px solid var(--line);border-radius:var(--radius-md);background:var(--surface);padding:22px;}
+  .demo + .demo{margin-top:2px;border-radius:0;}
+  .demo-row{display:flex;flex-wrap:wrap;gap:12px;align-items:center;}
+  .dlabel{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);margin-bottom:14px;font-weight:600;}
+
+  .btn{font-family:var(--sans);font-size:13.5px;font-weight:600;border-radius:var(--radius-sm);padding:9px 18px;border:1px solid transparent;cursor:pointer;line-height:1.4;
+    transition:background-color 160ms var(--ease),border-color 160ms var(--ease),color 160ms var(--ease),transform 120ms var(--ease);}
+  .btn:focus-visible{outline:2px solid var(--brand);outline-offset:2px;}
+  .btn.primary{background:var(--brand);color:#fff;}
+  .btn.primary:hover{background:var(--brand-2);}
+  .btn.primary:active{transform:translateY(1px);}
+  .btn.ghost{background:transparent;border-color:var(--line-2);color:var(--ink-2);}
+  .btn.ghost:hover{border-color:var(--brand);color:var(--brand);}
+  .btn.text{background:transparent;color:var(--brand);padding:9px 8px;}
+  .btn.text:hover{background:var(--brand-soft);}
+  .btn.danger{background:transparent;border-color:#E2C7C0;color:var(--danger);}
+  .btn.danger:hover{background:#FBEFEC;}
+  .btn[disabled]{background:#EFEDE7;color:var(--ink-3);border-color:transparent;cursor:not-allowed;}
+
+  .field{display:flex;flex-direction:column;gap:6px;min-width:230px;}
+  .field label{font-size:12px;font-weight:600;color:var(--ink-2);}
+  .field input,.field select{
+    font-family:var(--sans);font-size:13.5px;padding:9px 12px;border:1px solid var(--line-2);border-radius:var(--radius-sm);
+    background:var(--surface);color:var(--ink);transition:border-color 160ms var(--ease),box-shadow 160ms var(--ease);
+  }
+  .field input::placeholder{color:#A3ADA6;}
+  .field input:focus-visible,.field select:focus-visible{outline:none;border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-soft);}
+  .field .hint{font-size:11.5px;color:var(--ink-3);}
+  .field .err{font-size:11.5px;color:var(--danger);}
+
+  .tag{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;padding:2px 9px;border-radius:var(--radius-pill);line-height:1.7;}
+  .tag.brand{background:var(--brand-soft);color:var(--brand);}
+  .tag.price{background:var(--price-soft);color:var(--price);}
+  .tag.ok{background:#EAF4EE;color:var(--ok);}
+  .tag.warn{background:#FBF1E2;color:var(--warn);}
+  .tag.neutral{background:#EFEDE7;color:var(--ink-3);}
+
+  .swatch-note{font-size:12px;color:var(--ink-3);margin-top:10px;}
+
+  /* ---------- motion table ---------- */
+  .motion-card{display:grid;grid-template-columns:1fr 1fr;gap:2px;border:1px solid var(--line);border-radius:var(--radius-md);overflow:hidden;background:var(--line);}
+  .motion-card > div{background:var(--surface);padding:18px;}
+  @media(max-width:760px){.motion-card{grid-template-columns:1fr;}}
+
+  /* ---------- checklist ---------- */
+  .checks{list-style:none;padding:0;margin:16px 0 0;counter-reset:c;}
+  .checks li{counter-increment:c;position:relative;padding:10px 0 10px 38px;border-bottom:1px solid var(--line);font-size:13.5px;
+    display:flex;justify-content:space-between;gap:16px;}
+  .checks li::before{content:counter(c);position:absolute;left:0;top:11px;width:22px;height:22px;border-radius:50%;background:var(--brand-soft);color:var(--brand);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;font-family:var(--mono);}
+  .checks li span.q{color:var(--ink-2);}
+  .checks li span.o{font-size:11.5px;color:var(--ink-3);white-space:nowrap;}
+
+  /* ---------- image references ---------- */
+  .imgs{display:grid;grid-template-columns:1fr 1fr;gap:2px;border-radius:var(--radius-md);overflow:hidden;margin:16px 0;}
+  .imgs figure{margin:0;background:#E8E4DA;}
+  .imgs img{display:block;width:100%;height:260px;object-fit:cover;}
+  .imgs figcaption{font-size:11.5px;color:var(--ink-3);padding:9px 12px;background:var(--surface);}
+
+  /* ---------- inventory ---------- */
+  .inv-head{display:flex;align-items:baseline;justify-content:space-between;gap:16px;margin:20px 0 10px;}
+  .inv-head .t{font-size:13.5px;font-weight:650;}
+  .inv-head .c{font-size:11.5px;color:var(--ink-3);font-family:var(--mono);}
+
+  /* ---------- callout ---------- */
+  .note{border-left:2px solid var(--brand);background:var(--surface);padding:14px 18px;margin:18px 0;font-size:13.5px;color:var(--ink-2);border-radius:0 var(--radius-sm) var(--radius-sm) 0;}
+  .note b{color:var(--ink);}
+
+  footer{margin-top:64px;padding-top:20px;border-top:1px solid var(--line);font-size:12px;color:var(--ink-3);}
+
+  @media(max-width:960px){
+    aside.rail{display:none;}
+    main{padding:36px 22px 80px;}
+    h1{font-size:28px;}
+    .imgs{grid-template-columns:1fr;}
+  }
+  @media (prefers-reduced-motion:reduce){
+    html{scroll-behavior:auto;}
+    *{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important;}
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+
+<aside class="rail">
+  <div class="brandmark">
+    <span class="sq" aria-hidden="true">山</span>
+    <div>
+      <div class="nm">山野商城</div>
+      <div class="sub">设计规范 v1.2</div>
+    </div>
+  </div>
+  <nav aria-label="设计规范目录">
+    <a href="#s1">01 · 颜值怎么保证</a>
+    <a href="#s2">02 · 视觉命题</a>
+    <a href="#s3">03 · 色彩</a>
+    <a href="#s4">04 · 字体与字阶</a>
+    <a href="#s5">05 · 间距与形状</a>
+    <a href="#s6">06 · 组件基线</a>
+    <a href="#s7">07 · 图片规范</a>
+    <a href="#s8">08 · 动效</a>
+    <a href="#s9">09 · 双端节奏对照</a>
+    <a href="#s10">10 · 无障碍基线</a>
+    <a href="#s11">11 · 41 页清单</a>
+  </nav>
+  <div class="rail-foot">
+    设计稿
+    <a href="./miniapp.html">小程序 · 17 屏</a>
+    <a href="./admin.html">管理后台 · 24 屏</a>
+    <a href="../B2C商城-需求调研与产品设计.html">PRD v0.2</a>
+  </div>
+</aside>
+
+<main>
+<header class="head">
+  <div class="kicker">Design System · v1.2</div>
+  <h1>颜值不是装饰，是约束。<br>一套可复用的判断标准。</h1>
+  <p class="lede">
+    这份规范定义「山野商城」双端的视觉语言：先定一个视觉命题，再用字体、间距、配比与动效把它锁死。任何人新增页面时，只要遵守下面 12 条自检，就不会把界面做丑。
+  </p>
+  <div class="meta">
+    <span class="pill">品牌 <b>山野（演示，可替换）</b></span>
+    <span class="pill">端 <b>微信小程序 + 管理后台</b></span>
+    <span class="pill">基准 <b>375 / 1280</b></span>
+    <span class="pill">日期 <b>2026-11-06</b></span>
+  </div>
+</header>
+
+<!-- ============ 1 ============ -->
+<section id="s1">
+  <h2><span class="n">01</span>颜值怎么保证</h2>
+  <p class="sub">六条硬约束 + 一份 12 条自检清单。设计、评审、实现、走查都对照它，而不是靠「感觉好看」。</p>
+
+  <div class="principles">
+    <div class="pr"><div class="idx">01</div><div><div class="t">一屏一个主导元素</div><div class="d">每屏只允许一个视觉重心：一张大图、一个数字、一张表。其余元素降为辅助，禁止并列三个同等抢眼的东西。</div></div></div>
+    <div class="pr"><div class="idx">02</div><div><div class="t">排版先于组件</div><div class="d">先定字号阶梯、行高与间距节奏，再往里塞按钮和卡片。字号乱，组件再精致也救不回来。</div></div></div>
+    <div class="pr"><div class="idx">03</div><div><div class="t">颜色按 90 / 8 / 2 配比</div><div class="d">90% 中性（浅灰、白、墨、线），8% 品牌正红只给动作与价格，2% 金色只给会员标识。超出比例就是「花」。</div></div></div>
+    <div class="pr"><div class="idx">04</div><div><div class="t">图片即装饰，不另加特效</div><div class="d">所有氛围由实拍图承担。禁止渐变背景、玻璃拟态、彩色投影、漂浮卡片——它们是最快的「廉价感」来源。</div></div></div>
+    <div class="pr"><div class="idx">05</div><div><div class="t">动效只有三个通道</div><div class="d">进入、悬停、切换。时长与缓动写死在同一张表里，不许每页自定义，动效一多就变噪音。</div></div></div>
+    <div class="pr"><div class="idx">06</div><div><div class="t">状态必须画出来</div><div class="d">空态、加载、错误、禁用、超长文本，每类都要有设计。只画「最理想状态」的稿子，落地一定难看。</div></div></div>
+  </div>
+
+  <h3>12 条自检（每轮交付必跑）</h3>
+  <ul class="checks">
+    <li><span class="q">遮住 Logo 和导航，第一屏还能认出是谁吗？</span><span class="o">品牌感</span></li>
+    <li><span class="q">这一屏去掉图片后还成立吗？成立说明图太弱。</span><span class="o">视觉锚点</span></li>
+    <li><span class="q">只读大标题和数字，能看懂这页在干什么吗？</span><span class="o">可扫读</span></li>
+    <li><span class="q">每个区块是否只有一个职责（说明 / 证明 / 深化 / 转化）？</span><span class="o">信息结构</span></li>
+    <li><span class="q">每个卡片是否都不可替代？能变成分隔线或列表就删掉卡片。</span><span class="o">克制</span></li>
+    <li><span class="q">页面有超过 1 个强调色在用吗？</span><span class="o">色彩纪律</span></li>
+    <li><span class="q">去掉所有投影，还是高级的吗？</span><span class="o">材质</span></li>
+    <li><span class="q">字号是否只用了字阶里的 5 档？行高是否都来自同一套比例？</span><span class="o">排版</span></li>
+    <li><span class="q">价格、数量、金额是否右对齐且等宽数字？</span><span class="o">数字</span></li>
+    <li><span class="q">空 / 错 / 载 / 禁 四态是否都有稿？</span><span class="o">完整性</span></li>
+    <li><span class="q">键盘 Tab 一圈，焦点是否看得见、顺序是否合理？</span><span class="o">可达性</span></li>
+    <li><span class="q">开启「减少动态效果」后，界面是否仍然完整？</span><span class="o">动效降级</span></li>
+  </ul>
+
+  <div class="note">
+    <b>评审方式：</b>设计稿 → 对自检清单逐条打勾 → 前端实现 → 用 web-design-guidelines 代码审查 → 截图视觉回归。四步都过才算「完成」，而不是「画完了」。
+  </div>
+</section>
+
+<!-- ============ 2 ============ -->
+<section id="s2">
+  <h2><span class="n">02</span>视觉命题</h2>
+  <p class="sub">一句话描述气质、材质与能量，双端共用同一句。</p>
+
+  <div class="note" style="border-left-width:3px;">
+    <b>移动端：</b>「红白商业感 + 编辑留白」——浅灰底、纯白卡、正红只给动作与价格，宋体大标题保留选品气质。<br>
+    <b>后台端：</b>「Linear 式克制」——近白画布，发丝分隔，正红单一强调，信息密度优先。<br>
+    <b>共同点：</b>不用渐变背景、不用彩色投影堆叠；红色出现的位置永远只代表「可以点」或「这是价格」。
+  </div>
+
+  <h3>内容计划（小程序首页）</h3>
+  <div class="tw">
+    <table>
+      <thead><tr><th style="width:90px">区块</th><th style="width:190px">职责</th><th>主导元素</th><th style="width:180px">主要动作</th></tr></thead>
+      <tbody>
+        <tr><td>Hero</td><td>建立品牌与本期主题</td><td>整幅高调场景实拍 + 33px 宋体</td><td>逛本期上新</td></tr>
+        <tr><td>分类</td><td>快速分流</td><td>带序号的文字索引（01 茶）</td><td>进入分类</td></tr>
+        <tr><td>本期精选</td><td>用商品图说服</td><td>图片直落底色，无卡片</td><td>进入商品详情</td></tr>
+        <tr><td>品牌承诺</td><td>降低决策风险</td><td>一行三点的极简说明</td><td>无</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>交互命题（只有三个）</h3>
+  <ol>
+    <li><strong>进入</strong>：首屏图文分层浮现——图先到，标题延迟 60ms 跟上，200ms 内结束。</li>
+    <li><strong>悬停</strong>：商品图 1.02 缓慢放大，价格与文字不动，制造「可以点」的暗示。</li>
+    <li><strong>切换</strong>：屏与屏之间淡入 + 上移 6px，一次 180ms，永不使用左右滑动。</li>
+  </ol>
+</section>
+
+<!-- ============ 3 ============ -->
+<section id="s3">
+  <h2><span class="n">03</span>色彩</h2>
+  <p class="sub">色值来自真实商品图与包装：正红、暖白、浅灰、金色。任何新颜色都必须先在这里登记，否则不许用。</p>
+
+  <div class="sw-grid">
+    <div class="sw"><span class="chipbox" style="background:#F6F6F5"></span><div class="nm">浅灰</div><div class="hex">#F6F6F5</div><div class="use">小程序页面底色</div></div>
+    <div class="sw"><span class="chipbox" style="background:#FFFFFF"></span><div class="nm">白</div><div class="hex">#FFFFFF</div><div class="use">卡片、弹层、输入框</div></div>
+    <div class="sw"><span class="chipbox" style="background:#F4F1EB"></span><div class="nm">暖沙</div><div class="hex">#F4F1EB</div><div class="use">分组底、失效区</div></div>
+    <div class="sw"><span class="chipbox" style="background:#16181A"></span><div class="nm">墨</div><div class="hex">#16181A</div><div class="use">标题与主文字</div></div>
+    <div class="sw"><span class="chipbox" style="background:#55585C"></span><div class="nm">次级墨</div><div class="hex">#55585C</div><div class="use">正文、说明</div></div>
+    <div class="sw"><span class="chipbox" style="background:#8E9399"></span><div class="nm">弱墨</div><div class="hex">#8E9399</div><div class="use">辅助信息、占位</div></div>
+    <div class="sw"><span class="chipbox" style="background:#EBEBE8"></span><div class="nm">浅线</div><div class="hex">#EBEBE8</div><div class="use">仅块内分隔</div></div>
+    <div class="sw"><span class="chipbox" style="background:#E2231A"></span><div class="nm">正红（品牌）</div><div class="hex">#E2231A</div><div class="use">主按钮、价格、激活态</div></div>
+    <div class="sw"><span class="chipbox" style="background:#FDEDEB"></span><div class="nm">正红浅</div><div class="hex">#FDEDEB</div><div class="use">选中底、标签底、优惠提示</div></div>
+    <div class="sw"><span class="chipbox" style="background:#C21B14"></span><div class="nm">正红深</div><div class="hex">#C21B14</div><div class="use">按压态、深色渐变端</div></div>
+    <div class="sw"><span class="chipbox" style="background:#BC8A2E"></span><div class="nm">金（会员）</div><div class="hex">#BC8A2E</div><div class="use">会员价、等级、星级</div></div>
+    <div class="sw"><span class="chipbox" style="background:#FBF3E2"></span><div class="nm">金浅</div><div class="hex">#FBF3E2</div><div class="use">会员标签底</div></div>
+    <div class="sw"><span class="chipbox" style="background:#1F7A4C"></span><div class="nm">成功</div><div class="hex">#1F7A4C</div><div class="use">已完成、已发货</div></div>
+    <div class="sw"><span class="chipbox" style="background:#A9691A"></span><div class="nm">等待</div><div class="hex">#A9691A</div><div class="use">待处理、超时预警</div></div>
+    <div class="sw"><span class="chipbox" style="background:#C22C1E"></span><div class="nm">危险</div><div class="hex">#C22C1E</div><div class="use">拒绝、退款失败、删除</div></div>
+  </div>
+
+  <h3>配比与禁用</h3>
+  <div class="ratio" role="img" aria-label="色彩配比：中性 90%，品牌红 8%，金色 2%">
+    <span style="flex:90;background:#F6F6F5;color:#8E9399">中性 90%</span>
+    <span style="flex:8;background:#E2231A;color:#fff">品牌红 8%</span>
+    <span style="flex:2;background:#BC8A2E;color:#fff">2%</span>
+  </div>
+  <p class="swatch-note">后台端使用纯白 <code>#FFFFFF</code> 画布（不要灰底），仅靠发丝线与留白分区；其余色值完全共用，保证两端像一个产品。</p>
+
+  <div class="tw">
+    <table>
+      <thead><tr><th style="width:170px">禁止</th><th>原因</th><th style="width:170px">替代方案</th></tr></thead>
+      <tbody>
+        <tr><td>彩色渐变背景</td><td>抢走商品图注意力，廉价感主要来源</td><td>浅灰底 + 一张实拍</td></tr>
+        <tr><td>彩色投影 / 玻璃拟态</td><td>复杂背景上不可控，且降低文字对比</td><td>白块浮起 + 极浅分隔</td></tr>
+        <tr><td>三种以上强调色</td><td>用户无法判断哪个该点</td><td>只留正红（动作 + 价格）+ 金色（会员）</td></tr>
+        <tr><td>整屏卡片堆叠</td><td>信息密度被卡片内边距吃掉</td><td>白块分组 + 大间距，不画外框</td></tr>
+        <tr><td>满屏 1px 分隔线</td><td>线条一多就沉闷、显低价</td><td>用底色块与留白分组，线只留在块内</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ============ 4 ============ -->
+<section id="s4">
+  <h2><span class="n">04</span>字体与字阶</h2>
+  <p class="sub">两套字体，五个字号，数字等宽。超出字阶的字号不许出现。</p>
+
+  <div class="type-row"><div class="lbl">Display 1<br>34 / 1.15<br>Songti 600</div><div class="spec-serif" style="font-size:34px;line-height:1.15;font-weight:600;letter-spacing:-.01em;">山野 · 本季好物</div></div>
+  <div class="type-row"><div class="lbl">Display 2<br>24 / 1.25<br>Songti 600</div><div class="spec-serif" style="font-size:24px;line-height:1.25;font-weight:600;">勐海古树普洱</div></div>
+  <div class="type-row"><div class="lbl">Title<br>17 / 1.45<br>PingFang 600</div><div style="font-size:17px;font-weight:600;line-height:1.45;">确认订单 · 2 件商品</div></div>
+  <div class="type-row"><div class="lbl">Body<br>14 / 1.65<br>PingFang 400</div><div style="font-size:14px;line-height:1.65;color:#55585C;">海拔 1 800 米古树春料，石磨压制，汤感厚实回甘持久。</div></div>
+  <div class="type-row"><div class="lbl">Caption<br>12 / 1.5<br>PingFang 400</div><div style="font-size:12px;line-height:1.5;color:#8E9399;">已售 328 件 · 云南勐海</div></div>
+  <div class="type-row"><div class="lbl">Micro<br>11 / 1.4 / +.08em<br>PingFang 600</div><div style="font-size:11px;line-height:1.4;letter-spacing:.08em;font-weight:600;text-transform:uppercase;">本期精选</div></div>
+
+  <h3>双端字号对照</h3>
+  <div class="tw">
+    <table>
+      <thead><tr><th style="width:150px">用途</th><th class="num" style="width:96px">小程序</th><th class="num" style="width:96px">后台</th><th>规则</th></tr></thead>
+      <tbody>
+        <tr><td>页面标题</td><td class="num">34 / 24</td><td class="num">20</td><td>小程序用宋体，后台用无衬线</td></tr>
+        <tr><td>区块标题</td><td class="num">17</td><td class="num">13.5</td><td>后台区块标题克制到 13.5，避免层级泛滥</td></tr>
+        <tr><td>正文</td><td class="num">14</td><td class="num">13</td><td>后台密一点，行高统一 1.6</td></tr>
+        <tr><td>表格</td><td class="num">—</td><td class="num">12.5</td><td>表格字号小于正文，是刻意的</td></tr>
+        <tr><td>辅助</td><td class="num">12</td><td class="num">11.5</td><td>只用弱墨色，不用浅灰以外的颜色</td></tr>
+        <tr><td>价格</td><td class="num">19</td><td class="num">13.5</td><td>陶土色 + tabular-nums</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note">
+    <b>数字规则：</b>金额、数量、比例统一 <code>font-variant-numeric: tabular-nums</code>，列右对齐；货币符号小一号；不写 <code>¥0.00</code> 而写 <code>¥0</code>（零值不加小数）。
+  </div>
+</section>
+
+<!-- ============ 5 ============ -->
+<section id="s5">
+  <h2><span class="n">05</span>间距与形状</h2>
+  <p class="sub">4px 基准栅格；圆角只有四档；投影基本不用。</p>
+
+  <div class="tw">
+    <table>
+      <thead><tr><th style="width:120px">Token</th><th class="num" style="width:90px">值</th><th>使用位置</th></tr></thead>
+      <tbody>
+        <tr><td>space-1</td><td class="num">4</td><td>图标与文字、标签内间距</td></tr>
+        <tr><td>space-2</td><td class="num">8</td><td>行内元素间距</td></tr>
+        <tr><td>space-3</td><td class="num">12</td><td>列表行内上下、字段间距</td></tr>
+        <tr><td>space-4</td><td class="num">16</td><td>卡片内边距（小程序）</td></tr>
+        <tr><td>space-5</td><td class="num">24</td><td>区块间距、后台内容边距</td></tr>
+        <tr><td>space-6</td><td class="num">32</td><td>后台页头与内容之间</td></tr>
+        <tr><td>space-7</td><td class="num">48</td><td>大区块之间、登录页留白</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="tw">
+    <table>
+      <thead><tr><th style="width:120px">圆角</th><th class="num" style="width:90px">值</th><th>使用位置</th></tr></thead>
+      <tbody>
+        <tr><td>xs</td><td class="num">2</td><td>标签、徽标</td></tr>
+        <tr><td>sm</td><td class="num">8</td><td>按钮、输入框、图片小图</td></tr>
+        <tr><td>md</td><td class="num">12</td><td>弹层、后台面板</td></tr>
+        <tr><td>lg</td><td class="num">20</td><td>小程序底部弹层、大图</td></tr>
+        <tr><td>pill</td><td class="num">999</td><td>状态标签、筛选项</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>投影策略</h3>
+  <ul>
+    <li>默认 <strong>零投影</strong>：用 1px 发丝线与背景色差分隔。</li>
+    <li>仅「浮起且必须脱离层叠」的元素可用投影：小程序规格弹层、后台确认对话框。唯一值：<code>0 24px 60px -12px rgba(20,30,26,.18)</code>。</li>
+    <li>禁止彩色投影、内阴影、发光。</li>
+  </ul>
+</section>
+
+<!-- ============ 6 ============ -->
+<section id="s6">
+  <h2><span class="n">06</span>组件基线</h2>
+  <p class="sub">四类组件决定界面下限：按钮、字段、标签、表格。下面全部可直接落地。</p>
+
+  <div class="demo">
+    <div class="dlabel">按钮 · 高度 40（小程序 44 触控区）</div>
+    <div class="demo-row">
+      <button class="btn primary" type="button">立即购买</button>
+      <button class="btn ghost" type="button">加入购物车</button>
+      <button class="btn text" type="button">查看物流</button>
+      <button class="btn danger" type="button">拒绝退款</button>
+      <button class="btn primary" type="button" disabled>已售罄</button>
+    </div>
+    <p class="swatch-note">主按钮每屏最多一个；次要动作用 ghost，第三层级用 text。禁用态用灰底而非降透明度。</p>
+  </div>
+
+  <div class="demo">
+    <div class="dlabel">字段 · 焦点用品牌色细边 + 3px 晕</div>
+    <div class="demo-row" style="align-items:flex-start;">
+      <div class="field">
+        <label for="d-name">商品名称</label>
+        <input id="d-name" name="productName" type="text" placeholder="例：勐海古树普洱 2019…" autocomplete="off">
+        <span class="hint">会显示在小程序商品详情页</span>
+      </div>
+      <div class="field">
+        <label for="d-price">售价（元）</label>
+        <input id="d-price" name="price" type="number" inputmode="decimal" value="268" style="font-variant-numeric:tabular-nums;">
+        <span class="err">不能低于成本价 120</span>
+      </div>
+      <div class="field">
+        <label for="d-cat">分类</label>
+        <select id="d-cat" name="category">
+          <option>茶 · 普洱</option>
+          <option>咖啡</option>
+          <option>器皿</option>
+        </select>
+        <span class="hint">一级分类决定小程序展示位置</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="demo">
+    <div class="dlabel">状态标签 · 只表示状态，不做装饰</div>
+    <div class="demo-row">
+      <span class="tag ok">已完成</span>
+      <span class="tag warn">待发货</span>
+      <span class="tag price">退款中</span>
+      <span class="tag brand">本期精选</span>
+      <span class="tag neutral">已取消</span>
+    </div>
+  </div>
+
+  <div class="demo" style="padding:0;">
+    <div class="dlabel" style="padding:22px 22px 0;">表格 · 12.5px，行高 44，数字右对齐</div>
+    <div class="tw" style="margin:14px 0 0;border:0;border-top:1px solid var(--line);border-radius:0;">
+      <table>
+        <thead>
+          <tr><th>商品</th><th>状态</th><th class="num">库存</th><th class="num">售价</th><th class="num">已售</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>勐海古树普洱 2019</td><td><span class="tag ok">出售中</span></td><td class="num">86</td><td class="num">268.00</td><td class="num">328</td></tr>
+          <tr><td>云南小粒咖啡 日晒</td><td><span class="tag ok">出售中</span></td><td class="num">12</td><td class="num">98.00</td><td class="num">1 246</td></tr>
+          <tr><td>手作粗陶公道杯</td><td><span class="tag neutral">仓库中</span></td><td class="num">0</td><td class="num">86.00</td><td class="num">73</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <h3>必须存在的状态稿</h3>
+  <div class="tw">
+    <table>
+      <thead><tr><th style="width:96px">状态</th><th>表现</th><th style="width:230px">文案规范</th></tr></thead>
+      <tbody>
+        <tr><td>空</td><td>单行居中文案 + 一个出口按钮，无插画</td><td>「还没有订单」+「去逛逛」</td></tr>
+        <tr><td>加载</td><td>骨架屏用 2px 发丝块 + 120ms 呼吸，不用转圈</td><td>「加载中…」带省略号</td></tr>
+        <tr><td>错误</td><td>问题 + 下一步动作，禁止只写「操作失败」</td><td>「库存不足，仅剩 2 件」+「改数量」</td></tr>
+        <tr><td>禁用</td><td>灰底 + 说明为什么不可点</td><td>「已售罄」而非「不可用」</td></tr>
+        <tr><td>超长</td><td>两行截断 + 省略号，列表不换行撑高</td><td>商品名 ≤ 2 行</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ============ 7 ============ -->
+<section id="s7">
+  <h2><span class="n">07</span>图片规范</h2>
+  <p class="sub">图片是这套设计唯一的「彩色来源」，所以标准要最严。</p>
+
+  <div class="imgs">
+    <figure>
+      <img src="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=editorial%20still%20life%20of%20tea%20cakes%20and%20clay%20cup%20on%20natural%20linen%20cloth%2C%20warm%20morning%20light%2C%20muted%20beige%20palette%2C%20minimal%20composition%2C%20no%20text&image_size=landscape_4_3" alt="茶饼与陶杯置于亚麻布上的暖色静物，作为首页场景图调性参考" width="720" height="540" loading="lazy" fetchpriority="high">
+      <figcaption>场景图：暖中性底、实拍、无文字、无道具堆砌 · 4:3</figcaption>
+    </figure>
+    <figure>
+      <img src="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=single%20product%20shot%20of%20a%20kraft%20paper%20coffee%20bag%20with%20whole%20beans%2C%20soft%20daylight%2C%20plain%20warm%20beige%20background%2C%20no%20text%20no%20logo&image_size=square" alt="牛皮纸咖啡豆包装的正面商品图，单色背景" width="600" height="600" loading="lazy">
+      <figcaption>商品图：单色背景、单主体、无贴纸 · 1:1</figcaption>
+    </figure>
+  </div>
+
+  <div class="tw">
+    <table>
+      <thead><tr><th style="width:130px">规则</th><th>要求</th></tr></thead>
+      <tbody>
+        <tr><td>背景</td><td>暖白、亚麻、木色、灰泥；不用纯白棚拍与彩色渐变</td></tr>
+        <tr><td>主体</td><td>一个商品居中偏下，留出上方 15% 呼吸区</td></tr>
+        <tr><td>文字</td><td>图内禁止出现文字、Logo、价格、水印</td></tr>
+      <tr><td>比例</td><td>商品 1:1，场景 4:3，首页 Hero 3:2 裁切</td></tr>
+        <tr><td>加载</td><td>固定宽高防抖；首屏优先加载，屏外懒加载；底色用 <code>#E8E4DA</code></td></tr>
+        <tr><td>数量</td><td>一屏最多一张大图；商品列表图不得加边框与投影</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ============ 8 ============ -->
+<section id="s8">
+  <h2><span class="n">08</span>动效</h2>
+  <p class="sub">三个通道，两个时长，一条缓动。写进实现里，不靠临场发挥。</p>
+
+  <div class="motion-card">
+    <div>
+      <h4 style="margin-top:0;">进入 · Enter</h4>
+      <p style="font-size:13px;color:#55585C;">图片先出现，文字延迟 60ms 跟上，整体 200ms 结束。用于首屏与屏切换。</p>
+      <code>opacity 0→1 · translateY 6px→0</code>
+    </div>
+    <div>
+      <h4 style="margin-top:0;">悬停 · Hover</h4>
+      <p style="font-size:13px;color:#55585C;">商品图 1.02 放大，320ms ease-out；文字、价格、边框不动。</p>
+      <code>transform: scale(1.02)</code>
+    </div>
+    <div>
+      <h4 style="margin-top:0;">切换 · Switch</h4>
+      <p style="font-size:13px;color:#55585C;">分段控件与侧栏激活项用底色渐变过渡，200ms，不做滑动指示条。</p>
+      <code>background-color 200ms cubic-bezier(.2,.7,.3,1)</code>
+    </div>
+    <div>
+      <h4 style="margin-top:0;">降级 · Reduced Motion</h4>
+      <p style="font-size:13px;color:#55585C;">检测到系统「减少动态效果」时，位移与缩放全部取消，仅保留 120ms 透明度。</p>
+      <code>@media (prefers-reduced-motion: reduce)</code>
+    </div>
+  </div>
+
+  <h4 style="margin-top:26px;">禁用清单</h4>
+  <ul>
+    <li><code>transition: all</code>（必须逐项声明属性）</li>
+    <li>超过 400ms 的界面过渡、弹跳/回弹缓动</li>
+    <li>循环播放的装饰动画（呼吸、闪烁、漂浮）</li>
+    <li>滚动视差与视差背景</li>
+  </ul>
+</section>
+
+<!-- ============ 9 ============ -->
+<section id="s9">
+  <h2><span class="n">09</span>双端节奏对照</h2>
+  <p class="sub">同一个品牌，两种呼吸频率：移动端慢而疏，后台快而密。</p>
+
+  <div class="tw">
+    <table>
+      <thead><tr><th style="width:120px">维度</th><th>小程序（慢）</th><th>后台（快）</th></tr></thead>
+      <tbody>
+        <tr><td>首屏</td><td>整幅图 + 两行字 = 海报</td><td>直接进工作台：指标带 + 待办 + 表格</td></tr>
+        <tr><td>信息密度</td><td>每屏 1 个任务</td><td>每屏 3–5 个可比较对象</td></tr>
+        <tr><td>分隔方式</td><td>留白为主，少用线</td><td>发丝线为主，少用留白</td></tr>
+        <tr><td>强调色</td><td>只在价格与主按钮</td><td>只在主按钮与激活导航</td></tr>
+        <tr><td>标题字体</td><td>宋体，有编辑感</td><td>无衬线，工具感</td></tr>
+        <tr><td>动效</td><td>进入 + 悬停两处</td><td>仅切换 + 弹层两处</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ============ 10 ============ -->
+<section id="s10">
+  <h2><span class="n">10</span>无障碍与可用性基线</h2>
+  <p class="sub">以下为交付硬门槛，实现完成后按 web-design-guidelines 逐条核对。</p>
+
+  <div class="tw">
+    <table>
+      <thead><tr><th style="width:150px">项目</th><th>要求</th><th style="width:180px">验收方式</th></tr></thead>
+      <tbody>
+        <tr><td>焦点可见</td><td>所有可交互元素 <code>:focus-visible</code> 2px 正红描边 + 2px 偏移；禁止 <code>outline:none</code> 无替代</td><td>键盘 Tab 走查</td></tr>
+        <tr><td>触控尺寸</td><td>小程序可点区域 ≥ 44×44；相邻点击区间距 ≥ 8</td><td>标注检查</td></tr>
+        <tr><td>对比度</td><td>正文与背景 ≥ 4.5:1；大字号 ≥ 3:1；价格陶土色在白底 ≥ 4.5:1</td><td>取色器验收</td></tr>
+        <tr><td>语义结构</td><td>动作使用 <code>button</code>，导航使用 <code>a</code>；表格用真实 table；标题层级不跳级</td><td>代码审查</td></tr>
+        <tr><td>表单</td><td>每个字段有可见 label；错误信息就近展示并说明如何修正</td><td>走查</td></tr>
+        <tr><td>图片</td><td>内容图必须有 alt；装饰图 alt 为空；图标 aria-hidden</td><td>代码审查</td></tr>
+        <tr><td>数字与文案</td><td>等宽数字；省略号用「…」；引号用中文弯引号</td><td>文案校对</td></tr>
+        <tr><td>动效降级</td><td>尊重 <code>prefers-reduced-motion</code></td><td>系统设置验证</td></tr>
+        <tr><td>状态可达</td><td>Toast / 校验结果通过 <code>aria-live="polite"</code> 播报</td><td>读屏验证</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ============ 11 ============ -->
+<section id="s11">
+  <h2><span class="n">11</span>41 页清单</h2>
+  <p class="sub">设计稿编号与 PRD 功能编号一一对应，每页写清「主导元素」，防止实现时自由发挥。</p>
+
+  <div class="inv-head"><span class="t">小程序商城</span><span class="c">17 屏 · 375 × 812</span></div>
+  <div class="tw">
+    <table>
+      <thead><tr><th style="width:74px">编号</th><th style="width:130px">页面</th><th style="width:74px">优先级</th><th style="width:190px">主导元素</th><th>关键状态</th></tr></thead>
+      <tbody>
+        <tr><td class="mn">MP-01</td><td>首页</td><td>P0</td><td>整幅场景图 + 宋体品牌名</td><td>加载骨架 / 图片失败兜底</td></tr>
+        <tr><td class="mn">MP-02</td><td>分类</td><td>P0</td><td>左栏分类文字 + 右栏商品图</td><td>空分类</td></tr>
+        <tr><td class="mn">MP-03</td><td>搜索</td><td>P0</td><td>搜索框 + 历史词</td><td>无结果推荐 / 输入中</td></tr>
+        <tr><td class="mn">MP-04</td><td>商品列表</td><td>P0</td><td>双列商品图网格</td><td>筛选空 / 加载更多</td></tr>
+        <tr><td class="mn">MP-05</td><td>商品详情</td><td>P0</td><td>整幅主图 + 价格行</td><td>售罄 / 下架 / 库存紧张</td></tr>
+        <tr><td class="mn">MP-06</td><td>规格选择</td><td>P0</td><td>底部弹层 + 已选摘要</td><td>未选完禁用 / 售罄规格置灰</td></tr>
+        <tr><td class="mn">MP-07</td><td>购物车</td><td>P0</td><td>商品行列表 + 底部合计</td><td>空车 / 失效商品区</td></tr>
+        <tr><td class="mn">MP-08</td><td>确认订单</td><td>P0</td><td>金额明细（右对齐）</td><td>缺地址 / 券不可用 / 库存变化</td></tr>
+        <tr><td class="mn">MP-09</td><td>支付结果</td><td>P0</td><td>状态字 + 单一后续动作</td><td>成功 / 失败 / 处理中</td></tr>
+        <tr><td class="mn">MP-10</td><td>订单列表</td><td>P0</td><td>状态分段 + 订单行</td><td>空 / 待付款倒计时</td></tr>
+        <tr><td class="mn">MP-11</td><td>订单详情</td><td>P0</td><td>状态头 + 金额明细</td><td>多状态差异 / 售后角标</td></tr>
+        <tr><td class="mn">MP-12</td><td>物流详情</td><td>P0</td><td>竖向节点时间线</td><td>无物流 / 单号错误</td></tr>
+        <tr><td class="mn">MP-13</td><td>售后申请</td><td>P0</td><td>表单 + 退款金额</td><td>缺凭证 / 超期不可申请</td></tr>
+        <tr><td class="mn">MP-14</td><td>售后列表</td><td>P0</td><td>售后单行 + 状态标签</td><td>空 / 已拒绝</td></tr>
+        <tr><td class="mn">MP-15</td><td>评价发布</td><td>P1</td><td>星级 + 输入区</td><td>未评分禁用 / 图片上限</td></tr>
+        <tr><td class="mn">MP-16</td><td>我的</td><td>P0</td><td>等级信息 + 订单四宫入口</td><td>未登录授权态</td></tr>
+        <tr><td class="mn">MP-17</td><td>地址管理</td><td>P0</td><td>地址列表 + 默认标记</td><td>空地址 / 表单校验</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="inv-head"><span class="t">管理后台</span><span class="c">24 屏 · 1280 自适应</span></div>
+  <div class="tw">
+    <table>
+      <thead><tr><th style="width:74px">编号</th><th style="width:130px">页面</th><th style="width:74px">优先级</th><th style="width:190px">主导元素</th><th>关键状态</th></tr></thead>
+      <tbody>
+        <tr><td class="mn">AD-01</td><td>登录</td><td>P0</td><td>满幅正红 + 窄表单列</td><td>校验错误 / 锁定</td></tr>
+        <tr><td class="mn">AD-02</td><td>数据概览</td><td>P0</td><td>指标带 + 趋势线</td><td>零数据 / 区间切换</td></tr>
+        <tr><td class="mn">AD-03</td><td>商品列表</td><td>P0</td><td>高密度表格</td><td>空 / 筛选无结果</td></tr>
+        <tr><td class="mn">AD-04</td><td>商品编辑</td><td>P0</td><td>左表单 + 右规格矩阵</td><td>校验 / SKU 重复</td></tr>
+        <tr><td class="mn">AD-05</td><td>分类管理</td><td>P0</td><td>树形列表</td><td>空 / 删除被引用</td></tr>
+        <tr><td class="mn">AD-06</td><td>标签管理</td><td>P1</td><td>标签列表 + 计数</td><td>同名冲突</td></tr>
+        <tr><td class="mn">AD-07</td><td>订单列表</td><td>P0</td><td>状态页签 + 表格</td><td>空 / 超时单标记</td></tr>
+        <tr><td class="mn">AD-08</td><td>订单详情</td><td>P0</td><td>状态头 + 时间线</td><td>不可发货 / 已退款</td></tr>
+        <tr><td class="mn">AD-09</td><td>发货弹窗</td><td>P0</td><td>单列表单 + 明细确认</td><td>单号格式错误</td></tr>
+        <tr><td class="mn">AD-10</td><td>售后列表</td><td>P0</td><td>表格 + 超时标记</td><td>空 / 退款失败</td></tr>
+        <tr><td class="mn">AD-11</td><td>售后详情</td><td>P0</td><td>凭证图 + 金额 + 操作区</td><td>凭证缺失 / 已关闭</td></tr>
+        <tr><td class="mn">AD-12</td><td>评价管理</td><td>P1</td><td>评价行 + 回复框</td><td>待审核 / 已隐藏</td></tr>
+        <tr><td class="mn">AD-13</td><td>客户列表</td><td>P0</td><td>表格 + 消费汇总</td><td>空 / 无订单客户</td></tr>
+        <tr><td class="mn">AD-14</td><td>客户详情</td><td>P0</td><td>客群档案 + 订单轨迹</td><td>隐私脱敏</td></tr>
+        <tr><td class="mn">AD-15</td><td>优惠券列表</td><td>P0</td><td>券面 + 核销进度</td><td>已过期 / 库存为 0</td></tr>
+        <tr><td class="mn">AD-16</td><td>新建优惠券</td><td>P0</td><td>左表单 + 右实时券面预览</td><td>门槛冲突 / 数量超出</td></tr>
+        <tr><td class="mn">AD-17</td><td>积分规则</td><td>P1</td><td>规则行 + 流水表</td><td>不参与抵扣说明</td></tr>
+        <tr><td class="mn">AD-18</td><td>等级规则</td><td>P1</td><td>等级阶梯表</td><td>门槛重叠校验</td></tr>
+        <tr><td class="mn">AD-19</td><td>店铺信息</td><td>P0</td><td>分组表单</td><td>未保存离开提示</td></tr>
+        <tr><td class="mn">AD-20</td><td>运费模板</td><td>P0</td><td>包邮门槛 + 运费值</td><td>门槛为空 / 冲突</td></tr>
+        <tr><td class="mn">AD-21</td><td>支付设置</td><td>P0</td><td>模拟支付状态条</td><td>未配置 / 已启用</td></tr>
+        <tr><td class="mn">AD-22</td><td>素材库</td><td>P1</td><td>图片网格 + 分组</td><td>空 / 引用中不可删</td></tr>
+        <tr><td class="mn">AD-23</td><td>子账号</td><td>P0</td><td>账号表 + 角色标签</td><td>停用 / 重复账号</td></tr>
+        <tr><td class="mn">AD-24</td><td>操作日志</td><td>P1</td><td>时间线式表格</td><td>筛选无结果</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note">
+    下一步：打开 <a href="./miniapp.html" style="color:var(--brand);font-weight:600;">小程序 17 屏设计稿</a> 与 <a href="./admin.html" style="color:var(--brand);font-weight:600;">后台 24 屏设计稿</a>，每屏右侧附有实现要点；需要改风格时只改 token，不改页面。
+  </div>
+</section>
+
+<footer>
+  山野商城 · 设计规范 v1.2 · 2026-11-06 · 演示品牌「山野」可在 token 层整体替换 · 依据 frontend-skill 与 web-design-guidelines
+</footer>
+</main>
+</div>
+
+<script>
+  (function(){
+    var links = Array.prototype.slice.call(document.querySelectorAll('.rail nav a'));
+    var map = {};
+    links.forEach(function(a){
+      var id = a.getAttribute('href').slice(1);
+      var el = document.getElementById(id);
+      if(el) map[id] = a;
+    });
+    if(!('IntersectionObserver' in window)) return;
+    var obs = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        if(e.isIntersecting){
+          links.forEach(function(a){ a.classList.remove('on'); });
+          var a = map[e.target.id];
+          if(a) a.classList.add('on');
+        }
+      });
+    }, { rootMargin: '-8% 0px -78% 0px', threshold: 0 });
+    Object.keys(map).forEach(function(id){
+      var el = document.getElementById(id);
+      if(el) obs.observe(el);
+    });
+  })();
+</script>
+</body>
+</html>

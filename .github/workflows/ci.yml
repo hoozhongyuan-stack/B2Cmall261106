@@ -1,0 +1,83 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '20'
+  DATABASE_URL: postgresql://postgres:postgres@localhost:5432/shanye_test?schema=public
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: shanye_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: 安装依赖
+        run: pnpm install --frozen-lockfile
+
+      # 1) 静态检查：裸色值、魔法字号、手写状态判断、跨层 import
+      - name: Lint
+        run: pnpm lint
+
+      # 2) 类型检查：防止契约类型漂移
+      - name: Typecheck
+        run: pnpm typecheck
+
+      # 3) 单测 + 覆盖率门槛（packages/shared ≥ 90%）
+      - name: Unit tests
+        run: pnpm test:coverage
+
+      # 4) 迁移可执行性：空库跑一遍，防止迁移损坏
+      - name: Prisma migrate
+        run: pnpm --filter @shanye/api exec prisma migrate deploy
+
+      # 5) 契约测试：订单接口在 M1 落地后启用，脚本缺失时仅告警
+      - name: Contract tests
+        run: |
+          if pnpm run | grep -q 'test:contract'; then
+            pnpm test:contract
+          else
+            echo "::warning::契约测试将在 M1（订单接口落地）启用，当前仅有金额与状态机单测"
+          fi
+
+      # 6) 构建：API 必须可产物
+      - name: Build
+        run: pnpm build:api
+
+      # 7) TODO 扫描：只拦新增，不追溯历史
+      - name: TODO guard
+        run: |
+          if git diff --unified=0 origin/main...HEAD -- '*.ts' '*.tsx' | grep -E '^\+.*\b(TODO|FIXME)\b'; then
+            echo "::error::新增代码中不允许提交 TODO/FIXME，请改为 Issue 或实现"
+            exit 1
+          fi
+          echo "no new TODO"

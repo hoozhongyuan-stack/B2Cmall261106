@@ -1,0 +1,11 @@
+{
+  "name": "@shanye/tokens",
+  "version": "0.1.0",
+  "private": true,
+  "main": "tokens.ts",
+  "types": "tokens.ts",
+  "exports": {
+    ".": "./tokens.ts",
+    "./tokens.css": "./tokens.css"
+  }
+}

@@ -1,0 +1,85 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '20'
+  DATABASE_URL: postgresql://postgres:postgres@localhost:5432/shanye_test?schema=public
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: shanye_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: 安装依赖
+        run: pnpm install --frozen-lockfile
+
+      # 1) 静态检查：裸色值、魔法字号、跨层 import
+      - name: Lint
+        run: pnpm lint
+
+      # 2) 类型检查：防止契约类型漂移
+      - name: Typecheck
+        run: pnpm typecheck
+
+      # 3) 单测 + 覆盖率门槛（金额与状态机 90%）
+      - name: Unit tests
+        run: pnpm test --coverage --ci
+
+      - name: 覆盖率门槛检查
+        run: pnpm exec coverage-check --lines 90 --include 'packages/shared/**'
+
+      # 4) 数据库迁移可执行性（空库跑一遍，防止迁移损坏）
+      - name: Prisma migrate
+        run: pnpm --filter api exec prisma migrate deploy
+
+      # 5) 契约测试：响应结构必须符合 openapi.yaml
+      - name: Contract tests
+        run: pnpm test:contract
+
+      # 6) codegen 幂等：改了契约却没重新生成类型则失败
+      - name: Codegen drift check
+        run: |
+          pnpm codegen
+          git diff --exit-code || (echo "::error::契约已变更但生成类型未提交，请运行 pnpm codegen 后提交" && exit 1)
+
+      # 7) 构建：小程序与后台都必须能产物
+      - name: Build
+        run: pnpm build:all
+
+      # 8) TODO 扫描：只拦新增，不追溯历史
+      - name: TODO guard
+        run: |
+          git diff --unified=0 origin/main...HEAD -- '*.ts' '*.tsx' | grep -E '^\+.*\b(TODO|FIXME)\b' && \
+            (echo "::error::新增代码中不允许提交 TODO/FIXME，请改为 Issue 或实现" && exit 1) || echo "no new TODO"

@@ -1,0 +1,1101 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#F6F6F5">
+<title>山野商城 · 小程序设计稿 17 屏 v3</title>
+<style>
+  :root{
+    --canvas:#F6F6F5;
+    --white:#FFFFFF;
+    --sand:#F4F1EB;
+    --ink:#16181A;
+    --ink-2:#55585C;
+    --ink-3:#8E9399;
+    --line:#EBEBE8;
+    --line-2:#DEDEDA;
+    --brand:#E2231A;
+    --brand-2:#C21B14;
+    --brand-soft:#FDEDEB;
+    --price:#E2231A;
+    --price-soft:#FDEDEB;
+    --gold:#BC8A2E;
+    --gold-soft:#FBF3E2;
+    --ok:#1F7A4C;
+    --warn:#A9691A;
+    --danger:#C22C1E;
+    --serif:"Songti SC","Noto Serif SC",Georgia,serif;
+    --sans:"PingFang SC",-apple-system,BlinkMacSystemFont,"Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    --mono:"SFMono-Regular",Menlo,Consolas,monospace;
+    --ease:cubic-bezier(.2,.7,.3,1);
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:#EFEFEE;font-family:var(--sans);color:var(--ink);-webkit-font-smoothing:antialiased;font-size:14px;line-height:1.65;}
+  button{font-family:inherit;}
+
+  .topbar{
+    position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:16px;padding:12px 24px;
+    background:rgba(250,250,249,.92);backdrop-filter:blur(12px);border-bottom:1px solid rgba(235,235,232,.9);
+  }
+  .topbar .bm{display:flex;align-items:center;gap:9px;}
+  .topbar .sq{width:24px;height:24px;border-radius:50%;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-size:13px;}
+  .topbar .tt{font-family:var(--serif);font-size:14px;letter-spacing:.08em;}
+  .topbar .sp{flex:1;}
+  .topbar a{font-size:12px;color:var(--ink-3);text-decoration:none;padding:6px 10px;border-radius:8px;transition:background-color 160ms var(--ease),color 160ms var(--ease);}
+  .topbar a:hover{background:var(--brand-soft);color:var(--brand);}
+  .topbar a:focus-visible{outline:2px solid var(--brand);outline-offset:2px;}
+
+  .wrap{display:grid;grid-template-columns:212px minmax(0,1fr);align-items:start;}
+  aside.rail{position:sticky;top:49px;height:calc(100vh - 49px);overflow-y:auto;padding:22px 14px 40px;border-right:1px solid var(--line);background:#FAFAF9;}
+  .rail h1{font-family:var(--serif);font-size:17px;font-weight:600;margin:0 0 2px;letter-spacing:.04em;}
+  .rail .cnt{font-size:11px;color:var(--ink-3);margin-bottom:16px;letter-spacing:.04em;}
+  .grp{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#A2A6AB;margin:16px 0 6px;padding-left:8px;font-weight:600;}
+  .rail nav button{
+    display:flex;gap:8px;align-items:baseline;width:100%;text-align:left;background:none;border:0;cursor:pointer;
+    padding:7px 9px;border-radius:8px;font-size:12.5px;color:var(--ink-3);line-height:1.4;
+    transition:background-color 160ms var(--ease),color 160ms var(--ease);
+  }
+  .rail nav button .id{font-family:var(--mono);font-size:9.5px;opacity:.55;}
+  .rail nav button:hover{background:var(--brand-soft);color:var(--brand);}
+  .rail nav button[aria-current="true"]{background:var(--brand);color:#fff;font-weight:600;}
+  .rail nav button[aria-current="true"] .id{opacity:.75;}
+  .rail nav button:focus-visible{outline:2px solid var(--brand);outline-offset:2px;}
+
+  main{padding:30px 32px 90px;min-width:0;}
+  .stage{display:grid;grid-template-columns:375px minmax(240px,1fr);gap:36px;align-items:start;}
+
+  /* ---------- device ---------- */
+  .device{
+    width:375px;height:812px;border-radius:44px;background:#fff;position:relative;
+    box-shadow:0 40px 90px -40px rgba(16,24,21,.42), 0 0 0 1px rgba(16,24,21,.06);
+    overflow:hidden;display:flex;flex-direction:column;
+    transition:opacity 200ms var(--ease),transform 200ms var(--ease);
+  }
+  .device.swap{opacity:0;transform:translateY(8px) scale(.995);}
+  .statusbar{height:46px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;font-size:12px;font-weight:600;color:var(--ink);flex:0 0 auto;background:transparent;}
+  .statusbar .r{display:flex;gap:5px;align-items:center;}
+
+  .navbar{height:44px;display:flex;align-items:center;padding:0 12px;gap:6px;flex:0 0 auto;background:transparent;}
+  .navbar .ib{width:30px;height:30px;display:flex;align-items:center;justify-content:center;border:0;background:none;border-radius:50%;color:var(--ink-2);cursor:pointer;transition:background-color 160ms var(--ease);}
+  .navbar .ib:hover{background:var(--sand);}
+  .navbar .ib:focus-visible{outline:2px solid var(--brand);outline-offset:2px;}
+  .navbar .title{flex:1;text-align:center;font-size:14.5px;font-weight:600;letter-spacing:.02em;}
+
+  .screen{flex:1 1 auto;overflow-y:auto;overflow-x:hidden;background:var(--canvas);scrollbar-width:none;position:relative;display:flex;flex-direction:column;}
+  .screen::-webkit-scrollbar{display:none;}
+  .screen > *{flex:0 0 auto;}
+  .screen.has-bar{padding-bottom:86px;}
+  .screen.has-bar.has-tab{padding-bottom:150px;}
+  .barhost{position:absolute;left:0;right:0;bottom:0;z-index:6;}
+  .barhost.above-tab{bottom:64px;}
+
+  .tabbar{
+    position:absolute;left:0;right:0;bottom:0;height:64px;background:#fff;
+    border-top:1px solid var(--line);display:flex;align-items:center;padding:0 6px 6px;z-index:3;
+  }
+  .tabbar div{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:10px;color:#9AA0A6;position:relative;padding-top:8px;}
+  .tabbar div.on{color:var(--brand);font-weight:600;}
+  .tabbar .ti{width:26px;height:24px;display:flex;align-items:center;justify-content:center;}
+  .tabbar .b{position:absolute;top:3px;right:calc(50% - 20px);min-width:15px;height:15px;padding:0 4px;border-radius:8px;background:var(--brand);color:#fff;font-size:9px;line-height:15px;text-align:center;font-weight:600;}
+
+  .icon{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;display:block;}
+  .icon.sm{width:16px;height:16px;}
+  .icon.lg{width:28px;height:28px;}
+
+  /* ---------- shared pieces ---------- */
+  .pad{padding:0 22px;}
+  .block{background:var(--white);border-radius:16px;}
+  .soft{background:var(--sand);border-radius:16px;}
+
+  .cartblock,.ocard,.chap,.amountblock,.setrows,.ordblock,.listblock,.ordernav,.adrow,.fieldblock,.addrblock,.invzone{
+    box-shadow:0 6px 18px -14px rgba(20,22,24,.22);
+  }
+
+  .reveal{opacity:0;transform:translateY(6px);}
+  .reveal.in{opacity:1;transform:none;}
+
+  .homehead{display:flex;align-items:flex-end;justify-content:space-between;padding:4px 22px 0;}
+  .homehead .l .wm{font-family:var(--serif);font-size:24px;letter-spacing:.2em;font-weight:600;line-height:1.1;}
+  .homehead .l .eb{font-size:8.5px;letter-spacing:.3em;text-transform:uppercase;color:var(--ink-3);margin-top:7px;}
+  .circlebtn{width:34px;height:34px;border-radius:50%;border:0;background:var(--white);box-shadow:0 6px 18px -10px rgba(16,24,21,.3);display:flex;align-items:center;justify-content:center;color:var(--ink-2);cursor:pointer;}
+  .circlebtn:hover{background:var(--brand-soft);color:var(--brand);}
+  .circlebtn:focus-visible{outline:2px solid var(--brand);outline-offset:3px;}
+
+  .hero{position:relative;margin:18px 0 0;height:372px;overflow:hidden;background:#EDE7DA;}
+  .hero img{width:100%;height:100%;object-fit:cover;display:block;}
+  .hero .scrim{position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,0) 42%,rgba(12,26,20,.55) 100%);}
+  .hero .txt{position:absolute;left:22px;right:22px;bottom:22px;color:#fff;}
+  .hero .eb{font-size:9.5px;letter-spacing:.24em;text-transform:uppercase;opacity:.9;margin-bottom:12px;}
+  .hero h3{font-family:var(--serif);font-size:33px;line-height:1.24;margin:0 0 16px;font-weight:600;letter-spacing:-.005em;text-wrap:balance;text-shadow:0 1px 20px rgba(12,26,20,.18);}
+  .hero .cta{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:650;color:#fff;background:var(--brand);border:0;border-radius:999px;padding:10px 18px;cursor:pointer;box-shadow:0 10px 24px -10px rgba(226,35,26,.8);transition:background-color 200ms var(--ease),transform 200ms var(--ease);}
+  .hero .cta:hover{background:var(--brand-2);transform:translateY(-1px);}
+  .hero .cta:focus-visible{outline:2px solid #fff;outline-offset:3px;}
+
+  .catrow{display:flex;gap:26px;padding:28px 22px 6px;overflow-x:auto;scrollbar-width:none;}
+  .catrow::-webkit-scrollbar{display:none;}
+  .catrow button{background:none;border:0;padding:0;cursor:pointer;text-align:left;}
+  .catrow button .i{display:block;font-family:var(--mono);font-size:9px;color:#B0B6B0;letter-spacing:.08em;margin-bottom:5px;}
+  .catrow button .t{font-size:13px;color:var(--ink-2);white-space:nowrap;letter-spacing:.06em;}
+  .catrow button.on .t{color:var(--brand);font-weight:650;}
+  .catrow button.on .i{color:var(--brand);}
+  .catrow button:focus-visible{outline:2px solid var(--brand);outline-offset:4px;border-radius:4px;}
+
+  .edhead{display:flex;align-items:baseline;gap:10px;padding:36px 22px 18px;}
+  .edhead .idx{font-family:var(--mono);font-size:9.5px;color:#B0B6B0;letter-spacing:.1em;}
+  .edhead h4{font-family:var(--serif);font-size:21px;font-weight:600;margin:0;letter-spacing:.02em;}
+  .edhead .more{margin-left:auto;background:none;border:0;font-size:10.5px;color:var(--ink-3);letter-spacing:.06em;cursor:pointer;padding:4px;border-radius:6px;}
+  .edhead .more:hover{color:var(--brand);}
+
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:28px 16px;padding:0 22px;}
+  .pcard{background:none;border:0;padding:0;text-align:left;cursor:pointer;}
+  .pcard .thumb{aspect-ratio:1;background:#F0EFEC;overflow:hidden;border-radius:4px;}
+  .pcard .thumb img{width:100%;height:100%;object-fit:cover;display:block;transition:transform 400ms var(--ease);}
+  .pcard:hover .thumb img{transform:scale(1.03);}
+  .pcard:focus-visible{outline:2px solid var(--brand);outline-offset:4px;border-radius:4px;}
+  .pcard .nm{font-size:12.5px;font-weight:600;line-height:1.5;margin-top:11px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:37px;letter-spacing:.01em;}
+  .pcard .cap{font-size:10px;color:var(--ink-3);margin-top:3px;letter-spacing:.02em;}
+  .pcard .pr{font-size:17px;font-weight:700;color:var(--price);font-variant-numeric:tabular-nums;margin-top:7px;letter-spacing:-.01em;}
+  .pcard .pr .c{font-size:10.5px;margin-right:1px;font-weight:500;}
+  .pcard .out{font-size:10px;color:var(--ink-3);margin-top:2px;display:block;}
+
+  .chip{display:inline-flex;align-items:center;gap:3px;font-size:9.5px;font-weight:600;line-height:1.6;padding:1px 6px;border-radius:4px;white-space:nowrap;}
+  .chip.red{background:var(--brand-soft);color:var(--brand);}
+  .chip.gold{background:var(--gold-soft);color:var(--gold);}
+  .chip.solid{background:var(--brand);color:#fff;}
+  .chip.line{background:#F4F1EB;color:#8E9399;}
+
+  .couponstrip{position:relative;overflow:hidden;display:flex;align-items:center;gap:10px;margin:16px 22px 0;padding:14px 16px;border-radius:14px;color:#fff;
+    background:linear-gradient(120deg,#EE3A24 0%,#E2231A 52%,#B7170F 100%);box-shadow:0 14px 28px -16px rgba(226,35,26,.85);}
+  .couponstrip::after{content:"";position:absolute;right:-24px;top:-38px;width:110px;height:110px;border-radius:50%;background:rgba(255,255,255,.12);}
+  .couponstrip .t{font-size:12.5px;font-weight:700;letter-spacing:.02em;}
+  .couponstrip .d{font-size:9.5px;color:rgba(255,255,255,.8);letter-spacing:.02em;margin-top:2px;}
+  .couponstrip .go{position:relative;margin-left:auto;font-size:10.5px;font-weight:700;color:#B7170F;background:#FBE3B0;border:0;border-radius:999px;padding:6px 14px;cursor:pointer;}
+  .couponstrip .go:hover{background:#F8D794;}
+  .couponstrip .go:focus-visible{outline:2px solid #fff;outline-offset:2px;}
+
+  .promise{display:flex;justify-content:center;gap:14px;padding:34px 22px 128px;color:#A2A6AB;font-size:10px;letter-spacing:.1em;}
+  .promise i{font-style:normal;color:#CFCAC0;}
+
+  /* category */
+  .catlay{display:flex;min-height:100%;}
+  .catlay .left{width:86px;flex:0 0 auto;padding:14px 0 60px;}
+  .catlay .left button{display:block;width:100%;text-align:left;padding:13px 0 13px 22px;background:none;border:0;font-size:12px;color:#A2A6AB;cursor:pointer;position:relative;letter-spacing:.04em;}
+  .catlay .left button.on{color:var(--ink);font-weight:650;}
+  .catlay .left button.on::before{content:"";position:absolute;left:12px;top:17px;bottom:17px;width:2px;border-radius:1px;background:var(--brand);}
+  .catlay .right{flex:1;min-width:0;padding:8px 22px 120px 4px;}
+  .catlay .right h4{font-family:var(--serif);font-size:22px;font-weight:600;margin:6px 0 3px;letter-spacing:.01em;}
+  .catlay .right .cnt{font-size:10px;color:var(--ink-3);letter-spacing:.08em;margin-bottom:20px;}
+  .catgrid{display:grid;grid-template-columns:1fr 1fr;gap:24px 12px;}
+  .catgrid .mini{background:none;border:0;padding:0;text-align:left;cursor:pointer;}
+  .catgrid .mini img{width:100%;aspect-ratio:1;object-fit:cover;display:block;background:#F0EFEC;border-radius:4px;}
+  .catgrid .mini span{display:block;font-size:11px;padding:8px 0 0;color:var(--ink-2);}
+
+  /* search */
+  .searchhero{padding:14px 22px 8px;}
+  .searchhero h3{font-family:var(--serif);font-size:29px;font-weight:600;margin:0 0 20px;letter-spacing:-.01em;}
+  .searchline{display:flex;align-items:center;gap:9px;padding:0 0 11px;border-bottom:1px solid #DEDEDA;color:var(--ink-3);}
+  .searchline input{flex:1;border:0;background:none;outline:0;font-size:14px;font-family:inherit;color:var(--ink);letter-spacing:.01em;}
+  .searchline input::placeholder{color:#B4B8BD;}
+  .textchips{display:flex;flex-wrap:wrap;gap:16px;padding:0 22px;}
+  .textchips button{background:none;border:0;padding:0;font-size:12px;color:var(--ink-2);cursor:pointer;letter-spacing:.02em;}
+  .textchips button:hover{color:var(--brand);}
+  .textchips button:focus-visible{outline:2px solid var(--brand);outline-offset:3px;border-radius:3px;}
+
+  /* list */
+  .filterline{display:flex;gap:20px;padding:4px 22px 14px;}
+  .filterline button{background:none;border:0;padding:0;font-size:12px;color:#8E9399;cursor:pointer;letter-spacing:.04em;}
+  .filterline button.on{color:var(--ink);font-weight:650;}
+  .filterline button:focus-visible{outline:2px solid var(--brand);outline-offset:3px;}
+  .filterline .sp{flex:1;}
+
+  /* product detail */
+  .pd-img{width:375px;height:404px;background:#F0EFEC;}
+  .pd-img img{width:100%;height:100%;object-fit:cover;display:block;}
+  .pd-body{padding:26px 22px 30px;}
+  .pd-price{display:flex;align-items:baseline;gap:9px;margin-bottom:12px;}
+  .pd-price b{font-size:27px;color:var(--price);font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.02em;}
+  .pd-price b .c{font-size:13px;margin-right:2px;font-weight:500;}
+  .pd-price .was{font-size:11px;color:#B4B8BD;text-decoration:line-through;}
+  .pd-name{font-family:var(--serif);font-size:23px;line-height:1.36;font-weight:600;margin:0 0 8px;letter-spacing:-.005em;}
+  .pd-cap{font-size:11px;color:var(--ink-3);margin:0 0 16px;letter-spacing:.02em;}
+  .stocknote{font-size:11px;color:var(--price);letter-spacing:.02em;margin-bottom:20px;}
+  .specrows{background:var(--sand);border-radius:16px;padding:6px 18px;margin-bottom:14px;}
+  .specrows .row{display:flex;gap:16px;padding:13px 0;font-size:12px;}
+  .specrows .row:not(:last-child){border-bottom:1px solid rgba(220,213,197,.55);}
+  .specrows .k{width:44px;color:var(--ink-3);flex:0 0 auto;font-size:11px;letter-spacing:.04em;}
+  .specrows .v{flex:1;color:var(--ink-2);}
+  .selrow{display:flex;align-items:center;justify-content:space-between;background:var(--white);border-radius:16px;padding:15px 18px;margin-bottom:26px;font-size:12px;color:var(--ink-2);}
+  .selrow button{background:none;border:0;color:var(--brand);font-size:11.5px;font-weight:600;cursor:pointer;padding:2px 4px;}
+  .revs{padding:0 22px 30px;}
+  .revs .h{display:flex;justify-content:space-between;align-items:baseline;padding:0 0 12px;}
+  .revs .h b{font-family:var(--serif);font-size:18px;font-weight:600;letter-spacing:.02em;}
+  .revs .h span{font-size:10.5px;color:var(--ink-3);}
+  .rev{padding:14px 0;}
+  .rev:not(:last-child){border-bottom:1px solid rgba(236,231,219,.9);}
+  .rev .who{font-size:11px;color:var(--ink-3);margin-bottom:5px;display:flex;gap:8px;align-items:center;}
+  .rev .who b{color:var(--ink-2);font-weight:600;}
+  .rev .txt{font-size:12px;color:var(--ink-2);line-height:1.65;}
+  .stars{display:inline-flex;gap:1.5px;color:#C08F2E;}
+  .bottombar{flex:0 0 auto;height:72px;background:rgba(255,255,255,.96);backdrop-filter:blur(16px);box-shadow:0 -14px 34px -22px rgba(16,24,21,.26);display:flex;align-items:center;gap:10px;padding:0 16px;}
+  .bottombar .icobtn{width:46px;display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:0;font-size:9.5px;color:#8C948E;cursor:pointer;}
+  .bottombar .icobtn:focus-visible{outline:2px solid var(--brand);outline-offset:2px;border-radius:8px;}
+  .bottombar .grow{flex:1;}
+  .btn{border:0;border-radius:999px;padding:12px 22px;font-size:13px;font-weight:600;cursor:pointer;letter-spacing:.02em;transition:background-color 160ms var(--ease),transform 120ms var(--ease);}
+  .btn.primary{background:var(--brand);color:#fff;}
+  .btn.primary:hover{background:var(--brand-2);}
+  .btn.primary:active{transform:scale(.985);}
+  .btn.sand{background:#fff;color:var(--ink-2);box-shadow:inset 0 0 0 1px var(--line-2);}
+  .btn.sand:hover{color:var(--brand);box-shadow:inset 0 0 0 1px rgba(226,35,26,.45);}
+  .btn.dark{background:#2A2C2E;color:#fff;}
+  .btn.dark:hover{background:#1A1C1E;}
+  .btn.line{background:var(--white);color:var(--ink-2);box-shadow:inset 0 0 0 1px rgba(16,24,21,.1);}
+  .btn.line:hover{color:var(--brand);box-shadow:inset 0 0 0 1px var(--brand);}
+  .btn[disabled]{background:#EDE9DF;color:#B0B6B0;cursor:not-allowed;}
+  .btn:focus-visible{outline:2px solid var(--brand);outline-offset:3px;}
+  .btn.sm{padding:7px 16px;font-size:11.5px;}
+
+  /* sheet */
+  .sheetwrap{position:absolute;inset:0;background:rgba(14,26,21,.4);display:flex;align-items:flex-end;z-index:4;}
+  .sheet{background:#fff;width:100%;border-radius:26px 26px 0 0;padding:10px 22px 24px;}
+  .sheet .grab{width:34px;height:4px;border-radius:2px;background:#E2DDD1;margin:0 auto 18px;}
+  .sheet .skuh{display:flex;gap:14px;margin-bottom:22px;}
+  .sheet .skuh img{width:74px;height:74px;border-radius:6px;object-fit:cover;background:#F0EFEC;}
+  .sheet .skuh .r{flex:1;padding-top:2px;}
+  .sheet .skuh .p{font-size:22px;font-weight:700;color:var(--price);font-variant-numeric:tabular-nums;line-height:1.2;letter-spacing:-.02em;}
+  .sheet .skuh .s{font-size:11px;color:var(--ink-3);margin-top:6px;line-height:1.6;}
+  .opt-label{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#8E9399;margin-bottom:10px;}
+  .opts{display:flex;flex-wrap:wrap;gap:9px;margin-bottom:22px;}
+  .opts button{border:0;background:var(--sand);border-radius:10px;padding:10px 16px;font-size:12px;color:var(--ink-2);cursor:pointer;transition:background-color 160ms var(--ease),color 160ms var(--ease);}
+  .opts button.sel{background:var(--brand);color:#fff;font-weight:600;}
+  .opts button[disabled]{background:#F7F4EC;color:#C4C9C3;cursor:not-allowed;text-decoration:line-through;}
+  .opts button:focus-visible{outline:2px solid var(--brand);outline-offset:2px;}
+  .qty{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px;}
+  .qty .lbl{font-size:12px;color:var(--ink-2);}
+  .stepper{display:flex;align-items:center;background:var(--sand);border-radius:999px;overflow:hidden;}
+  .stepper button{width:34px;height:32px;background:none;border:0;font-size:15px;color:var(--ink-2);cursor:pointer;}
+  .stepper button:focus-visible{outline:2px solid var(--brand);outline-offset:-2px;}
+  .stepper span{width:36px;text-align:center;font-size:12.5px;font-variant-numeric:tabular-nums;}
+
+  /* cart */
+  .cartblock{background:var(--white);border-radius:16px;padding:14px;margin:0 16px 10px;display:flex;gap:12px;}
+  .check{width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:inset 0 0 0 1.5px #D8D8D4;flex:0 0 auto;margin-top:28px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:transparent;transition:background-color 160ms var(--ease),box-shadow 160ms var(--ease);}
+  .check.on{background:var(--brand);box-shadow:none;color:#fff;}
+  .check.on svg{width:12px;height:12px;stroke-width:2.8;}
+  .check:focus-visible{outline:2px solid var(--brand);outline-offset:2px;}
+  .cartblock img{width:74px;height:74px;border-radius:6px;object-fit:cover;background:#F0EFEC;flex:0 0 auto;}
+  .cartblock .info{flex:1;min-width:0;}
+  .cartblock .nm{font-size:12.5px;font-weight:600;line-height:1.5;margin-bottom:5px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+  .cartblock .sp{font-size:10px;color:#8E9399;letter-spacing:.02em;}
+  .cartblock .bot{display:flex;align-items:center;justify-content:space-between;margin-top:12px;}
+  .cartblock .pr{font-size:15px;font-weight:650;color:var(--price);font-variant-numeric:tabular-nums;}
+  .stepper.mini{border-radius:999px;}
+  .stepper.mini button{width:26px;height:26px;font-size:13px;}
+  .stepper.mini span{width:28px;font-size:11.5px;}
+  .invzone{background:var(--sand);border-radius:16px;margin:14px 16px 0;padding:14px 16px;}
+  .invzone .h{display:flex;justify-content:space-between;font-size:10.5px;color:#8E9399;margin-bottom:10px;letter-spacing:.04em;}
+  .invzone .h button{background:none;border:0;color:var(--brand);font-size:10.5px;cursor:pointer;}
+  .invzone .row{display:flex;gap:12px;align-items:center;padding:4px 0;}
+  .invzone img{width:52px;height:52px;border-radius:5px;object-fit:cover;filter:grayscale(.7);opacity:.6;}
+  .invzone .t{font-size:11.5px;color:#8C948E;line-height:1.6;}
+  .checkoutbar{flex:0 0 auto;height:70px;background:rgba(255,255,255,.96);backdrop-filter:blur(16px);box-shadow:0 -14px 34px -22px rgba(16,24,21,.26);display:flex;align-items:center;padding:0 18px;gap:12px;}
+  .checkoutbar .sum{margin-left:auto;text-align:right;font-size:10px;color:var(--ink-3);}
+  .checkoutbar .sum b{display:block;font-size:20px;color:var(--price);font-weight:700;font-variant-numeric:tabular-nums;line-height:1.25;letter-spacing:-.02em;}
+
+  /* checkout */
+  .addrblock{background:var(--white);border-radius:16px;margin:6px 16px 10px;padding:17px 18px;cursor:pointer;border:0;width:calc(100% - 32px);text-align:left;font-family:inherit;}
+  .addrblock .t{display:flex;align-items:center;gap:9px;font-size:13.5px;font-weight:650;margin-bottom:6px;letter-spacing:.01em;}
+  .addrblock .tag{font-size:9px;letter-spacing:.08em;color:var(--brand);background:var(--brand-soft);border-radius:4px;padding:2px 6px;font-weight:600;}
+  .addrblock .d{font-size:11.5px;color:var(--ink-3);line-height:1.65;}
+  .addrblock:focus-visible{outline:2px solid var(--brand);outline-offset:-2px;}
+  .ordblock{background:var(--white);border-radius:16px;margin:0 16px 10px;padding:6px 18px;}
+  .ordline{display:flex;gap:12px;align-items:center;padding:12px 0;}
+  .ordline:not(:last-child){border-bottom:1px solid rgba(236,231,219,.85);}
+  .ordline img{width:56px;height:56px;border-radius:5px;object-fit:cover;background:#F0EFEC;flex:0 0 auto;}
+  .ordline .i{flex:1;min-width:0;}
+  .ordline .n{font-size:12px;font-weight:600;line-height:1.5;}
+  .ordline .s{font-size:10px;color:#8E9399;margin-top:2px;}
+  .ordline .p{text-align:right;font-size:12px;font-variant-numeric:tabular-nums;color:var(--ink);}
+  .ordline .p span{display:block;font-size:10px;color:#8E9399;margin-top:2px;}
+  .setrows{background:var(--white);border-radius:16px;margin:0 16px 10px;padding:4px 18px;}
+  .setrow{display:flex;align-items:center;gap:12px;padding:14px 0;font-size:12px;}
+  .setrow:not(:last-child){border-bottom:1px solid rgba(236,231,219,.85);}
+  .setrow .k{color:var(--ink-3);width:56px;flex:0 0 auto;font-size:11px;letter-spacing:.04em;}
+  .setrow .v{flex:1;text-align:right;color:var(--ink-2);}
+  .setrow .v.brand{color:var(--price);font-weight:600;}
+  .setrow input{flex:1;border:0;background:none;outline:0;text-align:right;font-size:12px;font-family:inherit;color:var(--ink-2);}
+  .amountblock{background:var(--white);border-radius:16px;margin:0 16px;padding:16px 18px;}
+  .ar{display:flex;justify-content:space-between;font-size:11.5px;padding:4px 0;color:var(--ink-2);}
+  .ar .n{font-variant-numeric:tabular-nums;}
+  .ar.minus .n{color:var(--price);}
+  .total{display:flex;justify-content:space-between;align-items:baseline;margin-top:12px;padding-top:12px;border-top:1px solid rgba(236,231,219,.9);}
+  .total .l{font-size:11.5px;color:var(--ink-3);letter-spacing:.04em;}
+  .total .n{font-size:22px;font-weight:700;color:var(--price);font-variant-numeric:tabular-nums;letter-spacing:-.02em;}
+  .tiny{font-size:10px;color:#A2A6AB;text-align:right;margin-top:6px;}
+
+  /* pay result */
+  .payres{display:flex;flex-direction:column;align-items:center;padding:76px 26px 0;text-align:center;}
+  .payres .ring{width:78px;height:78px;border-radius:50%;background:var(--brand-soft);color:var(--brand);display:flex;align-items:center;justify-content:center;margin-bottom:24px;}
+  .payres h3{font-family:var(--serif);font-size:27px;font-weight:600;margin:0 0 10px;letter-spacing:.01em;}
+  .payres .amt{font-size:30px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.02em;margin-bottom:8px;}
+  .payres .sub{font-size:10.5px;color:#8E9399;letter-spacing:.04em;margin-bottom:34px;}
+  .payres .acts{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%;}
+  .subcard{margin:32px 16px 0;background:var(--sand);border-radius:16px;padding:18px;}
+  .subcard .t{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#8E9399;margin-bottom:7px;}
+  .subcard .d{font-size:12px;color:var(--ink-2);line-height:1.65;}
+
+  /* orders */
+  .segpill{display:inline-flex;background:var(--sand);border-radius:999px;padding:3px;margin:0 22px 18px;gap:2px;}
+  .segpill button{border:0;background:none;font-size:11.5px;color:#8C948E;padding:6px 13px;border-radius:999px;cursor:pointer;letter-spacing:.02em;}
+  .segpill button.on{background:var(--white);color:var(--ink);font-weight:600;box-shadow:0 2px 8px -4px rgba(16,24,21,.24);}
+  .segpill button:focus-visible{outline:2px solid var(--brand);outline-offset:2px;}
+  .ocard{background:var(--white);border-radius:16px;margin:0 16px 12px;overflow:hidden;}
+  .ocard .h{display:flex;justify-content:space-between;align-items:center;padding:14px 16px 4px;font-size:10.5px;color:#8E9399;letter-spacing:.02em;}
+  .ocard .h .st{color:var(--brand);font-weight:650;font-size:11.5px;}
+  .ocard .h .st.warn{color:var(--warn);}
+  .ocard .item{display:flex;gap:12px;padding:12px 16px;}
+  .ocard .item img{width:64px;height:64px;border-radius:5px;object-fit:cover;background:#F0EFEC;}
+  .ocard .item .i{flex:1;min-width:0;}
+  .ocard .item .n{font-size:12px;font-weight:600;line-height:1.5;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden;}
+  .ocard .item .s{font-size:10px;color:#8E9399;margin-top:3px;}
+  .ocard .item .p{text-align:right;font-size:10px;color:#8E9399;}
+  .ocard .item .p b{display:block;color:var(--ink);font-size:12px;font-variant-numeric:tabular-nums;font-weight:650;}
+  .ocard .f{display:flex;align-items:center;justify-content:flex-end;gap:8px;padding:4px 16px 16px;}
+  .ocard .f .sum{margin-right:auto;font-size:10px;color:#8E9399;}
+  .ocard .f .sum b{color:var(--ink);font-size:12px;font-variant-numeric:tabular-nums;font-weight:650;}
+
+  /* order detail */
+  .statushead{background:var(--brand);color:#fff;margin:0 14px 12px;border-radius:20px;padding:24px 22px 26px;}
+  .statushead .eb{font-size:9px;letter-spacing:.2em;text-transform:uppercase;opacity:.7;margin-bottom:8px;}
+  .statushead .s{font-family:var(--serif);font-size:25px;font-weight:600;margin-bottom:6px;letter-spacing:.01em;}
+  .statushead .d{font-size:11px;opacity:.76;}
+  .statushead.warn{background:#8B5A16;}
+  .chap{background:var(--white);border-radius:16px;margin:0 14px 10px;padding:16px 18px;}
+  .chap .ct{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:#8E9399;margin-bottom:10px;}
+  .chap .cr{display:flex;justify-content:space-between;gap:16px;font-size:11.5px;padding:4px 0;color:var(--ink-2);}
+  .chap .cr .n{text-align:right;font-variant-numeric:tabular-nums;color:var(--ink-3);}
+  .chap .cr.blue{color:var(--ink-3);font-size:11px;line-height:1.65;}
+  .copybtn{background:none;border:0;color:var(--brand);font-size:10px;cursor:pointer;padding:1px 5px;}
+  .tlwrap{padding:2px 0 4px;}
+  .tl{display:flex;gap:11px;padding-bottom:18px;position:relative;}
+  .tl:not(:last-child)::before{content:"";position:absolute;left:4.5px;top:12px;bottom:0;width:1px;background:#EDE8DC;}
+  .tl .dot{width:10px;height:10px;border-radius:50%;background:#EDE8DC;flex:0 0 auto;margin-top:1px;}
+  .tl .dot.on{background:var(--brand);}
+  .tl .c{flex:1;font-size:11px;color:#8E9399;line-height:1.55;}
+  .tl .c b{display:block;font-size:12px;color:var(--ink);font-weight:600;margin-bottom:2px;}
+  .tl .t{font-size:9.5px;color:#B4B8BD;white-space:nowrap;}
+
+  /* after sale */
+  .radiocards{display:grid;gap:9px;margin-bottom:18px;}
+  .radiocard{display:flex;gap:11px;align-items:flex-start;padding:15px 16px;border-radius:14px;background:var(--white);cursor:pointer;}
+  .radiocard.on{background:var(--brand-soft);}
+  .radiocard .rd{width:15px;height:15px;border-radius:50%;background:#EDEBE8;flex:0 0 auto;margin-top:2px;}
+  .radiocard.on .rd{background:var(--brand);box-shadow:inset 0 0 0 3px var(--brand-soft);}
+  .radiocard .t{font-size:12.5px;font-weight:650;letter-spacing:.01em;}
+  .radiocard .d{font-size:10.5px;color:#8E9399;margin-top:3px;line-height:1.6;}
+  .fieldblock{background:var(--white);border-radius:16px;padding:6px 18px;margin-bottom:10px;}
+  .frow{display:flex;align-items:center;gap:12px;padding:15px 0;font-size:11.5px;}
+  .frow:not(:last-child){border-bottom:1px solid rgba(236,231,219,.85);}
+  .frow .k{color:var(--ink-3);width:62px;flex:0 0 auto;font-size:11px;letter-spacing:.03em;}
+  .frow .v{flex:1;text-align:right;color:var(--ink-2);}
+  .frow input{flex:1;border:0;background:none;outline:0;text-align:right;font-size:12.5px;font-family:inherit;color:var(--ink);font-variant-numeric:tabular-nums;}
+  .frow textarea{flex:1;border:0;background:none;outline:0;font-size:11.5px;font-family:inherit;resize:none;min-height:50px;color:var(--ink-2);line-height:1.6;}
+  .uploader{display:flex;gap:9px;}
+  .upl{width:66px;height:66px;border-radius:8px;background:var(--sand);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:#8E9399;font-size:9.5px;cursor:pointer;border:0;}
+  .upl:hover{background:#EDE6D7;color:var(--ink-2);}
+  .upl:focus-visible{outline:2px solid var(--brand);outline-offset:2px;}
+  .upl img{width:100%;height:100%;object-fit:cover;border-radius:8px;}
+
+  /* review */
+  .rate{padding:28px 22px 8px;text-align:center;}
+  .rate .t{font-family:var(--serif);font-size:21px;font-weight:600;margin-bottom:18px;letter-spacing:.02em;}
+  .rate .stars{display:flex;justify-content:center;gap:12px;margin-bottom:8px;}
+  .rate .star{width:34px;height:34px;color:#E2DDD1;background:none;border:0;cursor:pointer;padding:0;transition:color 160ms var(--ease),transform 160ms var(--ease);}
+  .rate .star.on{color:#C08F2E;}
+  .rate .star:hover{transform:scale(1.08);}
+  .rate .star:focus-visible{outline:2px solid var(--brand);outline-offset:2px;border-radius:6px;}
+  .rate .hint{font-size:10.5px;color:#8E9399;letter-spacing:.04em;}
+
+  /* mine */
+  .minehead{background:#fff;border-radius:0 0 22px 22px;padding:18px 20px 18px;margin-bottom:14px;}
+  .minehead .top{display:flex;align-items:center;gap:12px;}
+  .minehead .av{width:52px;height:52px;border-radius:50%;background:var(--brand-soft);color:var(--brand);display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-size:20px;}
+  .minehead .n{font-size:21px;font-weight:700;letter-spacing:.01em;line-height:1.2;}
+  .minehead .lv{display:inline-block;font-size:9px;letter-spacing:.1em;color:var(--gold);background:var(--gold-soft);border-radius:999px;padding:3px 9px;margin-top:5px;font-weight:700;}
+  .minehead .top button{margin-left:auto;background:none;border:0;color:var(--ink-3);font-size:10.5px;cursor:pointer;letter-spacing:.04em;}
+  .vipcard{position:relative;margin-top:16px;padding:16px 18px;border-radius:16px;color:#fff;overflow:hidden;
+    background:linear-gradient(128deg,#EE3A24 0%,#E2231A 46%,#B7170F 100%);
+    box-shadow:0 14px 30px -16px rgba(226,35,26,.75);}
+  .vipcard::after{content:"";position:absolute;right:-30px;top:-40px;width:130px;height:130px;border-radius:50%;background:rgba(255,255,255,.1);}
+  .vipcard .vt{font-size:9px;letter-spacing:.2em;text-transform:uppercase;opacity:.78;margin-bottom:10px;}
+  .minestats{display:flex;gap:26px;position:relative;}
+  .minestats div .v{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.02em;line-height:1.2;}
+  .minestats div .k{font-size:9px;letter-spacing:.1em;color:rgba(255,255,255,.72);margin-top:4px;}
+  .ordernav{display:flex;background:var(--white);border-radius:16px;margin:0 16px 12px;padding:16px 8px;}
+  .ordernav a{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;text-decoration:none;color:var(--ink-2);font-size:10.5px;position:relative;padding:4px 0;}
+  .ordernav a:focus-visible{outline:2px solid var(--brand);outline-offset:2px;border-radius:8px;}
+  .ordernav .b{position:absolute;top:-2px;right:20px;min-width:14px;height:14px;border-radius:7px;background:var(--price);color:#fff;font-size:9px;line-height:14px;text-align:center;}
+  .listblock{background:var(--white);border-radius:16px;margin:0 16px 10px;padding:2px 18px;}
+  .lr{display:flex;align-items:center;gap:11px;padding:16px 0;font-size:12.5px;color:var(--ink-2);text-decoration:none;}
+  .lr:not(:last-child){border-bottom:1px solid rgba(236,231,219,.85);}
+  .lr:focus-visible{outline:2px solid var(--brand);outline-offset:-2px;}
+  .lr .v{margin-left:auto;font-size:10.5px;color:#8E9399;}
+
+  /* address */
+  .adrow{background:var(--white);border-radius:16px;margin:0 16px 10px;padding:16px 18px;display:flex;gap:12px;align-items:flex-start;}
+  .adrow .c{flex:1;min-width:0;}
+  .adrow .n{font-size:12.5px;font-weight:650;margin-bottom:5px;}
+  .adrow .n .tag{margin-left:7px;font-size:9px;color:var(--brand);background:var(--brand-soft);border-radius:4px;padding:1px 6px;font-weight:600;letter-spacing:.06em;}
+  .adrow .d{font-size:11px;color:#8E9399;line-height:1.65;}
+  .adrow button{background:none;border:0;color:var(--brand);font-size:10.5px;cursor:pointer;padding:2px 4px;}
+
+  .emptybox{padding:70px 30px;text-align:center;color:#8E9399;font-size:12px;}
+  svg.sprite{display:none;}
+
+  @media(max-width:900px){
+    .wrap{grid-template-columns:1fr;}
+    aside.rail{position:static;height:auto;border-right:0;border-bottom:1px solid rgba(236,231,219,.8);}
+    .rail nav{display:flex;flex-wrap:wrap;gap:4px;}
+    .rail nav button{width:auto;}
+    .grp{width:100%;margin-top:10px;}
+    .stage{grid-template-columns:1fr;justify-items:center;}
+    main{padding:20px 14px 60px;}
+    .notes{max-width:375px;}
+  }
+
+  /* notes */
+  .notes{padding-top:4px;min-width:0;}
+  .nid{font-family:var(--mono);font-size:10.5px;color:var(--brand);letter-spacing:.1em;margin-bottom:9px;}
+  .notes h2{font-family:var(--serif);font-size:25px;font-weight:600;margin:0 0 7px;letter-spacing:.01em;}
+  .notes .meta{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:20px;}
+  .tag{display:inline-flex;font-size:10.5px;font-weight:600;padding:2px 9px;border-radius:999px;line-height:1.7;}
+  .tag.brand{background:var(--brand-soft);color:var(--brand);}
+  .tag.p1{background:#F0EDF8;color:#5B4B8A;}
+  .tag.neutral{background:var(--sand);color:#8C948E;}
+  .notes ul{list-style:none;padding:0;margin:0 0 20px;}
+  .notes li{position:relative;padding:11px 0 11px 17px;font-size:12px;color:var(--ink-2);border-bottom:1px solid rgba(236,231,219,.9);line-height:1.65;}
+  .notes li::before{content:"";position:absolute;left:0;top:17px;width:7px;height:1px;background:var(--brand);}
+  .notes .sec{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:#8E9399;font-weight:600;margin:22px 0 6px;}
+  .notes .kv{display:grid;grid-template-columns:72px 1fr;gap:5px 10px;font-size:11.5px;margin:0;}
+  .notes .kv dt{color:#8E9399;}
+  .notes .kv dd{margin:0;color:var(--ink-2);}
+
+  @media (prefers-reduced-motion:reduce){
+    *{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important;}
+    .device.swap{opacity:1;transform:none;}
+    .reveal{opacity:1;transform:none;}
+  }
+</style>
+</head>
+<body>
+
+<svg class="sprite" aria-hidden="true" focusable="false">
+  <symbol id="i-back" viewBox="0 0 24 24"><path d="M15 5 8 12l7 7"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="m16 16 4 4"/></symbol>
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="m4 11 8-7 8 7v8a1 1 0 0 1-1 1h-5v-6H10v6H5a1 1 0 0 1-1-1z"/></symbol>
+  <symbol id="i-grid" viewBox="0 0 24 24"><rect x="4" y="4" width="6" height="6"/><rect x="14" y="4" width="6" height="6"/><rect x="4" y="14" width="6" height="6"/><rect x="14" y="14" width="6" height="6"/></symbol>
+  <symbol id="i-bag" viewBox="0 0 24 24"><path d="M6 8h12l-1 12H7z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.2"/><path d="M5 20c0-3.6 3.1-5.4 7-5.4s7 1.8 7 5.4"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7"/></symbol>
+  <symbol id="i-coupon" viewBox="0 0 24 24"><path d="M4 8h16v3a2 2 0 0 0 0 4v3H4v-3a2 2 0 0 0 0-4z"/></symbol>
+  <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s6-6.2 6-11a6 6 0 1 0-12 0c0 4.8 6 11 6 11z"/><circle cx="12" cy="10" r="2"/></symbol>
+  <symbol id="i-service" viewBox="0 0 24 24"><path d="M5 13a7 7 0 0 1 14 0"/><rect x="3" y="13" width="4" height="6" rx="1.4"/><rect x="17" y="13" width="4" height="6" rx="1.4"/></symbol>
+  <symbol id="i-camera" viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="12" rx="2"/><circle cx="12" cy="13" r="3"/></symbol>
+  <symbol id="i-star" viewBox="0 0 24 24"><path d="m12 4 2.4 5 5.6.7-4 4 1 5.5-5-2.8-5 2.8 1-5.5-4-4 5.6-.7z"/></symbol>
+</svg>
+
+<div class="topbar">
+  <div class="bm"><span class="sq" aria-hidden="true">山</span><span class="tt">小程序设计稿</span></div>
+  <span style="font-size:11px;color:#8E9399;font-family:'SFMono-Regular',Menlo,monospace;letter-spacing:.04em;">17 SCREENS · 375 × 812 · v3 红金</span>
+  <div class="sp"></div>
+  <a href="./design-system.html">设计规范</a>
+  <a href="./admin.html">管理后台 24 屏</a>
+  <a href="../B2C商城-需求调研与产品设计.html">PRD</a>
+</div>
+
+<div class="wrap">
+  <aside class="rail">
+    <h1>山野商城</h1>
+    <div class="cnt">微信小程序 · 17 屏 · v3</div>
+    <nav id="nav" aria-label="小程序页面列表"></nav>
+  </aside>
+  <main>
+    <div class="stage">
+      <div id="deviceHost"></div>
+      <section class="notes" id="notes" aria-live="polite"></section>
+    </div>
+  </main>
+</div>
+
+<script>
+(function(){
+  var IMG = {
+    hero: "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=bright%20airy%20editorial%20still%20life%20of%20a%20puer%20tea%20cake%20and%20a%20white%20ceramic%20cup%20on%20white%20linen%2C%20soft%20morning%20sunlight%2C%20high%20key%20cream%20palette%2C%20minimal%20composition%2C%20no%20text&image_size=landscape_4_3",
+    tea: "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=puer%20tea%20cake%20wrapped%20in%20white%20cotton%20paper%20on%20a%20bright%20cream%20surface%2C%20high%20key%20soft%20daylight%2C%20no%20text&image_size=square",
+    coffee: "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=kraft%20paper%20coffee%20bag%20with%20whole%20beans%20on%20bright%20cream%20plaster%2C%20airy%20high%20key%20daylight%2C%20no%20text%20no%20logo&image_size=square",
+    honey: "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=glass%20jar%20of%20golden%20mountain%20honey%20on%20white%20marble%2C%20bright%20sunlight%2C%20clean%20minimal%2C%20no%20text&image_size=square",
+    ceramic: "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=white%20handmade%20ceramic%20pitcher%20on%20pale%20linen%2C%20bright%20soft%20light%2C%20minimal%20high%20key%2C%20no%20text&image_size=square",
+    linen: "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=beige%20linen%20fabric%20folded%20neatly%20on%20a%20cream%20background%2C%20soft%20daylight%2C%20minimal%2C%20no%20text&image_size=square",
+    mushroom: "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=dried%20porcini%20mushrooms%20in%20a%20pale%20wooden%20bowl%20on%20cream%20surface%2C%20bright%20soft%20daylight%2C%20no%20text&image_size=square"
+  };
+
+  function ic(n, cls){ return '<svg class="icon ' + (cls||'') + '" aria-hidden="true"><use href="#i-' + n + '"/></svg>'; }
+  function yen(n){ return '<span class="c">¥</span>' + n; }
+
+  var P = [
+    {name:'勐海古树普洱 2019', cap:'357g · 古树春料', price:'268', img:IMG.tea},
+    {name:'云南小粒咖啡 日晒', cap:'250g · 中浅烘', price:'98', img:IMG.coffee},
+    {name:'高山野蜂蜜', cap:'500g · 波美 42°', price:'128', img:IMG.honey},
+    {name:'手作粗陶公道杯', cap:'单只 · 柴烧落灰', price:'86', img:IMG.ceramic},
+    {name:'亚麻桌旗', cap:'35 × 180cm · 原色', price:'59', img:IMG.linen},
+    {name:'香格里拉松茸干', cap:'100g · 自然晒干', price:'198', img:IMG.mushroom}
+  ];
+
+  function pcard(p, soldout){
+    return '<button class="pcard" type="button">'
+      + '<div class="thumb"><img src="' + p.img + '" alt="' + p.name + '" width="180" height="180" loading="lazy"></div>'
+      + '<div class="nm">' + p.name + '</div><div class="cap">' + p.cap + '</div>'
+      + '<div class="pr">' + yen(p.price) + '</div>'
+      + (soldout ? '<span class="out">已售罄</span>' : '')
+      + '</button>';
+  }
+  function grid(list){ return '<div class="grid2">' + list.map(function(p){ return pcard(p); }).join('') + '</div>'; }
+
+  function navbar(title, opts){
+    opts = opts || {};
+    var back = opts.home ? '' : '<button class="ib" type="button" aria-label="返回">' + ic('back','sm') + '</button>';
+    var act = opts.act ? '<button class="ib" type="button" aria-label="' + opts.act.label + '">' + ic(opts.act.icon,'sm') + '</button>' : '<span style="width:30px"></span>';
+    return '<div class="navbar">' + back + '<div class="title">' + title + '</div>' + act + '</div>';
+  }
+
+  function tabbar(active){
+    var items = [['home','首页'],['grid','分类'],['bag','购物车'],['user','我的']];
+    return '<div class="tabbar">' + items.map(function(it){
+      var badge = (it[0] === 'bag') ? '<span class="b">3</span>' : '';
+      return '<div class="' + (it[0] === active ? 'on' : '') + '"><span class="ti">' + ic(it[0],'sm') + badge + '</span><span>' + it[1] + '</span></div>';
+    }).join('') + '</div>';
+  }
+
+  function statusbar(){
+    return '<div class="statusbar"><span>9:41</span><span class="r">'
+      + '<svg width="15" height="11" viewBox="0 0 15 11" aria-hidden="true"><path d="M1 9h2v2H1zM4.5 6.5h2V11h-2zM8 4h2V11h-2zM11.5 1.5h2V11h-2z" fill="#8C948E"/></svg>'
+      + '<svg width="16" height="11" viewBox="0 0 16 11" aria-hidden="true"><path d="M8 9.4 6 7.4a2.8 2.8 0 0 1 4 0zM8 4.6a5.6 5.6 0 0 0-4 1.6l-1.2-1.2a7.4 7.4 0 0 1 10.4 0L12 6.2a5.6 5.6 0 0 0-4-1.6z" fill="#8C948E"/></svg>'
+      + '<svg width="24" height="11" viewBox="0 0 24 11" aria-hidden="true"><rect x="0.5" y="1.5" width="19" height="8" rx="2.5" stroke="#8C948E" fill="none"/><rect x="2" y="3" width="13" height="5" rx="1.5" fill="#8C948E"/><path d="M21.5 4.4v3.2a2 2 0 0 0 0-3.2z" fill="#8C948E"/></svg>'
+      + '</span></div>';
+  }
+
+  var MP = [
+    {
+      id:'MP-01', name:'首页', group:'浏览',
+      tags:['P0','MP-01'],
+      keyEl:'整幅高调场景图 + 宋体大标题',
+      states:['加载骨架','图片失败兜底','零商品'],
+      notes:[
+        '主色改为参考图的高饱和红（#E2231A）：页面底 #F6F6F5、卡片纯白，红只出现在按钮、价格与关键标记上。',
+        '标题 33px 宋体压在实拍上，是全屏最大的东西；CTA 用实心红按钮 + 红色投影，形成视觉冲击点。',
+        '分类带序号（01 茶 / 02 咖啡），在红色之外保留编辑感，避免像普通促销页。',
+        '新增一条领券条：浅红渐变底 + 红色文案，把「满 99 包邮 / 新客立减」这类利益点前置。'
+      ],
+      body: function(){
+        return '<div class="homehead"><div class="l"><div class="wm">山 野</div><div class="eb">Yunnan · Selected</div></div>'
+          + '<button class="circlebtn" type="button" aria-label="搜索">' + ic('search','sm') + '</button></div>'
+          + '<div class="hero"><img src="' + IMG.hero + '" alt="白色亚麻布上的茶饼与白瓷杯，晨光下的高调静物" width="375" height="372" fetchpriority="high">'
+          + '<div class="scrim" aria-hidden="true"></div>'
+          + '<div class="txt"><div class="eb">No.07 · 秋季选品</div><h3>把山里的味道<br>带回厨房</h3>'
+          + '<button class="cta" type="button">逛本期上新 ' + ic('arrow','sm') + '</button></div></div>'
+          + '<div class="catrow"><button class="on" type="button"><span class="i">01</span><span class="t">茶</span></button>'
+          + '<button type="button"><span class="i">02</span><span class="t">咖啡</span></button>'
+          + '<button type="button"><span class="i">03</span><span class="t">蜂蜜</span></button>'
+          + '<button type="button"><span class="i">04</span><span class="t">器皿</span></button>'
+          + '<button type="button"><span class="i">05</span><span class="t">织物</span></button></div>'
+          + '<div class="couponstrip"><div><div class="t">满 99 包邮</div><div class="d">新客立减 10 元 · 领券立用</div></div><button class="go" type="button">立即领取</button></div>'
+          + '<div class="edhead"><span class="idx">01</span><h4>本期精选</h4><button class="more" type="button">全部 6 件</button></div>'
+          + grid([P[0],P[1],P[2],P[3]])
+          + '<div class="promise"><span>山里直采</span><i>·</i><span>七天无理由</span><i>·</i><span>满 99 包邮</span></div>';
+      },
+      chrome: {home:true}
+    },
+    {
+      id:'MP-02', name:'分类', group:'浏览',
+      tags:['P0','MP-02'],
+      keyEl:'序号式分类栏 + 大图网格',
+      states:['空分类','分类下无商品'],
+      notes:[
+        '左栏去掉背景块与分隔线，只用字重与 2px 竖条表示选中，视觉噪音降到最低。',
+        '右侧用 22px 宋体分类名 + 商品数量小字，先给信息层次再给图。'
+      ],
+      body: function(){
+        return '<div class="catlay"><div class="left">'
+          + '<button class="on" type="button">茶</button><button type="button">咖啡</button><button type="button">蜂蜜</button><button type="button">器皿</button><button type="button">织物</button><button type="button">调味</button><button type="button">礼盒</button>'
+          + '</div><div class="right"><h4>普洱 · 生茶</h4><div class="cnt">4 件商品</div>'
+          + '<div class="catgrid">' + P.slice(0,4).map(function(p){
+            return '<button class="mini" type="button"><img src="' + p.img + '" alt="' + p.name + '" width="130" height="130" loading="lazy"><span>' + p.name + '</span></button>';
+          }).join('') + '</div></div></div>';
+      },
+      chrome: {tab:'grid', title:'分类'}
+    },
+    {
+      id:'MP-03', name:'搜索', group:'浏览',
+      tags:['P0','MP-03'],
+      keyEl:'宋体提问句 + 单线搜索框',
+      states:['无结果推荐','输入中'],
+      notes:[
+        '搜索框只保留一条底线，剩下靠留白，避免满屏圆角胶囊。',
+        '历史词不用胶囊，用文字 + 间距排列，和「01 02」的编辑索引语言一致。'
+      ],
+      body: function(){
+        return '<div class="searchhero"><h3>找点什么？</h3>'
+          + '<div class="searchline">' + ic('search','sm') + '<input type="search" name="q" placeholder="茶、咖啡、蜂蜜…" aria-label="搜索商品" enterkeyhint="search"></div></div>'
+          + '<div class="edhead" style="padding-top:26px"><span class="idx">01</span><h4>最近搜过</h4><button class="more" type="button">清空</button></div>'
+          + '<div class="textchips"><button type="button">古树普洱</button><button type="button">日晒咖啡</button><button type="button">公道杯</button><button type="button">松茸</button></div>'
+          + '<div class="edhead" style="padding-top:32px"><span class="idx">02</span><h4>大家都在买</h4></div>'
+          + '<div class="textchips"><button type="button">满 99 包邮</button><button type="button">本期精选</button><button type="button">送礼</button></div>'
+          + '<div class="edhead" style="padding-top:34px"><span class="idx">03</span><h4>猜你想找</h4></div>'
+          + grid(P.slice(1,3));
+      },
+      chrome: {title:'搜索'}
+    },
+    {
+      id:'MP-04', name:'商品列表', group:'浏览',
+      tags:['P0','MP-04'],
+      keyEl:'留白双列图片网格',
+      states:['筛选无结果','加载更多','售罄'],
+      notes:[
+        '排序改成纯文字，选中项用正红，不用描边胶囊。',
+        '列间距 28px，行间距 16px，比常规电商更疏，换来「选品」而非「货架」的感觉。'
+      ],
+      body: function(){
+        return '<div class="filterline" style="padding-top:6px;"><button class="on" type="button">综合</button><button type="button">销量</button><button type="button">价格 ↑</button><span class="sp"></span><button type="button">筛选</button></div>'
+          + grid([P[0],P[2],P[1],P[4],P[3],P[5]])
+          + '<div style="padding:26px 22px 120px;text-align:center;font-size:10px;color:#A2A6AB;letter-spacing:.16em;">已 经 到 底 了</div>';
+      },
+      chrome: {title:'茶 · 全部'}
+    },
+    {
+      id:'MP-05', name:'商品详情', group:'浏览',
+      tags:['P0','MP-05'],
+      keyEl:'404px 主图 + 27px 价格',
+      states:['售罄','下架','库存紧张'],
+      notes:[
+        '主图拉到 404px，先把「好东西」说清楚；价格 27px 是页面第二大的元素。',
+        '规格、产地、储存放进一块暖沙色圆角块，用底色分组替代四道横线。',
+        '底部操作栏用上浮阴影代替描边，主按钮只有一个。'
+      ],
+      body: function(){
+        return '<div class="pd-img"><img src="' + IMG.tea + '" alt="勐海古树普洱 2019 茶饼包装" width="375" height="404"></div>'
+          + '<div class="pd-body"><div class="pd-price"><b>' + yen('268') + '</b><span class="was">¥328</span></div>'
+          + '<h3 class="pd-name">勐海古树普洱<br>2019 生茶饼</h3>'
+          + '<p class="pd-cap">357g / 饼 · 海拔 1 800 米 · 石磨压制</p>'
+          + '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;"><span class="chip red">满 99 包邮</span><span class="chip gold">会员价 ¥258</span><span class="chip line">七天无理由</span></div>'
+          + '<div class="stocknote">仅剩 8 件 · 已售 328 件</div>'
+          + '<div class="specrows"><div class="row"><div class="k">规格</div><div class="v">357g 单饼 / 一提 7 饼</div></div>'
+          + '<div class="row"><div class="k">产地</div><div class="v">云南西双版纳 · 勐海</div></div>'
+          + '<div class="row"><div class="k">储存</div><div class="v">避光干燥，可长期陈化</div></div>'
+          + '<div class="row"><div class="k">服务</div><div class="v">七天无理由 · 满 99 包邮</div></div></div>'
+          + '<div class="selrow"><span>共 2 种规格可选</span><button type="button">选择规格</button></div></div>'
+          + '<div class="revs"><div class="h"><b>买家评价</b><span>4.9 分 · 128 条</span></div>'
+          + '<div class="rev"><div class="who"><b>陈 * 生</b><span class="stars" aria-label="5 星">★★★★★</span><span>11-05</span></div><div class="txt">汤感很厚，第三泡开始回甘，包装也体面，送人合适。</div></div>'
+          + '<div class="rev"><div class="who"><b>林 *</b><span class="stars" aria-label="5 星">★★★★★</span><span>11-02</span></div><div class="txt">第二次回购，陈化一年后更顺口。</div></div></div>'
+          + '<div class="bottombar"><button class="icobtn" type="button">' + ic('service') + '<span>客服</span></button>'
+          + '<button class="icobtn" type="button">' + ic('bag') + '<span>购物车</span></button>'
+          + '<div class="grow"></div>'
+          + '<button class="btn dark" type="button">加入购物车</button>'
+          + '<button class="btn primary" type="button">立即购买</button></div>';
+      },
+      chrome: {title:'商品详情', act:{icon:'search', label:'搜索'}}
+    },
+    {
+      id:'MP-06', name:'规格选择', group:'浏览',
+      tags:['P0','MP-06'],
+      keyEl:'26px 圆角弹层 + 实心选项',
+      states:['未选完禁用','售罄规格置灰','超库存'],
+      notes:[
+        '弹层圆角 26px、无分隔线，选项用实心色块，选中直接变正红实心——一眼看出选了什么。',
+        '售罄规格用浅底 + 删除线，不描边，保持干净。'
+      ],
+      body: function(){
+        return '<div style="filter:blur(2px);opacity:.85;">'
+          + '<div class="pd-img"><img src="' + IMG.tea + '" alt="" width="375" height="404"></div>'
+          + '<div class="pd-body"><div class="pd-price"><b>' + yen('268') + '</b></div>'
+          + '<h3 class="pd-name">勐海古树普洱<br>2019 生茶饼</h3></div></div>'
+          + '<div class="sheetwrap"><div class="sheet" role="dialog" aria-modal="true" aria-label="选择规格"><div class="grab" aria-hidden="true"></div>'
+          + '<div class="skuh"><img src="' + IMG.tea + '" alt="勐海古树普洱" width="74" height="74">'
+          + '<div class="r"><div class="p">' + yen('268') + '</div><div class="s">已选：357g 单饼 · 1 件<br>库存 8 件</div></div></div>'
+          + '<div class="opt-label">包装</div><div class="opts"><button class="sel" type="button">357g 单饼</button><button type="button">一提 7 饼 ¥1 680</button></div>'
+          + '<div class="opt-label">年份</div><div class="opts"><button class="sel" type="button">2019 生茶</button><button type="button" disabled>2016 生茶</button><button type="button" disabled>2015 熟茶</button></div>'
+          + '<div class="qty"><span class="lbl">数量</span><div class="stepper"><button type="button" aria-label="减少数量">−</button><span>1</span><button type="button" aria-label="增加数量">+</button></div></div>'
+          + '<button class="btn primary" type="button" style="width:100%;">确定</button><div style="height:6px"></div></div></div>';
+      },
+      chrome: {title:'选择规格'}
+    },
+    {
+      id:'MP-07', name:'购物车', group:'交易',
+      tags:['P0','MP-07'],
+      keyEl:'白块商品行 + 上浮合计栏',
+      states:['空车','失效商品区','勾选变化'],
+      notes:[
+        '每件商品是一块白色圆角，块与块之间靠 10px 间距分开，不再用一条条横线切。',
+        '失效商品放进暖沙色区域，用底色表示「这一块不一样」，而不是画很多线。',
+        '合计栏上浮带阴影，滚动时始终贴着底。'
+      ],
+      body: function(){
+        return '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 22px 14px;font-size:10.5px;color:#8E9399;letter-spacing:.06em;"><span>山野自营 · 2 件</span><button type="button" style="background:none;border:0;font-size:10.5px;color:#8E9399;cursor:pointer;">管理</button></div>'
+          + '<div class="cartblock"><button class="check on" type="button" aria-label="取消选中 勐海古树普洱">' + ic('check','sm') + '</button><img src="' + IMG.tea + '" alt="勐海古树普洱" width="74" height="74">'
+          + '<div class="info"><div class="nm">勐海古树普洱 2019 生茶饼</div><div class="sp">357g 单饼</div>'
+          + '<div class="bot"><div class="pr">' + yen('268') + '</div><div class="stepper mini"><button type="button" aria-label="减少数量">−</button><span>1</span><button type="button" aria-label="增加数量">+</button></div></div></div></div>'
+          + '<div class="cartblock"><button class="check on" type="button" aria-label="取消选中 云南小粒咖啡">' + ic('check','sm') + '</button><img src="' + IMG.coffee + '" alt="云南小粒咖啡" width="74" height="74">'
+          + '<div class="info"><div class="nm">云南小粒咖啡 日晒 250g</div><div class="sp">250g / 袋</div>'
+          + '<div class="bot"><div class="pr">' + yen('98') + '</div><div class="stepper mini"><button type="button" aria-label="减少数量">−</button><span>2</span><button type="button" aria-label="增加数量">+</button></div></div></div></div>'
+          + '<div class="invzone"><div class="h"><span>1 件商品已失效</span><button type="button">清空失效</button></div>'
+          + '<div class="row"><img src="' + IMG.ceramic + '" alt="" width="52" height="52"><div class="t">手作粗陶公道杯<br>已售罄，补货中</div></div></div>'
+          + '<div class="edhead" style="padding:28px 22px 14px;"><span class="idx">FOR YOU</span><h4>猜你喜欢</h4></div>'
+          + grid([P[2],P[4]])
+          + '<div style="height:20px"></div>'
+          + '<div class="checkoutbar above-tab"><button class="check on" type="button" aria-label="全选" style="margin-top:0;">' + ic('check','sm') + '</button><span style="font-size:11px;color:#8E9399;">全选</span>'
+          + '<div class="sum">合计<b>' + yen('434') + '</b><span>已优惠 ¥0</span></div>'
+          + '<button class="btn primary" type="button">去结算（3）</button></div>';
+      },
+      chrome: {tab:'bag', title:'购物车'}
+    },
+    {
+      id:'MP-08', name:'确认订单', group:'交易',
+      tags:['P0','MP-08'],
+      keyEl:'22px 应付金额',
+      states:['缺地址','券不可用','库存变化'],
+      notes:[
+        '整页只有数字需要「大声」：应付 22px，其余全部压到 11–12px。',
+        '地址、商品、优惠、金额各成一块白色圆角，块间距 10px，替代原来的一排排横线。',
+        '没有积分抵扣行——已确认订单不支持积分抵扣。'
+      ],
+      body: function(){
+        return '<div class="addrblock"><div class="t">王 <span style="color:#8E9399;font-weight:400;font-size:11px;">138 **** 6621</span><span class="tag">默认</span></div>'
+          + '<div class="d">云南省昆明市五华区 文林街 12 号 3 单元 502<br>王先生 收</div></div>'
+          + '<div class="ordblock"><div class="ordline"><img src="' + IMG.tea + '" alt="" width="56" height="56"><div class="i"><div class="n">勐海古树普洱 2019 生茶饼</div><div class="s">357g 单饼</div></div><div class="p">¥268<span>×1</span></div></div>'
+          + '<div class="ordline"><img src="' + IMG.coffee + '" alt="" width="56" height="56"><div class="i"><div class="n">云南小粒咖啡 日晒 250g</div><div class="s">250g / 袋</div></div><div class="p">¥196<span>×2</span></div></div></div>'
+          + '<div class="setrows"><div class="setrow"><span class="k">优惠券</span><span class="v brand">满 400 减 30 ›</span></div>'
+          + '<div class="setrow"><span class="k">运费</span><span class="v">满 99 包邮 · ¥0</span></div>'
+          + '<div class="setrow"><span class="k">备注</span><input type="text" name="remark" placeholder="选填，如送礼包装…" aria-label="订单备注"></div></div>'
+          + '<div class="amountblock"><div class="ar"><span>商品金额</span><span class="n">¥464.00</span></div>'
+          + '<div class="ar minus"><span>优惠券</span><span class="n">−¥30.00</span></div>'
+          + '<div class="ar"><span>运费</span><span class="n">¥0.00</span></div>'
+          + '<div class="total"><span class="l">应付金额</span><span class="n">¥434.00</span></div>'
+          + '<div class="tiny">会员折扣 ¥0 · 积分不参与抵扣</div></div>'
+          + '<div style="padding:16px 22px 20px;font-size:10px;color:#A2A6AB;line-height:1.7;letter-spacing:.02em;">提交订单即表示同意《购买须知》，模拟支付不会真实扣款。</div>'
+          + '<div class="checkoutbar"><div class="sum">应付<b>' + yen('434') + '</b></div><button class="btn primary" type="button">提交订单</button></div>';
+      },
+      chrome: {title:'确认订单'}
+    },
+    {
+      id:'MP-09', name:'支付结果', group:'交易',
+      tags:['P0','MP-09'],
+      keyEl:'品牌色圆环 + 30px 金额',
+      states:['成功','失败','处理中'],
+      notes:[
+        '成功页用一大块品牌浅色圆环收住视线，比勾选图标更有仪式感。',
+        '只留两个动作，页面空白要够大，留白本身就是高级感。'
+      ],
+      body: function(){
+        return '<div class="payres"><div class="ring" aria-hidden="true">' + ic('check','lg') + '</div>'
+          + '<h3>支付成功</h3><div class="amt">¥434.00</div>'
+          + '<div class="sub">订单号 SY20261106093812 · 模拟支付</div>'
+          + '<div class="acts"><button class="btn sand" type="button">继续逛逛</button><button class="btn primary" type="button">查看订单</button></div></div>'
+          + '<div class="subcard"><div class="t">发货提醒</div><div class="d">开启订阅消息，发货后第一时间通知你。</div>'
+          + '<button class="btn line sm" type="button" style="margin-top:12px;">开启提醒</button></div>';
+      },
+      chrome: {title:'支付结果'}
+    },
+    {
+      id:'MP-10', name:'订单列表', group:'交易',
+      tags:['P0','MP-10'],
+      keyEl:'胶囊分段 + 白色订单块',
+      states:['空','待付款倒计时','售后角标'],
+      notes:[
+        '分段控件做成浅灰底胶囊、选中项白底 —— 与「白块浮在浅灰上」的语言一致。',
+        '订单卡不再有横向分隔线，状态与时间都放在同一行文字里。'
+      ],
+      body: function(){
+        return '<div style="padding-top:8px;"><div class="segpill"><button class="on" type="button">全部</button><button type="button">待付款</button><button type="button">待发货</button><button type="button">待收货</button></div></div>'
+          + '<div class="ocard"><div class="h"><span>SY20261106093812</span><span class="st warn">待付款 · 剩余 12:48</span></div>'
+          + '<div class="item"><img src="' + IMG.tea + '" alt="" width="64" height="64"><div class="i"><div class="n">勐海古树普洱 2019 生茶饼</div><div class="s">357g 单饼</div></div><div class="p">¥268<b>×1</b></div></div>'
+          + '<div class="f"><span class="sum">共 1 件 · 应付 <b>¥268</b></span><button class="btn sand sm" type="button">取消</button><button class="btn primary sm" type="button">去支付</button></div></div>'
+          + '<div class="ocard"><div class="h"><span>SY20261105182033</span><span class="st">待收货</span></div>'
+          + '<div class="item"><img src="' + IMG.coffee + '" alt="" width="64" height="64"><div class="i"><div class="n">云南小粒咖啡 日晒 250g</div><div class="s">250g / 袋</div></div><div class="p">¥98<b>×2</b></div></div>'
+          + '<div class="f"><span class="sum">共 2 件 · 实付 <b>¥196</b></span><button class="btn sand sm" type="button">查看物流</button><button class="btn primary sm" type="button">确认收货</button></div></div>'
+          + '<div class="ocard"><div class="h"><span>SY20261027140356</span><span class="st">已完成</span></div>'
+          + '<div class="item"><img src="' + IMG.honey + '" alt="" width="64" height="64"><div class="i"><div class="n">高山野蜂蜜 500g</div><div class="s">500g / 瓶</div></div><div class="p">¥128<b>×1</b></div></div>'
+          + '<div class="f"><span class="sum">共 1 件 · 实付 <b>¥128</b></span><button class="btn sand sm" type="button">申请售后</button><button class="btn sand sm" type="button">去评价</button></div></div>'
+          + '<div style="height:24px"></div>';
+      },
+      chrome: {title:'我的订单', act:{icon:'search', label:'搜索订单'}}
+    },
+    {
+      id:'MP-11', name:'订单详情', group:'交易',
+      tags:['P0','MP-11'],
+      keyEl:'圆角品牌状态头',
+      states:['多状态差异','售后中角标','已退款'],
+      notes:[
+        '状态头从整条通栏改成 20px 圆角卡片，页面立刻变轻，不再「压头」。',
+        '章节用白色圆角块分组，块与块之间留 10px，扫描节奏靠间距而不是线。'
+      ],
+      body: function(){
+        return '<div class="statushead"><div class="eb">Order Status</div><div class="s">商家待发货</div><div class="d">已支付 ¥434.00 · 预计 48 小时内发出</div></div>'
+          + '<div class="chap"><div class="ct">收货信息</div><div class="cr"><span>王先生 · 138 **** 6621</span></div><div class="cr blue">云南省昆明市五华区 文林街 12 号 3 单元 502</div></div>'
+          + '<div class="chap"><div class="ct">商品</div><div class="cr"><span>勐海古树普洱 2019 · 357g 单饼</span><span class="n">¥268.00 ×1</span></div>'
+          + '<div class="cr"><span>云南小粒咖啡 日晒 250g</span><span class="n">¥98.00 ×2</span></div></div>'
+          + '<div class="amountblock" style="margin:0 14px 10px;"><div class="ar"><span>商品金额</span><span class="n">¥464.00</span></div>'
+          + '<div class="ar minus"><span>优惠券</span><span class="n">−¥30.00</span></div>'
+          + '<div class="ar"><span>运费</span><span class="n">¥0.00</span></div>'
+          + '<div class="total"><span class="l">实付金额</span><span class="n">¥434.00</span></div></div>'
+          + '<div class="chap"><div class="ct">订单信息</div>'
+          + '<div class="cr"><span style="color:#8E9399;">订单号</span><span class="n">SY20261106093812 <button class="copybtn" type="button">复制</button></span></div>'
+          + '<div class="cr"><span style="color:#8E9399;">下单时间</span><span class="n">2026-11-06 09:38</span></div>'
+          + '<div class="cr"><span style="color:#8E9399;">支付方式</span><span class="n">模拟支付</span></div></div>'
+          + '<div style="height:96px"></div>'
+          + '<div class="bottombar"><button class="btn sand" type="button" style="flex:1;">申请售后</button><button class="btn primary" type="button" style="flex:1;">联系客服</button></div>';
+      },
+      chrome: {title:'订单详情'}
+    },
+    {
+      id:'MP-12', name:'物流详情', group:'交易',
+      tags:['P0','MP-12'],
+      keyEl:'细点时间线',
+      states:['无物流','单号错误'],
+      notes:[
+        '时间线保留，但点变成 10px 圆点、线变成极浅的 1px，不抢信息。',
+        '物流公司与单号放在白色块里，信息和背景一起沉下去，最新节点浮上来。'
+      ],
+      body: function(){
+        return '<div class="chap" style="margin-top:6px;display:flex;align-items:center;gap:12px;padding:18px;">'
+          + '<div style="width:38px;height:38px;border-radius:50%;background:var(--brand-soft);display:flex;align-items:center;justify-content:center;color:var(--brand);">' + ic('pin','sm') + '</div>'
+          + '<div style="flex:1;"><div style="font-size:12.5px;font-weight:650;">顺丰速运</div><div style="font-size:10.5px;color:#8E9399;font-variant-numeric:tabular-nums;">SF1234 5678 9012</div></div>'
+          + '<button type="button" style="background:var(--sand);border:0;border-radius:999px;font-size:10px;color:var(--ink-2);padding:4px 11px;font-family:inherit;cursor:pointer;">复制</button></div>'
+          + '<div class="chap"><div class="tlwrap">'
+          + '<div class="tl"><div class="dot on"></div><div class="c"><b>已到达昆明集散中心</b>快件正在转运，预计明天派送<span style="display:block;">顺丰速运 · 昆明</span></div><div class="t">11-06 08:12</div></div>'
+          + '<div class="tl"><div class="dot"></div><div class="c"><b>已发出，下一站昆明</b>大理中转场</div><div class="t">11-05 21:40</div></div>'
+          + '<div class="tl"><div class="dot"></div><div class="c"><b>商家已发货</b>包裹已交给顺丰速运</div><div class="t">11-05 16:05</div></div>'
+          + '<div class="tl"><div class="dot"></div><div class="c"><b>订单已支付</b>等待商家发货</div><div class="t">11-05 15:32</div></div>'
+          + '</div></div>';
+      },
+      chrome: {title:'物流详情'}
+    },
+    {
+      id:'MP-13', name:'售后申请', group:'售后',
+      tags:['P0','MP-12'],
+      keyEl:'实心单选卡 + 金额',
+      states:['缺凭证','超期不可申请','金额超限'],
+      notes:[
+        '类型选择用两块白色卡片，选中变品牌浅色 —— 不用描边也能表达「已选中」。',
+        '表单字段放在白色块里，字段之间只留一条极浅分隔，整页没有第二层边框。'
+      ],
+      body: function(){
+        return '<div style="padding:8px 16px 0;"><div class="chap" style="margin:0 0 12px;padding:16px 18px;"><div class="ct">申请商品</div>'
+          + '<div style="display:flex;align-items:center;gap:12px;"><img src="' + IMG.honey + '" alt="" width="52" height="52" style="width:52px;height:52px;object-fit:cover;border-radius:6px;background:#F0EFEC;"><span style="flex:1;font-size:12px;font-weight:600;">高山野蜂蜜 500g · ×1</span><span style="font-size:12px;font-variant-numeric:tabular-nums;">¥128.00</span></div></div>'
+          + '<div class="opt-label" style="padding-left:2px;">售后类型</div>'
+          + '<div class="radiocards"><label class="radiocard on"><span class="rd" aria-hidden="true"></span><span><span class="t">仅退款</span><span class="d">不寄回商品，商家审核后原路退款</span></span></label>'
+          + '<label class="radiocard"><span class="rd" aria-hidden="true"></span><span><span class="t">退货退款</span><span class="d">需寄回商品，商家收货后退款</span></span></label></div>'
+          + '<div class="fieldblock"><div class="frow"><span class="k">退款原因</span><span class="v">商品破损 ›</span></div>'
+          + '<div class="frow"><span class="k">退款金额</span><input type="number" inputmode="decimal" name="amount" value="128" aria-label="退款金额"><span style="font-size:10.5px;color:#8E9399;">元</span></div>'
+          + '<div class="frow" style="align-items:flex-start;"><span class="k">问题描述</span><textarea name="desc" aria-label="问题描述" placeholder="例：瓶身有裂纹，蜂蜜渗漏…"></textarea></div></div>'
+          + '<div class="fieldblock" style="padding:18px;"><div class="opt-label">上传凭证 · 选填</div>'
+          + '<div class="uploader"><button class="upl" type="button">' + ic('camera','sm') + '<span>添加</span></button>'
+          + '<div class="upl" style="background:var(--sand);padding:0;"><img src="' + IMG.honey + '" alt="已上传的破损凭证" width="66" height="66"></div></div></div>'
+          + '<div style="padding:10px 2px 6px;font-size:10px;color:#A2A6AB;line-height:1.7;">可退金额上限 ¥128.00，退款将原路退回你的支付账户。</div></div>'
+          + '<div class="checkoutbar"><div class="sum">退款金额<b>' + yen('128') + '</b></div><button class="btn primary" type="button">提交申请</button></div>';
+      },
+      chrome: {title:'申请售后'}
+    },
+    {
+      id:'MP-14', name:'售后列表', group:'售后',
+      tags:['P0','MP-12'],
+      keyEl:'白色售后块 + 彩色状态字',
+      states:['空','已拒绝','退款失败'],
+      notes:[
+        '状态只用文字颜色区分（正红 / 成功绿 / 灰），不再加胶囊底，页面更安静。',
+        '拒绝理由直接写在卡片里，避免用户点进去才知道结果。'
+      ],
+      body: function(){
+        return '<div style="padding-top:8px;"></div>'
+          + '<div class="ocard"><div class="h"><span>AS20261106094021</span><span class="st">待商家审核</span></div>'
+          + '<div class="item"><img src="' + IMG.honey + '" alt="" width="64" height="64"><div class="i"><div class="n">高山野蜂蜜 500g</div><div class="s">仅退款 · 商品破损</div></div><div class="p">¥128<b>申请 11-06</b></div></div>'
+          + '<div class="f"><span class="sum">商家将在 48 小时内处理</span><button class="btn sand sm" type="button">撤销申请</button></div></div>'
+          + '<div class="ocard"><div class="h"><span>AS20261030121105</span><span class="st">退款已完成</span></div>'
+          + '<div class="item"><img src="' + IMG.coffee + '" alt="" width="64" height="64"><div class="i"><div class="n">云南小粒咖啡 日晒 250g</div><div class="s">退货退款 · 口感不符</div></div><div class="p">¥98<b>已退回</b></div></div>'
+          + '<div class="f"><span class="sum">退款 ¥98.00 已原路退回</span><button class="btn sand sm" type="button">查看详情</button></div></div>'
+          + '<div class="ocard"><div class="h"><span>AS20261025113320</span><span class="st" style="color:var(--danger);">已拒绝</span></div>'
+          + '<div class="item"><img src="' + IMG.linen + '" alt="" width="64" height="64"><div class="i"><div class="n">亚麻桌旗 35×180cm</div><div class="s">仅退款 · 不想要了</div></div><div class="p">¥59<b>超出售后期</b></div></div>'
+          + '<div class="f" style="justify-content:flex-start;"><span class="sum" style="margin:0;color:var(--danger);">拒绝理由：已超过确认收货后 7 天售后期</span></div></div>';
+      },
+      chrome: {title:'我的售后'}
+    },
+    {
+      id:'MP-15', name:'评价发布', group:'售后',
+      tags:['P1','MP-13'],
+      keyEl:'34px 星级 + 大留白',
+      states:['未评分禁用','图片上限'],
+      notes:[
+        '星级放大到 34px，是这页唯一的视觉重心；暖金色是全局唯一非品牌色。',
+        '输入区不用边框盒子，用一块暖沙色底，写起来更放松。'
+      ],
+      body: function(){
+        return '<div class="rate"><div class="t">这单体验怎么样？</div>'
+          + '<div class="stars" role="group" aria-label="商品评分">'
+          + [1,2,3,4,5].map(function(i){ return '<button class="star on" type="button" aria-label="' + i + ' 星">' + ic('star') + '</button>'; }).join('')
+          + '</div><div class="hint">非常满意 · 4.9 万条好评</div></div>'
+          + '<div style="margin:18px 16px;background:var(--sand);border-radius:16px;padding:16px 18px;"><textarea name="content" aria-label="评价内容" placeholder="说说口感、包装或使用感受，帮助其他人做决定…" style="width:100%;min-height:92px;border:0;background:none;outline:0;font-family:inherit;font-size:12px;line-height:1.7;color:var(--ink-2);resize:none;"></textarea></div>'
+          + '<div style="padding:0 16px;"><div class="opt-label">添加图片 · 最多 3 张</div><div class="uploader">'
+          + '<button class="upl" type="button">' + ic('camera','sm') + '<span>添加</span></button>'
+          + '<div class="upl" style="padding:0;"><img src="' + IMG.tea + '" alt="已上传的茶饼照片" width="66" height="66"></div></div></div>'
+          + '<div class="frow" style="margin:18px 16px 0;background:var(--white);border-radius:16px;padding:16px 18px;"><span class="k" style="width:auto;">匿名发布</span><span class="v"><label style="display:inline-flex;align-items:center;gap:7px;font-size:10.5px;color:#8E9399;cursor:pointer;"><input type="checkbox" name="anon" style="accent-color:#E2231A;">仅显示昵称首字</label></span></div>'
+          + '<div style="padding:14px 22px 8px;font-size:10px;color:#A2A6AB;">评价将在审核通过后展示</div>'
+          + '<div class="checkoutbar"><div class="sum" style="margin-left:0;text-align:left;color:#8E9399;">已评分 5 星</div><button class="btn primary" type="button">发布评价</button></div>';
+      },
+      chrome: {title:'发表评价'}
+    },
+    {
+      id:'MP-16', name:'我的', group:'账户',
+      tags:['P0','MP-14'],
+      keyEl:'白底档案区 + 红色会员卡',
+      states:['未登录授权','零数据'],
+      notes:[
+        '顶部改为白底档案区 + 一张红色渐变会员卡：红色承担「会员身份」的表达，也是全页唯一的强色块。',
+        '订单入口做成四个纯文字入口，靠数字而不是图标抢注意力。',
+        '列表统一白色圆角块 + 极轻投影，块内用极浅分隔，避免整页被线切碎。'
+      ],
+      body: function(){
+        return '<div class="minehead"><div class="top"><div class="av" aria-hidden="true">王</div>'
+          + '<div style="flex:1;"><div class="n">王先生</div><span class="lv">山民 · LV.2</span></div>'
+          + '<button type="button">设置</button></div>'
+          + '<div class="vipcard"><div class="vt">Membership</div><div class="minestats"><div><div class="v">¥1 286</div><div class="k">累计消费</div></div>'
+          + '<div><div class="v">7</div><div class="k">订单</div></div>'
+          + '<div><div class="v">128</div><div class="k">积分</div></div></div></div></div>'
+          + '<div class="ordernav"><a href="#" onclick="return false;"><span style="position:relative;">' + ic('bag','sm') + '<span class="b">1</span></span>待付款</a>'
+          + '<a href="#" onclick="return false;">' + ic('grid','sm') + '待发货</a>'
+          + '<a href="#" onclick="return false;">' + ic('pin','sm') + '待收货</a>'
+          + '<a href="#" onclick="return false;">' + ic('service','sm') + '售后</a></div>'
+          + '<div class="listblock"><a class="lr" href="#" onclick="return false;">' + ic('coupon','sm') + '<span>优惠券</span><span class="v">2 张可用</span></a>'
+          + '<a class="lr" href="#" onclick="return false;">' + ic('star','sm') + '<span>我的评价</span><span class="v">3 条</span></a>'
+          + '<a class="lr" href="#" onclick="return false;">' + ic('pin','sm') + '<span>收货地址</span><span class="v">2 个</span></a></div>'
+          + '<div class="listblock"><a class="lr" href="#" onclick="return false;">' + ic('service','sm') + '<span>联系客服</span><span class="v">9:00–21:00</span></a>'
+          + '<a class="lr" href="#" onclick="return false;">' + ic('user','sm') + '<span>关于山野</span><span class="v">云南选品</span></a></div>'
+          + '<div style="height:104px"></div>';
+      },
+      chrome: {tab:'user', title:'我的'}
+    },
+    {
+      id:'MP-17', name:'地址管理', group:'账户',
+      tags:['P0','MP-15'],
+      keyEl:'白色地址块 + 默认标记',
+      states:['空地址','表单校验'],
+      notes:[
+        '地址块只靠白底与间距区分，默认标记用小号文字标签，不画边框。',
+        '新增按钮固定在拇指区，列表为空时可直接进入表单。'
+      ],
+      body: function(){
+        return '<div style="padding-top:8px;"></div>'
+          + '<div class="adrow"><div class="c"><div class="n">王先生 <span style="color:#8E9399;font-weight:400;font-size:11px;">138 **** 6621</span><span class="tag">默认</span></div>'
+          + '<div class="d">云南省昆明市五华区 文林街 12 号 3 单元 502</div></div><button type="button" aria-label="编辑地址">编辑</button></div>'
+          + '<div class="adrow"><div class="c"><div class="n">王先生 <span style="color:#8E9399;font-weight:400;font-size:11px;">138 **** 6621</span></div>'
+          + '<div class="d">云南省昆明市盘龙区 北京路 88 号 山野工作室</div></div><button type="button" aria-label="编辑地址">编辑</button></div>'
+          + '<div style="padding:12px 22px 4px;font-size:10px;color:#A2A6AB;">地址仅用于配送，不会用于其他用途。</div>'
+          + '<div class="fabwrap"><button class="btn primary" type="button" style="width:100%;">+ 新增收货地址</button></div>';
+      },
+      chrome: {title:'收货地址'}
+    }
+  ];
+
+  /* ================= render ================= */
+  var host = document.getElementById('deviceHost');
+  var notesEl = document.getElementById('notes');
+  var navEl = document.getElementById('nav');
+
+  function buildNav(){
+    var groups = [];
+    MP.forEach(function(s){ if(groups.indexOf(s.group) < 0) groups.push(s.group); });
+    var h = '';
+    groups.forEach(function(g){
+      h += '<div class="grp">' + g + '</div>';
+      MP.filter(function(s){ return s.group === g; }).forEach(function(s){
+        h += '<button type="button" data-id="' + s.id + '"><span class="id">' + s.id + '</span><span>' + s.name + '</span></button>';
+      });
+    });
+    navEl.innerHTML = h;
+    navEl.addEventListener('click', function(e){
+      var b = e.target.closest('button[data-id]');
+      if(!b) return;
+      select(b.getAttribute('data-id'));
+    });
+  }
+
+  function buildDevice(s){
+    var chrome = s.chrome || {};
+    var body = s.body();
+    var marks = ['<div class="checkoutbar', '<div class="bottombar', '<div class="fabwrap"'];
+    var idx = -1;
+    marks.forEach(function(mk){
+      var i = body.lastIndexOf(mk);
+      if(i > idx) idx = i;
+    });
+    var main = body, bar = '';
+    if(idx > 0){ main = body.slice(0, idx); bar = body.slice(idx); }
+    return '<div class="device" role="group" aria-label="' + s.name + ' 界面预览">'
+      + statusbar()
+      + navbar(chrome.title || s.name, {home: !chrome.title, act: chrome.act})
+      + '<div class="screen' + (bar ? ' has-bar' : '') + (chrome.tab ? ' has-tab' : '') + '">' + main + '</div>'
+      + (bar ? '<div class="barhost' + (chrome.tab ? ' above-tab' : '') + '">' + bar.replace('class="checkoutbar above-tab"','class="checkoutbar"') + '</div>' : '')
+      + (chrome.tab ? tabbar(chrome.tab) : '')
+      + '</div>';
+  }
+
+  function buildNotes(s){
+    var tags = s.tags.map(function(t){
+      if(t === 'P0') return '<span class="tag brand">P0</span>';
+      if(t === 'P1') return '<span class="tag p1">P1</span>';
+      return '<span class="tag neutral">' + t + '</span>';
+    }).join('');
+    var list = s.notes.map(function(n){ return '<li>' + n + '</li>'; }).join('');
+    var states = s.states.map(function(x){ return '<span class="tag neutral" style="margin:0 6px 6px 0;">' + x + '</span>'; }).join('');
+    return '<div class="nid">' + s.id + ' · ' + s.group + '</div>'
+      + '<h2>' + s.name + '</h2><div class="meta">' + tags + '</div>'
+      + '<div class="sec">设计要点</div><ul>' + list + '</ul>'
+      + '<div class="sec">必须覆盖的状态</div><div>' + states + '</div>'
+      + '<div class="sec">规格</div><dl class="kv"><dt>主导元素</dt><dd>' + s.keyEl + '</dd>'
+      + '<dt>画布</dt><dd>375 × 812（含状态栏与安全区）</dd>'
+      + '<dt>底色</dt><dd>浅灰 #F6F6F5 · 白块 + 极轻投影</dd>'
+      + '<dt>线条</dt><dd>仅块内使用 1px 极浅分隔</dd></dl>';
+  }
+
+  function select(id, first){
+    var s = MP.filter(function(x){ return x.id === id; })[0] || MP[0];
+    var tmp = document.createElement('div');
+    tmp.innerHTML = buildDevice(s);
+    var node = tmp.firstChild;
+    var old = host.firstChild;
+    if(old && !first){
+      node.classList.add('swap');
+      host.appendChild(node);
+      requestAnimationFrame(function(){
+        requestAnimationFrame(function(){ node.classList.remove('swap'); });
+      });
+      setTimeout(function(){ if(old && old.parentNode) old.parentNode.removeChild(old); }, 210);
+    } else {
+      host.innerHTML = '';
+      host.appendChild(node);
+    }
+    notesEl.innerHTML = buildNotes(s);
+    Array.prototype.forEach.call(navEl.querySelectorAll('button'), function(b){
+      b.setAttribute('aria-current', b.getAttribute('data-id') === s.id ? 'true' : 'false');
+    });
+    document.title = '山野商城 · ' + s.name + '（' + s.id + '）· 小程序设计稿';
+    if(!first && window.matchMedia && window.matchMedia('(max-width:900px)').matches){
+      host.scrollIntoView({behavior:'smooth', block:'start'});
+    }
+  }
+
+  buildNav();
+  select('MP-01', true);
+})();
+</script>
+</body>
+</html>

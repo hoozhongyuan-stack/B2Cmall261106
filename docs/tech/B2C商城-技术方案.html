@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#FFFFFF">
+<title>山野商城 · 技术方案 v1.0</title>
+<style>
+  :root{
+    --paper:#FFFFFF;
+    --surface:#FFFFFF;
+    --surface-2:#FAFAF9;
+    --tint:#F6F6F4;
+    --ink:#16181A;
+    --ink-2:#55585C;
+    --ink-3:#8E9399;
+    --line:#EBEBE8;
+    --line-2:#DEDEDA;
+    --brand:#E2231A;
+    --brand-2:#C21B14;
+    --brand-soft:#FDEDEB;
+    --gold:#BC8A2E;
+    --ok:#1F7A4C;
+    --warn:#A9691A;
+    --danger:#C22C1E;
+    --mono:"SFMono-Regular",Menlo,Consolas,monospace;
+    --serif:"Songti SC","Noto Serif SC",Georgia,serif;
+    --sans:"PingFang SC",-apple-system,BlinkMacSystemFont,"Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    --ease:cubic-bezier(.2,.7,.3,1);
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.7;-webkit-font-smoothing:antialiased;}
+
+  .shell{display:flex;align-items:flex-start;min-height:100vh;}
+  aside.rail{width:228px;flex:0 0 228px;position:sticky;top:0;height:100vh;overflow-y:auto;padding:28px 18px 44px;border-right:1px solid var(--line);background:var(--surface-2);}
+  .bm{display:flex;align-items:center;gap:9px;margin-bottom:22px;}
+  .bm .sq{width:26px;height:26px;border-radius:50%;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-size:14px;}
+  .bm .t{font-family:var(--serif);font-size:14px;letter-spacing:.06em;}
+  .bm .s{font-size:10.5px;color:var(--ink-3);letter-spacing:.04em;}
+  nav a{display:block;font-size:12px;color:var(--ink-3);text-decoration:none;padding:6px 9px;border-radius:7px;transition:background-color 160ms var(--ease),color 160ms var(--ease);}
+  nav a:hover{background:var(--brand-soft);color:var(--brand);}
+  nav a.on{background:var(--brand-soft);color:var(--brand);font-weight:600;}
+  nav a:focus-visible{outline:2px solid var(--brand);outline-offset:2px;}
+  .railfoot{margin-top:26px;padding-top:14px;border-top:1px solid var(--line);font-size:11px;color:var(--ink-3);}
+  .railfoot a{display:block;margin-bottom:4px;color:var(--brand);text-decoration:none;}
+
+  main{flex:1;min-width:0;padding:52px 52px 120px;max-width:1020px;}
+  .head{padding-bottom:28px;margin-bottom:40px;border-bottom:1px solid var(--line);}
+  .kicker{font-size:10.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--brand);font-weight:700;margin-bottom:14px;}
+  h1{font-family:var(--serif);font-size:36px;line-height:1.24;font-weight:600;margin:0 0 14px;letter-spacing:-.01em;text-wrap:balance;}
+  .lede{font-size:14.5px;color:var(--ink-2);max-width:70ch;margin:0 0 20px;}
+  .meta{display:flex;flex-wrap:wrap;gap:8px;}
+  .pill{font-size:11px;padding:3px 10px;border-radius:999px;border:1px solid var(--line-2);color:var(--ink-3);background:#fff;}
+  .pill b{color:var(--ink);font-weight:600;}
+
+  section{margin-bottom:52px;scroll-margin-top:20px;}
+  h2{font-size:21px;font-weight:700;margin:0 0 8px;display:flex;gap:10px;align-items:baseline;}
+  h2 .n{font-family:var(--mono);font-size:11px;color:var(--brand);letter-spacing:.08em;font-weight:500;}
+  .sub{font-size:12.5px;color:var(--ink-3);margin:0 0 22px;padding-bottom:14px;border-bottom:1px solid var(--line);}
+  h3{font-size:14.5px;font-weight:700;margin:28px 0 12px;}
+  h4{font-size:12.5px;font-weight:700;color:var(--ink-2);margin:20px 0 8px;}
+  p{margin:0 0 12px;}
+  ul,ol{margin:0 0 14px;padding-left:22px;}
+  li{margin-bottom:6px;}
+  code{font-family:var(--mono);font-size:12px;background:var(--tint);padding:1px 5px;border-radius:4px;color:#3A3E42;}
+
+  .tw{overflow-x:auto;margin:14px 0 20px;border:1px solid var(--line);border-radius:10px;background:#fff;}
+  table{width:100%;border-collapse:collapse;font-size:12.5px;}
+  th{text-align:left;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);font-weight:600;background:var(--surface-2);padding:9px 12px;border-bottom:1px solid var(--line-2);white-space:nowrap;}
+  td{padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top;color:var(--ink-2);}
+  td:first-child{color:var(--ink);font-weight:600;white-space:nowrap;}
+  tr:last-child td{border-bottom:0;}
+  td.mn,th.mn{font-family:var(--mono);font-size:11px;}
+  td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;}
+
+  .note{border-left:2px solid var(--brand);background:var(--surface-2);padding:13px 16px;margin:16px 0;font-size:13px;color:var(--ink-2);border-radius:0 8px 8px 0;}
+  .note b{color:var(--ink);}
+  .warnbox{border:1px solid #F0DCC8;background:#FDF8F2;padding:13px 16px;border-radius:10px;font-size:12.5px;color:#7C4A0A;margin:16px 0;}
+
+  .arch{background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:18px;overflow-x:auto;}
+  .arch svg{display:block;min-width:760px;width:100%;height:auto;}
+
+  .entity{border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden;}
+  .entity .h{display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--surface-2);border-bottom:1px solid var(--line);}
+  .entity .h .nm{font-family:var(--mono);font-size:11.5px;font-weight:600;color:var(--ink);}
+  .entity .h .d{margin-left:auto;font-size:10px;color:var(--ink-3);}
+  .entity ul{list-style:none;margin:0;padding:8px 12px 10px;}
+  .entity li{font-size:11px;color:var(--ink-2);padding:2px 0;font-family:var(--mono);}
+  .entity li i{font-style:normal;color:var(--ink-3);font-family:var(--sans);font-size:10px;margin-left:6px;}
+  .entities{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px;margin:16px 0;}
+
+  .codebox{border:1px solid var(--line);border-radius:10px;background:#FCFCFB;overflow:hidden;margin:14px 0;}
+  .codebox .bar{display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--line);background:var(--surface-2);font-size:10.5px;color:var(--ink-3);letter-spacing:.04em;}
+  .codebox pre{margin:0;padding:14px 16px;overflow-x:auto;font-family:var(--mono);font-size:11.5px;line-height:1.75;color:#2B2F33;}
+  .codebox pre .c{color:#8E9399;}
+  .codebox pre .k{color:var(--brand);}
+  .codebox pre .s{color:#1F7A4C;}
+
+  .steps{border-top:1px solid var(--line);margin:14px 0;}
+  .step{display:grid;grid-template-columns:64px 1fr;gap:14px;padding:14px 0;border-bottom:1px solid var(--line);}
+  .step .m{font-family:var(--mono);font-size:10.5px;color:var(--brand);letter-spacing:.06em;padding-top:3px;}
+  .step .t{font-size:13px;font-weight:700;margin-bottom:4px;}
+  .step .d{font-size:12px;color:var(--ink-2);line-height:1.65;}
+  .step .d code{font-size:10.5px;}
+
+  footer{margin-top:56px;padding-top:18px;border-top:1px solid var(--line);font-size:11.5px;color:var(--ink-3);}
+
+  @media(max-width:980px){
+    aside.rail{display:none;}
+    main{padding:34px 20px 80px;}
+    h1{font-size:27px;}
+  }
+  @media (prefers-reduced-motion:reduce){
+    html{scroll-behavior:auto;} *{transition-duration:.01ms !important;}
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+
+<aside class="rail">
+  <div class="bm">
+    <span class="sq" aria-hidden="true">山</span>
+    <div><div class="t">技术方案</div><div class="s">B2C 商城 · v1.0</div></div>
+  </div>
+  <nav aria-label="技术方案目录">
+    <a href="#s1">01 · 目标与约束</a>
+    <a href="#s2">02 · 技术栈</a>
+    <a href="#s3">03 · 系统架构</a>
+    <a href="#s4">04 · 代码结构</a>
+    <a href="#s5">05 · 数据模型</a>
+    <a href="#s6">06 · 金额与库存</a>
+    <a href="#s7">07 · 状态机</a>
+    <a href="#s8">08 · 接口清单</a>
+    <a href="#s9">09 · 模拟支付</a>
+    <a href="#s10">10 · 权限与安全</a>
+    <a href="#s11">11 · 非功能要求</a>
+    <a href="#s12">12 · 测试与验收</a>
+    <a href="#s13">13 · 实施顺序</a>
+  </nav>
+  <div class="railfoot">
+    关联文档
+    <a href="../B2C商城-需求调研与产品设计.html">PRD v0.2</a>
+    <a href="../ui/design-system.html">设计规范 v1.2</a>
+    <a href="../ui/miniapp.html">小程序 17 屏</a>
+    <a href="../ui/admin.html">后台 24 屏</a>
+  </div>
+</aside>
+
+<main>
+<header class="head">
+  <div class="kicker">Technical Design · v1.0</div>
+  <h1>把规则变成表、接口和状态机。</h1>
+  <p class="lede">
+    本方案覆盖 B2C 商城的中后台与小程序：数据模型、订单与售后状态流转、金额与库存的落地方式、模拟支付的替换点、权限与验收标准。四条已冻结决策（单商家自营、模拟支付、满额包邮、无积分抵扣）在表结构和接口里被显式体现。
+  </p>
+  <div class="meta">
+    <span class="pill">范围 <b>小程序 + 管理后台 + API</b></span>
+    <span class="pill">架构 <b>单体 API + 单库 PG</b></span>
+    <span class="pill">金额 <b>整数分</b></span>
+    <span class="pill">交付 <b>M0–M4</b></span>
+  </div>
+</header>
+
+<!-- ================= 1 ================= -->
+<section id="s1">
+  <h2><span class="n">01</span>目标与约束</h2>
+  <p class="sub">先说清楚哪些是硬约束——它们决定了哪些东西「不用建」。</p>
+
+  <div class="tw">
+    <table>
+      <thead><tr><th style="width:190px">已冻结决策</th><th>技术后果</th></tr></thead>
+      <tbody>
+        <tr><td>单商家自营</td><td>不需要 <code>merchant</code>、<code>settlement</code>、分账与商家结算；所有表天然属于同一店铺，不引入 tenant_id 隔离</td></tr>
+        <tr><td>先用模拟支付</td><td>支付能力抽成 <code>PaymentProvider</code> 接口；首版实现 <code>MockProvider</code>，回调契约与真实微信支付一致，后续换实现不改订单代码</td></tr>
+        <tr><td>满额包邮</td><td>不建「首件/续件」运费模板表：<code>shop_config</code> 存门槛与固定运费，<code>shipping_region_exception</code> 存地区例外</td></tr>
+        <tr><td>订单不支持积分抵扣</td><td><code>order</code> 只有 5 项金额快照；<code>points_ledger</code> 只记发放与扣回，结算接口不接收积分参数</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>质量目标（可验收）</h3>
+  <ul>
+    <li>下单、支付、退款三条链路具备<strong>幂等</strong>：重复请求不产生第二笔订单、第二次扣库存、第二次退款。</li>
+    <li>并发下不超卖：库存扣减在数据库事务内完成，压测 200 并发抢 10 件库存，成功数必须恒为 10。</li>
+    <li>订单金额可复算：任意订单的 5 项金额与优惠券记录能还原出应付金额，误差为 0（整数分）。</li>
+    <li>状态非法迁移在服务端拒绝，前端仅做展示，不作为校验依据。</li>
+    <li>后台所有写操作可追溯：操作人、对象、变更前后值。</li>
+  </ul>
+</section>
+
+<!-- ================= 2 ================= -->
+<section id="s2">
+  <h2><span class="n">02</span>技术栈</h2>
+  <p class="sub">选型标准是「一个人能维护、两端能共用类型、不为未来假设买单」。</p>
+
+  <div class="tw">
+    <table>
+      <thead><tr><th style="width:130px">层</th><th style="width:230px">选型</th><th>理由与取舍</th></tr></thead>
+      <tbody>
+        <tr><td>小程序</td><td>Taro 4 + React 18 + TypeScript</td><td>一套代码可编译微信小程序与 H5 预览；与后台共用 TS 类型与状态机，避免两端规则漂移</td></tr>
+        <tr><td>管理后台</td><td>React 18 + Vite + TypeScript</td><td>与小程序同语言栈；设计稿是自建组件，不引入重型 UI 库，只用 tokens + 20 个左右基础组件</td></tr>
+        <tr><td>服务端</td><td>NestJS 10 + Prisma</td><td>模块划分天然对应业务域；守卫做角色鉴权；Prisma 事务与行锁足够覆盖库存与支付场景</td></tr>
+        <tr><td>数据库</td><td>PostgreSQL 14</td><td>订单、库存、退款需要强事务与唯一约束；用 <code>pg_trgm</code> 做商品搜索，首版不引 ES</td></tr>
+        <tr><td>缓存/锁</td><td>Redis 7（可选启用）</td><td>仅用于限流与订阅消息队列；库存不依赖 Redis，避免缓存与库不一致</td></tr>
+        <tr><td>对象存储</td><td>S3 兼容（本地 MinIO / 云 OSS）</td><td>商品图与售后凭证统一走预签名直传，服务端只存 key</td></tr>
+        <tr><td>部署</td><td>Docker Compose：Nginx + API + PG + Redis + MinIO</td><td>单机可跑，后续水平扩展只需把 API 无状态化</td></tr>
+        <tr><td>包管理</td><td>pnpm workspace（monorepo）</td><td>共享 <code>packages/shared</code> 的类型、金额工具、状态机</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note">
+    <b>明确不引入：</b>微服务、消息中间件、Elasticsearch、GraphQL、多租户框架。当前规模下它们只增加故障面，不增加能力。
+  </div>
+</section>
+
+<!-- ================= 3 ================= -->
+<section id="s3">
+  <h2><span class="n">03</span>系统架构</h2>
+  <p class="sub">两个前端、一个 API、一个库。所有业务规则只在一处实现。</p>
+
+  <div class="arch">
+    <svg viewBox="0 0 900 360" role="img" aria-label="系统架构：小程序与后台经 Nginx 访问 NestJS API，API 使用 PostgreSQL、Redis 与对象存储">
+      <defs>
+        <marker id="ar" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+          <path d="M0 0 L7 3.5 L0 7 z" fill="#C9C7C2"/>
+        </marker>
+      </defs>
+
+      <text x="0" y="14" font-size="9" fill="#8E9399" letter-spacing="2">CLIENTS</text>
+      <rect x="0" y="28" width="250" height="72" rx="9" fill="#fff" stroke="#E0DED8"/>
+      <text x="18" y="56" font-size="12" font-weight="700" fill="#16181A">微信小程序</text>
+      <text x="18" y="76" font-size="10" fill="#8E9399">Taro + React · 17 页 · 订阅消息</text>
+
+      <rect x="272" y="28" width="250" height="72" rx="9" fill="#fff" stroke="#E0DED8"/>
+      <text x="290" y="56" font-size="12" font-weight="700" fill="#16181A">管理后台</text>
+      <text x="290" y="76" font-size="10" fill="#8E9399">React + Vite · 24 页 · 4 角色</text>
+
+      <rect x="544" y="28" width="250" height="72" rx="9" fill="#fff" stroke="#E0DED8"/>
+      <text x="562" y="56" font-size="12" font-weight="700" fill="#16181A">H5 预览 / 运营分享页</text>
+      <text x="562" y="76" font-size="10" fill="#8E9399">同一 Taro 产物 · 仅用于评审</text>
+
+      <line x1="250" y1="98" x2="540" y2="140" stroke="#C9C7C2" marker-end="url(#ar)"/>
+      <line x1="397" y1="100" x2="440" y2="140" stroke="#C9C7C2" marker-end="url(#ar)"/>
+      <line x1="669" y1="100" x2="520" y2="140" stroke="#C9C7C2" marker-end="url(#ar)"/>
+
+      <rect x="330" y="146" width="290" height="70" rx="9" fill="#FDF3F2" stroke="#E2231A" stroke-opacity=".28"/>
+      <text x="348" y="172" font-size="11.5" font-weight="700" fill="#C21B14">Nginx · 静态资源 / HTTPS / 限流</text>
+      <text x="348" y="192" font-size="10" fill="#8E4A3E">gzip · CSP · /api 反向代理</text>
+
+      <line x1="475" y1="216" x2="475" y2="244" stroke="#C9C7C2" marker-end="url(#ar)"/>
+
+      <rect x="245" y="250" width="340" height="86" rx="10" fill="#fff" stroke="#E2231A" stroke-opacity=".4"/>
+      <text x="263" y="274" font-size="11.5" font-weight="700" fill="#16181A">NestJS API（单体，按业务域分模块）</text>
+      <text x="263" y="294" font-size="10" fill="#55585C">catalog · cart · order · payment · aftersale</text>
+      <text x="263" y="310" font-size="10" fill="#55585C">coupon · member · admin · asset · audit</text>
+      <text x="263" y="326" font-size="9.5" fill="#8E9399">共享：packages/shared（金额、状态机、DTO 类型）</text>
+
+      <line x1="585" y1="293" x2="640" y2="293" stroke="#C9C7C2" marker-end="url(#ar)"/>
+      <g>
+        <rect x="646" y="216" width="112" height="52" rx="8" fill="#fff" stroke="#E0DED8"/>
+        <text x="658" y="238" font-size="10" font-weight="700" fill="#16181A">PostgreSQL</text>
+        <text x="658" y="254" font-size="9" fill="#8E9399">订单/库存/会员</text>
+
+        <rect x="770" y="216" width="112" height="52" rx="8" fill="#fff" stroke="#E0DED8"/>
+        <text x="782" y="238" font-size="10" font-weight="700" fill="#16181A">Redis</text>
+        <text x="782" y="254" font-size="9" fill="#8E9399">限流 / 队列（可选）</text>
+
+        <rect x="646" y="284" width="112" height="52" rx="8" fill="#fff" stroke="#E0DED8"/>
+        <text x="658" y="306" font-size="10" font-weight="700" fill="#16181A">对象存储</text>
+        <text x="658" y="322" font-size="9" fill="#8E9399">商品图 / 凭证</text>
+
+        <rect x="770" y="284" width="112" height="52" rx="8" fill="#fff" stroke="#E0DED8"/>
+        <text x="782" y="306" font-size="10" font-weight="700" fill="#16181A">支付渠道</text>
+        <text x="782" y="322" font-size="9" fill="#8E9399">Mock → 微信支付</text>
+      </g>
+    </svg>
+  </div>
+
+  <h3>分层职责</h3>
+  <div class="tw">
+    <table>
+      <thead><tr><th style="width:150px">层</th><th>职责</th><th style="width:230px">不允许做的事</th></tr></thead>
+      <tbody>
+        <tr><td>Controller</td><td>参数校验、取当前用户、调用 Service、返回统一响应</td><td>写业务规则、直接查库</td></tr>
+        <tr><td>Service</td><td>业务规则、事务边界、状态机调用、发领域事件</td><td>拼装视图数据、处理 HTTP 细节</td></tr>
+        <tr><td>Repository</td><td>查询与写入，封装 Prisma</td><td>出现业务判断（如「库存够不够」）</td></tr>
+        <tr><td>packages/shared</td><td>金额计算、状态迁移表、DTO 类型、常量</td><td>依赖任何运行时框架（须能同时跑在 Node 与小程序）</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ================= 4 ================= -->
+<section id="s4">
+  <h2><span class="n">04</span>代码结构</h2>
+  <p class="sub">一个仓库、三个应用、两个共享包。</p>
+
+  <div class="codebox">
+    <div class="bar">monorepo</div>
+<pre>shanye-mall/
+├─ apps/
+│  ├─ api/                 <span class="c"># NestJS</span>
+│  │  └─ src/
+│  │     ├─ modules/       <span class="c"># catalog / cart / order / payment / aftersale</span>
+│  │     │                 <span class="c"># coupon / member / customer / admin / asset / audit</span>
+│  │     ├─ common/        <span class="c"># 守卫、拦截器、统一响应、异常映射</span>
+│  │     └─ prisma/        <span class="c"># schema.prisma · migrations · seed</span>
+│  ├─ miniapp/             <span class="c"># Taro + React，17 页</span>
+│  │  └─ src/
+│  │     ├─ pages/         <span class="c"># home / category / search / product / cart / checkout …</span>
+│  │     ├─ components/    <span class="c"># 商品卡、价格、步进器、空态</span>
+│  │     ├─ services/      <span class="c"># 请求封装（含幂等键）</span>
+│  │     └─ styles/        <span class="c"># tokens.css（与设计规范同源）</span>
+│  └─ admin/               <span class="c"># React + Vite，24 页</span>
+│     └─ src/
+│        ├─ pages/         <span class="c"># dashboard / product / order / aftersale / marketing …</span>
+│        ├─ components/    <span class="c"># Table、FilterBar、Form、Modal、StatStrip</span>
+│        └─ styles/
+├─ packages/
+│  ├─ shared/              <span class="c"># money.ts · orderState.ts · types.ts · constants.ts</span>
+│  └─ tokens/              <span class="c"># 设计 token → CSS 变量 / Taro 变量</span>
+├─ docker/                 <span class="c"># compose.yml · nginx.conf</span>
+└─ pnpm-workspace.yaml</pre>
+  </div>
+
+  <div class="note">
+    <b>共享包是这套架构的关键：</b><code>orderState.ts</code> 同时被 API 校验和两个前端使用，因此「哪些状态能做什么操作」不会在三个地方写出三种答案。
+  </div>
+</section>
+
+<!-- ================= 5 ================= -->
+<section id="s5">
+  <h2><span class="n">05</span>数据模型</h2>
+  <p class="sub">19 张表，按业务域分组。金额一律整数分，时间一律带时区。</p>
+
+  <h3>实体关系总览</h3>
+  <div class="entities">
+    <div class="entity"><div class="h"><span class="nm">product</span><span class="d">SPU</span></div>
+      <ul><li>id · title · category_id</li><li>status · main_image_key</li><li>price_min / price_max <i>冗余便于列表</i></li><li>sold_count · sort</li></ul></div>
+    <div class="entity"><div class="h"><span class="nm">sku</span><span class="d">1—n product</span></div>
+      <ul><li>id · product_id · code <i>唯一</i></li><li>spec_json · price · origin_price</li><li>stock · reserved <i>库存与预占</i></li><li>status</li></ul></div>
+    <div class="entity"><div class="h"><span class="nm">cart_item</span><span class="d">user—sku</span></div>
+      <ul><li>id · user_id · sku_id</li><li>quantity · checked</li><li>unique(user_id, sku_id)</li></ul></div>
+    <div class="entity"><div class="h"><span class="nm">order</span><span class="d">核心</span></div>
+      <ul><li>id · order_no <i>唯一</i></li><li>user_id · status · version</li><li>goods_amount · member_discount</li><li>coupon_amount · freight_amount</li><li>payable_amount · refunded_amount</li><li>address_snapshot · paid_at · closed_at</li></ul></div>
+    <div class="entity"><div class="h"><span class="nm">order_item</span><span class="d">1—n order</span></div>
+      <ul><li>id · order_id · sku_id</li><li>title / spec / image <i>快照</i></li><li>unit_price · quantity · subtotal</li></ul></div>
+    <div class="entity"><div class="h"><span class="nm">payment</span><span class="d">1—n order</span></div>
+      <ul><li>id · order_id · provider</li><li>out_trade_no <i>唯一</i></li><li>transaction_id <i>唯一，回调幂等键</i></li><li>amount · status · paid_at</li></ul></div>
+    <div class="entity"><div class="h"><span class="nm">shipment</span><span class="d">1—1 order</span></div>
+      <ul><li>id · order_id · express_code</li><li>tracking_no · shipped_at</li><li>trace_json <i>物流节点缓存</i></li></ul></div>
+    <div class="entity"><div class="h"><span class="nm">after_sale</span><span class="d">1—1 order_item</span></div>
+      <ul><li>id · after_sale_no · order_id</li><li>type · reason · status</li><li>refund_amount · evidence_json</li><li>reject_reason · finished_at</li></ul></div>
+    <div class="entity"><div class="h"><span class="nm">coupon</span><span class="d">模板</span></div>
+      <ul><li>id · name · type</li><li>threshold_amount · face_value</li><li>total · claimed · per_limit</li><li>start_at · end_at · channel</li></ul></div>
+    <div class="entity"><div class="h"><span class="nm">coupon_claim</span><span class="d">user—coupon</span></div>
+      <ul><li>id · coupon_id · user_id</li><li>status <i>UNUSED/USED/EXPIRED</i></li><li>order_id <i>核销时写入</i></li><li>unique(coupon_id, user_id, seq)</li></ul></div>
+    <div class="entity"><div class="h"><span class="nm">user</span><span class="d">消费者</span></div>
+      <ul><li>id · openid <i>唯一</i></li><li>nickname · avatar_key · phone</li><li>level_id · total_spent_cents</li></ul></div>
+    <div class="entity"><div class="h"><span class="nm">address</span><span class="d">1—n user</span></div>
+      <ul><li>id · user_id · receiver</li><li>phone · region · detail</li><li>is_default</li></ul></div>
+    <div class="entity"><div class="h"><span class="nm">review</span><span class="d">1—1 order_item</span></div>
+      <ul><li>id · order_item_id <i>唯一</i></li><li>rating · content · images</li><li>status · reply</li></ul></div>
+    <div class="entity"><div class="h"><span class="nm">points_ledger</span><span class="d">仅记录</span></div>
+      <ul><li>id · user_id · delta · source</li><li>order_id <i>可空</i></li><li>balance_after <i>不参与抵扣</i></li></ul></div>
+    <div class="entity"><div class="h"><span class="nm">member_level</span><span class="d">3 档</span></div>
+      <ul><li>id · name · threshold_cents</li><li>discount_rate <i>0.98/0.95</i></li></ul></div>
+    <div class="entity"><div class="h"><span class="nm">admin_user</span><span class="d">内部账号</span></div>
+      <ul><li>id · account · password_hash</li><li>role <i>SUPER/OPS/CS/WMS</i></li><li>status · last_login_at</li></ul></div>
+    <div class="entity"><div class="h"><span class="nm">operation_log</span><span class="d">审计</span></div>
+      <ul><li>id · actor_id · action</li><li>target_type · target_id</li><li>before / after <i>jsonb</i></li></ul></div>
+    <div class="entity"><div class="h"><span class="nm">shop_config</span><span class="d">单行</span></div>
+      <ul><li>shop_name · intro · logo_key</li><li>free_threshold_cents · flat_freight_cents</li><li>pay_timeout_min · after_sale_days</li></ul></div>
+    <div class="entity"><div class="h"><span class="nm">asset</span><span class="d">素材</span></div>
+      <ul><li>id · key · url · size</li><li>group · ref_count <i>被引用计数</i></li></ul></div>
+  </div>
+
+  <h3>关键约束与索引</h3>
+  <div class="tw">
+    <table>
+      <thead><tr><th style="width:190px">表 / 字段</th><th>约束</th><th style="width:230px">为什么必须有</th></tr></thead>
+      <tbody>
+        <tr><td class="mn">order.order_no</td><td>UNIQUE</td><td>客服按单号检索；也是对账主键</td></tr>
+        <tr><td class="mn">payment.out_trade_no</td><td>UNIQUE</td><td>发起支付时生成，防止重复发起</td></tr>
+        <tr><td class="mn">payment.transaction_id</td><td>UNIQUE（可空）</td><td>回调幂等的唯一依据，重复通知只处理一次</td></tr>
+        <tr><td class="mn">order ⨯ status</td><td>INDEX (status, created_at)</td><td>后台待发货列表按状态倒序分页</td></tr>
+        <tr><td class="mn">order.user_id</td><td>INDEX</td><td>「我的订单」高频查询</td></tr>
+        <tr><td class="mn">sku.stock</td><td>CHECK (stock &gt;= 0 AND reserved &gt;= 0)</td><td>数据库层兜底，防止代码漏判导致负库存</td></tr>
+        <tr><td class="mn">review.order_item_id</td><td>UNIQUE</td><td>一单一件只能评一次</td></tr>
+        <tr><td class="mn">after_sale.order_item_id</td><td>部分唯一（未撤销时）</td><td>同一件商品不能同时存在两个进行中的售后</td></tr>
+        <tr><td class="mn">product.search</td><td>GIN (title gin_trgm_ops)</td><td>支持 ILIKE 模糊搜索而不引 ES</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="warnbox">
+    <b>字段命名约定：</b>金额字段统一以 <code>_cents</code> 结尾并声明为 <code>Int</code>，禁止出现 float/decimal 参与计算；对外接口统一返回「分」，由前端格式化为元。时间字段统一 <code>timestamptz</code>，接口输出 ISO 8601。
+  </div>
+</section>
+
+<!-- ================= 6 ================= -->
+<section id="s6">
+  <h2><span class="n">06</span>金额与库存</h2>
+  <p class="sub">这两块是最容易出错、也最该被写成单一实现的地方。</p>
+
+  <h3>金额计算：单一函数，前后端共用</h3>
+  <div class="codebox">
+    <div class="bar">packages/shared/money.ts</div>
+<pre><span class="c">// 全部使用整数分；顺序固定：商品 → 会员折扣 → 优惠券 → + 运费</span>
+<span class="k">export function</span> calculateOrderAmount(input: {
+  items: { priceCents: number; quantity: number }[];
+  memberDiscountRate: number;   <span class="c">// 1 | 0.98 | 0.95</span>
+  coupon?: { thresholdCents: number; faceValueCents: number };
+  freight: { freeThresholdCents: number; flatCents: number; isExceptionRegion: boolean };
+}) {
+  <span class="k">const</span> goodsCents = input.items.reduce((s, i) =&gt; s + i.priceCents * i.quantity, 0);
+  <span class="k">const</span> memberDiscountCents = goodsCents - Math.round(goodsCents * input.memberDiscountRate);
+
+  <span class="k">const</span> afterMember = goodsCents - memberDiscountCents;
+  <span class="k">const</span> couponCents = input.coupon &amp;&amp; afterMember &gt;= input.coupon.thresholdCents
+    ? Math.min(input.coupon.faceValueCents, afterMember) : 0;
+
+  <span class="k">const</span> afterCoupon = afterMember - couponCents;
+  <span class="k">const</span> freightCents = input.freight.isExceptionRegion
+    ? input.freight.flatCents
+    : (afterCoupon &gt;= input.freight.freeThresholdCents ? 0 : input.freight.flatCents);
+
+  <span class="k">return</span> {
+    goodsCents, memberDiscountCents, couponCents, freightCents,
+    payableCents: afterCoupon + freightCents,   <span class="c">// 下限恒为运费</span>
+  };
+}</pre>
+  </div>
+
+  <div class="tw">
+    <table>
+      <thead><tr><th style="width:210px">规则</th><th>实现要点</th></tr></thead>
+      <tbody>
+        <tr><td>金额快照</td><td><code>order</code> 的 5 个金额字段在创建时一次写入，后续不随商品改价变化；退款只改 <code>refunded_amount</code></td></tr>
+        <tr><td>券门槛判断</td><td>用「会员折扣后金额」比较，不用原始商品金额；门槛不满足时前端置灰并说明差多少</td></tr>
+        <tr><td>运费判定</td><td>先判断是否命中地区例外（例外优先），再判断是否达到包邮门槛</td></tr>
+        <tr><td>金额下限</td><td>应付金额不允许小于运费；券最多抵扣到 0 元商品部分</td></tr>
+        <tr><td>退款金额</td><td>上限为 <code>order_item.subtotal - 已退金额</code>；整单退时含运费退，部分退时不退运费</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>库存：预占而非直接扣减</h3>
+  <div class="codebox">
+    <div class="bar">order.service.ts · 创建订单（事务内）</div>
+<pre><span class="k">await</span> prisma.$transaction(<span class="k">async</span> (tx) =&gt; {
+  <span class="c">// 1) 行锁读取 SKU，天然串行化同一商品的并发下单</span>
+  <span class="k">const</span> skus = <span class="k">await</span> tx.$queryRaw`
+    SELECT id, stock, reserved, price_cents FROM sku
+    WHERE id = ANY(${ids}) ORDER BY id FOR UPDATE`;
+
+  <span class="c">// 2) 可售 = stock - reserved；不足即回滚</span>
+  <span class="k">for</span> (<span class="k">const</span> line <span class="k">of</span> lines) <span class="k">if</span> (avail(line.skuId) &lt; line.qty) <span class="k">throw new</span> StockNotEnoughError();
+
+  <span class="c">// 3) 预占库存，订单进入 PENDING_PAYMENT</span>
+  <span class="k">await</span> tx.sku.updateMany({ where: { id: { in: ids } }, data: { reserved: { increment: qty } } });
+  <span class="k">return</span> tx.order.create({ data: { ...amount, status: <span class="s">'PENDING_PAYMENT'</span> } });
+});</pre>
+  </div>
+
+  <div class="tw">
+    <table>
+      <thead><tr><th style="width:150px">时点</th><th>对 stock / reserved 的操作</th><th style="width:210px">触发者</th></tr></thead>
+      <tbody>
+        <tr><td>创建订单</td><td><code>reserved += qty</code></td><td>下单接口</td></tr>
+        <tr><td>支付成功</td><td><code>stock -= qty</code>，<code>reserved -= qty</code></td><td>支付回调</td></tr>
+        <tr><td>超时 / 主动取消</td><td><code>reserved -= qty</code></td><td>定时任务 / 取消接口</td></tr>
+        <tr><td>退款（未发货）</td><td><code>stock += qty</code>（可二次销售时）</td><td>售后审核通过</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="note">
+    <b>超时释放：</b>定时任务每 60 秒扫一遍 <code>PENDING_PAYMENT</code> 且超时的订单，用 <code>version</code> 乐观锁防止与「用户刚支付」并发冲突；释放库存与关单在同一事务内完成。
+  </div>
+</section>
+
+<!-- ================= 7 ================= -->
+<section id="s7">
+  <h2><span class="n">07</span>状态机</h2>
+  <p class="sub">状态与动作集中定义在 <code>packages/shared/orderState.ts</code>，服务端校验，前端只读同一张表做按钮显隐。</p>
+
+  <h3>订单：7 状态</h3>
+  <div class="tw">
+    <table>
+      <thead><tr><th style="width:150px">当前状态</th><th style="width:130px">动作</th><th style="width:150px">目标状态</th><th>守卫条件</th></tr></thead>
+      <tbody>
+        <tr><td class="mn">PENDING_PAYMENT</td><td>pay_success</td><td class="mn">PAID</td><td>支付回调金额与订单应付一致；记录 transaction_id 唯一</td></tr>
+        <tr><td class="mn">PENDING_PAYMENT</td><td>cancel</td><td class="mn">CLOSED</td><td>用户主动取消，或超时 ≥ 15 分钟</td></tr>
+        <tr><td class="mn">PAID</td><td>ship</td><td class="mn">SHIPPED</td><td>填写物流公司 + 运单号；仓储角色或超管</td></tr>
+        <tr><td class="mn">PAID</td><td>refund_apply</td><td class="mn">REFUNDING</td><td>存在进行中的售后单；未发货可直接仅退款</td></tr>
+        <tr><td class="mn">SHIPPED</td><td>confirm</td><td class="mn">COMPLETED</td><td>用户确认，或发货后 10 天自动确认</td></tr>
+        <tr><td class="mn">SHIPPED</td><td>refund_apply</td><td class="mn">REFUNDING</td><td>在售后期内（签收起 7 天）</td></tr>
+        <tr><td class="mn">COMPLETED</td><td>refund_apply</td><td class="mn">REFUNDING</td><td>确认收货后 7 天内</td></tr>
+        <tr><td class="mn">REFUNDING</td><td>refund_success</td><td class="mn">REFUNDED</td><td>退款渠道返回成功；累计退款 ≤ 实付</td></tr>
+        <tr><td class="mn">REFUNDING</td><td>refund_reject</td><td class="mn">PAID / SHIPPED / COMPLETED</td><td>回到申请前状态，必须填写拒绝理由</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>售后：6 状态</h3>
+  <div class="tw">
+    <table>
+      <thead><tr><th style="width:150px">状态</th><th>含义</th><th style="width:230px">可执行动作</th></tr></thead>
+      <tbody>
+        <tr><td class="mn">APPLIED</td><td>买家已提交，待商家审核</td><td>approve / reject / cancel（买家撤销）</td></tr>
+        <tr><td class="mn">WAIT_BUYER_SHIP</td><td>退货退款已通过，等买家寄回</td><td>buyer_ship（填寄回单号）/ cancel</td></tr>
+        <tr><td class="mn">WAIT_SELLER_RECEIVE</td><td>买家已寄回，等商家收货</td><td>receive（确认收货并退款）/ reject</td></tr>
+        <tr><td class="mn">REFUNDING</td><td>已发起退款，等渠道结果</td><td>refund_success / refund_failed（可重试）</td></tr>
+        <tr><td class="mn">COMPLETED</td><td>退款成功，售后结束</td><td>仅查看</td></tr>
+        <tr><td class="mn">REJECTED</td><td>商家拒绝或买家撤销</td><td>仅查看；买家可重新申请（生成新单）</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="codebox">
+    <div class="bar">packages/shared/orderState.ts</div>
+<pre><span class="k">export const</span> ORDER_TRANSITIONS = {
+  PENDING_PAYMENT: { pay_success: <span class="s">'PAID'</span>, cancel: <span class="s">'CLOSED'</span> },
+  PAID:            { ship: <span class="s">'SHIPPED'</span>, refund_apply: <span class="s">'REFUNDING'</span> },
+  SHIPPED:         { confirm: <span class="s">'COMPLETED'</span>, refund_apply: <span class="s">'REFUNDING'</span> },
+  COMPLETED:       { refund_apply: <span class="s">'REFUNDING'</span> },
+  REFUNDING:       { refund_success: <span class="s">'REFUNDED'</span>, refund_reject: <span class="s">'PREVIOUS'</span> },
+  CLOSED:          {}, REFUNDED: {},
+} <span class="k">as const</span>;
+
+<span class="k">export function</span> can(action, from) { <span class="k">return</span> Boolean(ORDER_TRANSITIONS[from]?.[action]); }</pre>
+  </div>
+
+  <div class="warnbox">
+    <b>并发控制：</b>所有迁移走 <code>UPDATE order SET status=$next, version=version+1 WHERE id=$id AND version=$expected AND status=$from</code>；受影响行数为 0 时返回 409，由前端提示「订单状态已变化，请刷新」。这是防止客服与买家同时操作导致状态错乱的唯一可靠方式。
+  </div>
+</section>
+
+<!-- ================= 8 ================= -->
+<section id="s8">
+  <h2><span class="n">08</span>接口清单</h2>
+  <p class="sub">共 53 个接口；统一前缀 <code>/api</code>，统一响应包 <code>{ code, message, data, requestId }</code>。</p>
+
+  <h3>小程序端（24）</h3>
+  <div class="tw">
+    <table>
+      <thead><tr><th style="width:70px">方法</th><th style="width:250px">路径</th><th>用途</th><th style="width:120px">鉴权</th></tr></thead>
+      <tbody>
+        <tr><td class="mn">POST</td><td class="mn">/auth/wechat-login</td><td>code 换 openid，签发 token</td><td>公开</td></tr>
+        <tr><td class="mn">GET</td><td class="mn">/home</td><td>首页聚合：主题图、分类、精选、包邮提示</td><td>公开</td></tr>
+        <tr><td class="mn">GET</td><td class="mn">/categories</td><td>分类树与商品数</td><td>公开</td></tr>
+        <tr><td class="mn">GET</td><td class="mn">/products</td><td>列表：分类、关键词、排序、分页</td><td>公开</td></tr>
+        <tr><td class="mn">GET</td><td class="mn">/products/:id</td><td>详情：SKU、标签、评价摘要、包邮门槛</td><td>公开</td></tr>
+        <tr><td class="mn">GET</td><td class="mn">/search/hot</td><td>热搜词与历史词</td><td>公开</td></tr>
+        <tr><td class="mn">GET</td><td class="mn">/cart</td><td>购物车（含失效区）</td><td>登录</td></tr>
+        <tr><td class="mn">POST</td><td class="mn">/cart/items</td><td>加入购物车（SKU + 数量）</td><td>登录</td></tr>
+        <tr><td class="mn">PATCH</td><td class="mn">/cart/items/:id</td><td>改数量 / 勾选</td><td>登录</td></tr>
+        <tr><td class="mn">DELETE</td><td class="mn">/cart/items</td><td>删除或清空失效</td><td>登录</td></tr>
+        <tr><td class="mn">POST</td><td class="mn">/orders/preview</td><td>结算预览：金额明细、可用券、运费</td><td>登录</td></tr>
+        <tr><td class="mn">POST</td><td class="mn">/orders</td><td>创建订单（<code>Idempotency-Key</code> 必填）</td><td>登录</td></tr>
+        <tr><td class="mn">POST</td><td class="mn">/orders/:id/pay</td><td>发起支付，返回支付参数</td><td>登录</td></tr>
+        <tr><td class="mn">POST</td><td class="mn">/payments/callback</td><td>支付回调（渠道 → 服务端）</td><td>验签</td></tr>
+        <tr><td class="mn">POST</td><td class="mn">/orders/:id/cancel</td><td>取消未支付订单并释放库存</td><td>登录</td></tr>
+        <tr><td class="mn">GET</td><td class="mn">/orders</td><td>订单列表（分状态、分页）</td><td>登录</td></tr>
+        <tr><td class="mn">GET</td><td class="mn">/orders/:id</td><td>订单详情（含金额快照）</td><td>登录</td></tr>
+        <tr><td class="mn">POST</td><td class="mn">/orders/:id/confirm</td><td>确认收货</td><td>登录</td></tr>
+        <tr><td class="mn">GET</td><td class="mn">/orders/:id/shipment</td><td>物流节点</td><td>登录</td></tr>
+        <tr><td class="mn">POST</td><td class="mn">/after-sales</td><td>提交售后（类型、理由、金额、凭证）</td><td>登录</td></tr>
+        <tr><td class="mn">GET</td><td class="mn">/after-sales</td><td>售后列表</td><td>登录</td></tr>
+        <tr><td class="mn">POST</td><td class="mn">/reviews</td><td>发布评价</td><td>登录</td></tr>
+        <tr><td class="mn">GET</td><td class="mn">/me</td><td>会员信息：等级、累计消费、券数、积分</td><td>登录</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>管理后台（29）</h3>
+  <div class="tw">
+    <table>
+      <thead><tr><th style="width:70px">方法</th><th style="width:250px">路径</th><th>用途</th><th style="width:120px">最小角色</th></tr></thead>
+      <tbody>
+        <tr><td class="mn">POST</td><td class="mn">/admin/auth/login</td><td>账号密码登录</td><td>公开</td></tr>
+        <tr><td class="mn">GET</td><td class="mn">/admin/dashboard</td><td>指标带、趋势、待办、Top 商品</td><td>CS</td></tr>
+        <tr><td class="mn">GET</td><td class="mn">/admin/products</td><td>商品列表（搜索、状态、分类）</td><td>OPS</td></tr>
+        <tr><td class="mn">POST</td><td class="mn">/admin/products</td><td>创建商品与 SKU</td><td>OPS</td></tr>
+        <tr><td class="mn">PUT</td><td class="mn">/admin/products/:id</td><td>编辑商品、上下架</td><td>OPS</td></tr>
+        <tr><td class="mn">PATCH</td><td class="mn">/admin/skus/:id/stock</td><td>调整库存（记录变动原因）</td><td>OPS/WMS</td></tr>
+        <tr><td class="mn">GET</td><td class="mn">/admin/categories</td><td>分类树</td><td>OPS</td></tr>
+        <tr><td class="mn">POST</td><td class="mn">/admin/categories</td><td>新建 / 编辑 / 排序</td><td>OPS</td></tr>
+        <tr><td class="mn">DELETE</td><td class="mn">/admin/categories/:id</td><td>删除（有商品时拒绝）</td><td>OPS</td></tr>
+        <tr><td class="mn">GET</td><td class="mn">/admin/orders</td><td>订单列表（状态页签、搜索）</td><td>CS</td></tr>
+        <tr><td class="mn">GET</td><td class="mn">/admin/orders/:id</td><td>订单详情与流转日志</td><td>CS</td></tr>
+        <tr><td class="mn">POST</td><td class="mn">/admin/orders/:id/ship</td><td>发货（物流公司 + 单号）</td><td>WMS</td></tr>
+        <tr><td class="mn">POST</td><td class="mn">/admin/orders/batch-ship</td><td>批量发货</td><td>WMS</td></tr>
+        <tr><td class="mn">POST</td><td class="mn">/admin/orders/:id/remark</td><td>商家备注</td><td>CS</td></tr>
+        <tr><td class="mn">GET</td><td class="mn">/admin/after-sales</td><td>售后列表（超时优先）</td><td>CS</td></tr>
+        <tr><td class="mn">GET</td><td class="mn">/admin/after-sales/:id</td><td>售后详情与凭证</td><td>CS</td></tr>
+        <tr><td class="mn">POST</td><td class="mn">/admin/after-sales/:id/approve</td><td>同意退款 / 退货</td><td>CS</td></tr>
+        <tr><td class="mn">POST</td><td class="mn">/admin/after-sales/:id/reject</td><td>拒绝（理由必填）</td><td>CS</td></tr>
+        <tr><td class="mn">POST</td><td class="mn">/admin/after-sales/:id/receive</td><td>确认收到退货并发起退款</td><td>WMS</td></tr>
+        <tr><td class="mn">GET</td><td class="mn">/admin/reviews</td><td>评价审核列表</td><td>CS</td></tr>
+        <tr><td class="mn">POST</td><td class="mn">/admin/reviews/:id/moderate</td><td>通过 / 隐藏 / 回复</td><td>CS</td></tr>
+        <tr><td class="mn">GET</td><td class="mn">/admin/customers</td><td>客户列表（消费汇总）</td><td>CS</td></tr>
+        <tr><td class="mn">GET</td><td class="mn">/admin/customers/:id</td><td>客户详情与订单轨迹</td><td>CS</td></tr>
+        <tr><td class="mn">GET/POST</td><td class="mn">/admin/coupons</td><td>券列表 / 新建 / 停发</td><td>OPS</td></tr>
+        <tr><td class="mn">GET/PUT</td><td class="mn">/admin/points-rule</td><td>积分发放规则与流水（不参与抵扣）</td><td>OPS</td></tr>
+        <tr><td class="mn">GET/PUT</td><td class="mn">/admin/member-levels</td><td>等级门槛与折扣</td><td>OPS</td></tr>
+        <tr><td class="mn">GET/PUT</td><td class="mn">/admin/shop</td><td>店铺信息、运费、支付超时</td><td>SUPER</td></tr>
+        <tr><td class="mn">GET/POST</td><td class="mn">/admin/accounts</td><td>子账号与角色</td><td>SUPER</td></tr>
+        <tr><td class="mn">GET</td><td class="mn">/admin/logs</td><td>操作日志（90 天）</td><td>SUPER</td></tr>
+        <tr><td class="mn">POST</td><td class="mn">/assets/presign</td><td>获取上传签名（商品图、凭证）</td><td>登录</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>关键契约：创建订单</h3>
+  <div class="codebox">
+    <div class="bar">POST /api/orders · 请求与响应</div>
+<pre><span class="c">// Header: Idempotency-Key: 客户端生成的 UUID，24 小时内重复即返回同一订单</span>
+{
+  <span class="s">"addressId"</span>: <span class="s">"addr_1024"</span>,
+  <span class="s">"items"</span>: [{ <span class="s">"skuId"</span>: <span class="s">"sku_1001"</span>, <span class="s">"quantity"</span>: 1 }],
+  <span class="s">"couponClaimId"</span>: <span class="s">"cp_887"</span>,      <span class="c">// 可空；不存在积分字段，接口层直接拒绝</span>
+  <span class="s">"remark"</span>: <span class="s">"请用环保包装"</span>
+}
+
+<span class="c">// 201 Created</span>
+{
+  <span class="s">"orderNo"</span>: <span class="s">"SY20261106093812"</span>,
+  <span class="s">"status"</span>: <span class="s">"PENDING_PAYMENT"</span>,
+  <span class="s">"payDeadlineAt"</span>: <span class="s">"2026-11-06T10:08:00+08:00"</span>,
+  <span class="s">"amount"</span>: {
+    <span class="s">"goodsCents"</span>: 46400, <span class="s">"memberDiscountCents"</span>: 0,
+    <span class="s">"couponCents"</span>: 3000, <span class="s">"freightCents"</span>: 0,
+    <span class="s">"payableCents"</span>: 43400
+  }
+}</pre>
+  </div>
+</section>
+
+<!-- ================= 9 ================= -->
+<section id="s9">
+  <h2><span class="n">09</span>模拟支付与替换</h2>
+  <p class="sub">首版不接微信支付，但支付这条链路的代码结构必须按真实渠道来写。</p>
+
+  <div class="codebox">
+    <div class="bar">payment/provider.ts · 渠道适配接口</div>
+<pre><span class="k">export interface</span> PaymentProvider {
+  readonly name: <span class="s">'mock'</span> | <span class="s">'wechat'</span>;
+  createPayment(input: { orderNo: string; amountCents: number; openid?: string }): Promise&lt;PaymentParams&gt;;
+  verifyCallback(headers: Record&lt;string,string&gt;, rawBody: string): Promise&lt;CallbackResult&gt;;
+  refund(input: { orderNo: string; refundNo: string; amountCents: number }): Promise&lt;RefundResult&gt;;
+}
+
+<span class="c">// 首版注册 MockProvider：createPayment 直接返回 { mock: true }，</span>
+<span class="c">// 前端点击「确认支付」后调用 /orders/:id/pay/mock-confirm 触发同一套回调处理</span>
+<span class="c">// 后续接真实渠道只需新增 WechatProvider 并改一行注册，订单与售后代码零改动</span></pre>
+  </div>
+
+  <div class="tw">
+    <table>
+      <thead><tr><th style="width:190px">契约点</th><th>要求</th></tr></thead>
+      <tbody>
+        <tr><td>支付结果以回调为准</td><td>前端跳转成功页不代表已支付；只有回调写入 <code>payment.status = SUCCESS</code> 后订单才迁移</td></tr>
+        <tr><td>回调幂等</td><td><code>transaction_id</code> 唯一索引；重复通知返回 200 但不重复处理</td></tr>
+        <tr><td>金额校验</td><td>回调金额必须与 <code>order.payable_amount</code> 相等，否则记录异常并告警，不迁移状态</td></tr>
+        <tr><td>退款</td><td>退款单号 <code>refundNo</code> 唯一；失败可重试，重试沿用同一单号</td></tr>
+        <tr><td>超时关单</td><td>关单前再查一次支付状态，避免「刚支付成功就被关单」</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="warnbox">
+    <b>替换真实支付时唯一要改的地方：</b>部署配置里的 provider 注册与商户参数。订单表、退款表、状态机均不需要变更——这是首版就抽接口的唯一目的。
+  </div>
+</section>
+
+<!-- ================= 10 ================= -->
+<section id="s10">
+  <h2><span class="n">10</span>权限与安全</h2>
+  <p class="sub">四个内部角色的权限落到接口层级，不做到字段级配置。</p>
+
+  <div class="tw">
+    <table>
+      <thead><tr><th style="width:130px">角色</th><th>可访问接口域</th><th style="width:190px">硬限制</th></tr></thead>
+      <tbody>
+        <tr><td>SUPER 超管</td><td>全部</td><td>不可删除自己；账号变更需二次确认</td></tr>
+        <tr><td>OPS 商品运营</td><td>商品、分类、标签、库存、优惠券、积分与等级规则、素材</td><td>不可看客户手机号全量、不可发货、不可退款</td></tr>
+        <tr><td>CS 客服</td><td>订单查看、售后审核、评价管理、客户信息（脱敏）</td><td>不可改价、不可改库存、不可发货</td></tr>
+        <tr><td>WMS 仓储</td><td>待发货订单、发货、确认收到退货</td><td>只见收货信息，不见支付金额明细</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>安全基线</h3>
+  <ul>
+    <li>手机号在列表页一律脱敏（<code>138****6621</code>）；查看完整号码需单独权限并写入操作日志。</li>
+    <li>后台登录：bcrypt 存储密码，连续 5 次失败锁定 15 分钟，登录与敏感操作记录 IP 与 UA。</li>
+    <li>用户 token 与后台 token 使用不同签名密钥与过期时间，互不通用。</li>
+    <li>上传走预签名，服务端校验 MIME 与大小（图片 ≤ 5MB），不信任客户端文件名。</li>
+    <li>所有列表接口强制分页，<code>pageSize ≤ 50</code>；导出接口单独限流。</li>
+    <li>富文本与商品详情做白名单过滤，防止脚本注入。</li>
+  </ul>
+</section>
+
+<!-- ================= 11 ================= -->
+<section id="s11">
+  <h2><span class="n">11</span>非功能要求</h2>
+  <p class="sub">只写会影响实现的项，不做无意义的指标堆砌。</p>
+
+  <div class="tw">
+    <table>
+      <thead><tr><th style="width:150px">项</th><th>要求</th><th style="width:210px">验证方式</th></tr></thead>
+      <tbody>
+        <tr><td>接口响应</td><td>列表与详情 P95 ≤ 300ms（本地库，不含网络）</td><td>压测脚本抽样</td></tr>
+        <tr><td>首页加载</td><td>首屏接口聚合为 1 次请求，图片懒加载，商品卡骨架屏</td><td>真机 + 弱网</td></tr>
+        <tr><td>幂等</td><td>下单、支付、退款均支持重复请求</td><td>重复调用同一 Idempotency-Key</td></tr>
+        <tr><td>不超卖</td><td>并发下单不产生负库存</td><td>200 并发抢 10 件</td></tr>
+        <tr><td>可观测</td><td>每个请求带 <code>requestId</code>，错误日志含订单号与用户 id</td><td>日志检索</td></tr>
+        <tr><td>备份</td><td>每日全量 + WAL 归档，恢复演练每季度一次</td><td>恢复演练记录</td></tr>
+        <tr><td>审计</td><td>写操作 100% 落 <code>operation_log</code>，保留 90 天</td><td>抽查改价、发货、退款</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ================= 12 ================= -->
+<section id="s12">
+  <h2><span class="n">12</span>测试与验收</h2>
+  <p class="sub">先测规则，再测页面。金额与状态机的单测是这次开发的门槛。</p>
+
+  <h3>必须存在的自动化用例</h3>
+  <div class="tw">
+    <table>
+      <thead><tr><th style="width:190px">用例</th><th>断言</th></tr></thead>
+      <tbody>
+        <tr><td>金额组合矩阵</td><td>会员折扣 × 券门槛边界 × 包邮边界 × 地区例外，至少 12 组；应付金额与手工计算完全一致</td></tr>
+        <tr><td>券边界</td><td>券后金额为 0、券面额大于券后金额、门槛差 1 分，三种情况的行为符合规则</td></tr>
+        <tr><td>库存并发</td><td>200 并发下单 10 件商品，成功订单恰为 10，库存不为负</td></tr>
+        <tr><td>支付幂等</td><td>同一 <code>transaction_id</code> 回调 5 次，订单只迁移一次，库存只扣一次</td></tr>
+        <tr><td>超时关单</td><td>支付与关单并发时，只有一个结果生效，且库存与状态一致</td></tr>
+        <tr><td>售后额度</td><td>两次部分退款累计不超过实付；第二次申请被拒</td></tr>
+        <tr><td>非法迁移</td><td>对 CLOSED 订单执行 ship，返回 409 而非 500</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>上线验收清单</h3>
+  <ul>
+    <li>主链路：浏览 → 加购 → 下单 → 模拟支付 → 后台发货 → 确认收货 → 评价，一次走通且金额与页面一致。</li>
+    <li>逆向链路：仅退款、退货退款、拒绝、超时关单，四类都能在后台看到完整轨迹。</li>
+    <li>权限：4 个角色分别登录，看不到越权菜单与按钮，直接调接口返回 403。</li>
+    <li>金额快照：改商品价格后，历史订单金额不变。</li>
+    <li>视觉：按设计规范 v1.2 逐屏核对 41 屏，状态稿（空/错/载/禁）齐备。</li>
+  </ul>
+</section>
+
+<!-- ================= 13 ================= -->
+<section id="s13">
+  <h2><span class="n">13</span>实施顺序</h2>
+  <p class="sub">每个阶段都有明确的退出条件，不满足不进入下一阶段。</p>
+
+  <div class="steps">
+    <div class="step">
+      <div class="m">M0</div>
+      <div><div class="t">骨架与契约</div><div class="d">monorepo 初始化、<code>packages/shared</code> 的金额与状态机、Prisma schema 与迁移、统一响应与错误码、登录鉴权、种子数据（6 个商品 + 1 个店铺配置）。<br><strong>退出条件：</strong>金额矩阵单测全绿；两角色可登录；Swagger 可访问。</div></div>
+    </div>
+    <div class="step">
+      <div class="m">M1</div>
+      <div><div class="t">正向主链路</div><div class="d">首页、分类、搜索、商品详情、购物车、结算、下单、模拟支付、订单列表与详情；后台商品列表与订单发货。<br><strong>退出条件：</strong>一次完整下单到发货走通；并发抢购不超卖；订单金额与页面一致。</div></div>
+    </div>
+    <div class="step">
+      <div class="m">M2</div>
+      <div><div class="t">售后与逆向</div><div class="d">售后申请、列表、详情；后台审核、拒绝、确认收货、退款；超时关单定时任务；物流详情。<br><strong>退出条件：</strong>四种逆向路径全部有记录；重复回调不重复退款；退款金额不超实付。</div></div>
+    </div>
+    <div class="step">
+      <div class="m">M3</div>
+      <div><div class="t">营销与会员</div><div class="d">优惠券领取与核销、新建券；会员等级与折扣；积分发放与流水（仅记录）；客户列表与详情；评价管理。<br><strong>退出条件：</strong>券门槛与叠加规则按 PRD 生效；等级折扣参与金额计算且顺序正确。</div></div>
+    </div>
+    <div class="step">
+      <div class="m">M4</div>
+      <div><div class="t">打磨与上线准备</div><div class="d">41 屏视觉对齐、状态稿补齐、操作日志、导出、备份脚本、错误监控、真机联调。<br><strong>退出条件：</strong>验收清单全过；弱网与空数据下无白屏。</div></div>
+    </div>
+  </div>
+
+  <div class="note">
+    <b>下一步动作：</b>确认本方案后即可进入 M0。若你还没有微信小程序 AppID，可先用「测试号 + H5 预览」跑通全链路，AppID 到位只影响登录与订阅消息两处配置。
+  </div>
+</section>
+
+<footer>
+  山野商城 · 技术方案 v1.0 · 2026-11-06 · 关联 PRD v0.2 / 设计规范 v1.2 / 41 屏设计稿
+</footer>
+</main>
+</div>
+
+<script>
+(function(){
+  var links = Array.prototype.slice.call(document.querySelectorAll('.rail nav a'));
+  var map = {};
+  links.forEach(function(a){
+    var id = a.getAttribute('href').slice(1);
+    var el = document.getElementById(id);
+    if(el) map[id] = a;
+  });
+  if(!('IntersectionObserver' in window)) return;
+  var obs = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if(e.isIntersecting){
+        links.forEach(function(a){ a.classList.remove('on'); });
+        if(map[e.target.id]) map[e.target.id].classList.add('on');
+      }
+    });
+  }, { rootMargin: '-8% 0px -76% 0px', threshold: 0 });
+  Object.keys(map).forEach(function(id){ obs.observe(document.getElementById(id)); });
+})();
+</script>
+</body>
+</html>

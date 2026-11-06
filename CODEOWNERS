@@ -1,0 +1,7 @@
+# 契约核心文件必须由技术负责人审阅（工程契约 R2 / R3 / R4 / R5）
+/packages/shared/        @hoo
+/openapi.yaml            @hoo
+/packages/tokens/        @hoo
+/apps/api/prisma/        @hoo
+/.github/                @hoo
+/eslint.config.mjs       @hoo

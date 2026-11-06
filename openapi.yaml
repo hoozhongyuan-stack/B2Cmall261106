@@ -1,0 +1,572 @@
+openapi: 3.0.3
+info:
+  title: 山野商城 API
+  version: '1.1'
+  description: |
+    B2C 商城接口契约（唯一来源）。前端类型由本文件 codegen 生成，禁止手写重复 DTO。
+    约定：金额一律整数分；时间一律 ISO 8601；错误返回 { code, message, data, requestId }。
+
+servers:
+  - url: http://127.0.0.1:3000/api
+
+tags:
+  - name: catalog
+  - name: cart
+  - name: orders
+  - name: payments
+  - name: admin-orders
+
+paths:
+  /health:
+    get:
+      tags: [catalog]
+      summary: 健康检查
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      status: { type: string, enum: [ok, degraded] }
+                      db: { type: boolean }
+
+  /shop:
+    get:
+      tags: [catalog]
+      summary: 店铺配置（包邮门槛、运费、售后期）
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/ShopConfig'
+
+  /home:
+    get:
+      tags: [catalog]
+      summary: 首页聚合
+      responses:
+        '200': { description: OK }
+
+  /categories:
+    get:
+      tags: [catalog]
+      summary: 分类树
+      responses:
+        '200': { description: OK }
+
+  /products:
+    get:
+      tags: [catalog]
+      summary: 商品列表
+      parameters:
+        - { name: categoryId, in: query, schema: { type: string } }
+        - { name: keyword, in: query, schema: { type: string } }
+        - { name: sort, in: query, schema: { type: string, enum: [default, sales, price_asc, price_desc] } }
+        - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+        - { name: pageSize, in: query, schema: { type: integer, minimum: 1, maximum: 50, default: 20 } }
+      responses:
+        '200': { description: OK }
+
+  /products/{id}:
+    get:
+      tags: [catalog]
+      summary: 商品详情
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { description: OK }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /cart:
+    get:
+      tags: [cart]
+      summary: 购物车（含失效区与勾选汇总）
+      security: [{ userToken: [] }]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    required: [valid, invalid, summary]
+                    properties:
+                      valid:
+                        type: array
+                        items: { $ref: '#/components/schemas/CartItem' }
+                      invalid:
+                        type: array
+                        items: { $ref: '#/components/schemas/CartItem' }
+                      summary:
+                        type: object
+                        properties:
+                          checkedCount: { type: integer }
+                          checkedAmountCents: { type: integer }
+
+  /cart/items:
+    post:
+      tags: [cart]
+      summary: 加入购物车
+      security: [{ userToken: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [skuId, quantity]
+              properties:
+                skuId: { type: string }
+                quantity: { type: integer, minimum: 1 }
+      responses:
+        '200': { description: OK }
+        '404': { description: 商品不存在或已售罄 }
+    delete:
+      tags: [cart]
+      summary: 删除指定条目
+      security: [{ userToken: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ids]
+              properties:
+                ids: { type: array, items: { type: string } }
+      responses:
+        '200': { description: OK }
+
+  /cart/items/{id}:
+    patch:
+      tags: [cart]
+      summary: 修改数量或勾选
+      security: [{ userToken: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                quantity: { type: integer, minimum: 1 }
+                checked: { type: boolean }
+      responses:
+        '200': { description: OK }
+
+  /cart/invalid:
+    delete:
+      tags: [cart]
+      summary: 清空失效商品
+      security: [{ userToken: [] }]
+      responses:
+        '200': { description: OK }
+
+  /orders/preview:
+    post:
+      tags: [orders]
+      summary: 结算预览：金额明细、可用券、运费
+      security: [{ userToken: [] }]
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PreviewRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    required: [items, amount, freight]
+                    properties:
+                      items: { type: array, items: { $ref: '#/components/schemas/PreviewItem' } }
+                      amount: { $ref: '#/components/schemas/AmountBreakdown' }
+                      member:
+                        type: object
+                        properties:
+                          levelName: { type: string }
+                          rate: { type: number }
+                      availableCoupons:
+                        type: array
+                        items: { $ref: '#/components/schemas/CouponOption' }
+                      freight:
+                        type: object
+                        properties:
+                          freeThresholdCents: { type: integer }
+                          flatCents: { type: integer }
+                          exceptionRegion: { type: boolean }
+
+  /orders:
+    post:
+      tags: [orders]
+      summary: 创建订单
+      security: [{ userToken: [] }]
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          description: 客户端生成的 UUID；同一用户重复提交返回同一订单
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [addressId]
+              properties:
+                addressId: { type: string }
+                items:
+                  type: array
+                  items: { $ref: '#/components/schemas/OrderLine' }
+                couponClaimId: { type: string, nullable: true }
+                remark: { type: string, maxLength: 200 }
+      responses:
+        '201':
+          description: 订单创建成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/Order' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '409': { $ref: '#/components/responses/Conflict' }
+    get:
+      tags: [orders]
+      summary: 我的订单列表
+      security: [{ userToken: [] }]
+      parameters:
+        - { name: status, in: query, schema: { type: string, enum: [PENDING_PAYMENT, PAID, SHIPPED, COMPLETED, REFUNDING, REFUNDED, CLOSED] } }
+      responses:
+        '200': { description: OK }
+
+  /orders/{id}:
+    get:
+      tags: [orders]
+      summary: 订单详情（含金额快照）
+      security: [{ userToken: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/Order' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /orders/{id}/cancel:
+    post:
+      tags: [orders]
+      summary: 取消未支付订单并释放预占库存
+      security: [{ userToken: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { description: OK }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /orders/{id}/pay:
+    post:
+      tags: [payments]
+      summary: 发起支付（首版返回模拟支付参数）
+      security: [{ userToken: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: 支付参数
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/PaymentParams' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /payments/mock/confirm:
+    post:
+      tags: [payments]
+      summary: 模拟支付确认（与真实回调同一处理逻辑）
+      security: [{ userToken: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [outTradeNo]
+              properties:
+                outTradeNo: { type: string }
+      responses:
+        '200': { description: OK }
+
+  /payments/callback:
+    post:
+      tags: [payments]
+      summary: 支付结果回调（渠道 → 服务端，重复通知必须幂等）
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PaymentCallback' }
+      responses:
+        '200': { description: 已处理（重复通知同样返回 200） }
+        '409': { description: 回调金额与支付单不一致 }
+
+  /admin/orders:
+    get:
+      tags: [admin-orders]
+      summary: 后台订单列表（含各状态数量）
+      security: [{ adminToken: [] }]
+      parameters:
+        - { name: status, in: query, schema: { type: string } }
+        - { name: keyword, in: query, schema: { type: string } }
+      responses:
+        '200': { description: OK }
+        '403': { description: 角色无权限 }
+
+  /admin/orders/{id}:
+    get:
+      tags: [admin-orders]
+      summary: 后台订单详情
+      security: [{ adminToken: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { description: OK }
+
+  /admin/orders/{id}/ship:
+    post:
+      tags: [admin-orders]
+      summary: 发货（仅 SUPER / WMS）
+      security: [{ adminToken: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [expressCode, expressName, trackingNo]
+              properties:
+                expressCode: { type: string }
+                expressName: { type: string }
+                trackingNo: { type: string }
+      responses:
+        '200': { description: OK }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+components:
+  securitySchemes:
+    userToken:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: 小程序用户令牌（scope=miniapp）
+    adminToken:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: 后台账号令牌（角色 SUPER/OPS/CS/WMS）
+
+  responses:
+    BadRequest:
+      description: 参数校验失败
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    NotFound:
+      description: 资源不存在
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Conflict:
+      description: 状态冲突或库存不足
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+
+  schemas:
+    ShopConfig:
+      type: object
+      properties:
+        shopName: { type: string }
+        intro: { type: string }
+        freeThresholdCents: { type: integer }
+        flatFreightCents: { type: integer }
+        afterSaleDays: { type: integer }
+
+    CartItem:
+      type: object
+      required: [id, skuId, quantity, checked, title, priceCents, subtotalCents]
+      properties:
+        id: { type: string }
+        skuId: { type: string }
+        quantity: { type: integer }
+        checked: { type: boolean }
+        title: { type: string }
+        spec: { type: object, additionalProperties: { type: string } }
+        imageKey: { type: string, nullable: true }
+        priceCents: { type: integer }
+        available: { type: integer }
+        subtotalCents: { type: integer }
+        invalidReason: { type: string, nullable: true }
+
+    PreviewRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/OrderLine' }
+        couponClaimId: { type: string, nullable: true }
+        region: { type: string }
+
+    OrderLine:
+      type: object
+      additionalProperties: false
+      required: [skuId, quantity]
+      properties:
+        skuId: { type: string }
+        quantity: { type: integer, minimum: 1 }
+
+    PreviewItem:
+      type: object
+      properties:
+        skuId: { type: string }
+        title: { type: string }
+        specText: { type: string }
+        imageKey: { type: string, nullable: true }
+        priceCents: { type: integer }
+        quantity: { type: integer }
+        subtotalCents: { type: integer }
+
+    CouponOption:
+      type: object
+      properties:
+        claimId: { type: string }
+        name: { type: string }
+        faceValueCents: { type: integer }
+        thresholdCents: { type: integer }
+        usable: { type: boolean }
+        expiresAt: { type: string, format: date-time }
+
+    AmountBreakdown:
+      type: object
+      description: 金额快照，全部为整数分；payable = goods - memberDiscount - coupon + freight
+      required: [goodsCents, memberDiscountCents, couponCents, freightCents, payableCents]
+      properties:
+        goodsCents: { type: integer }
+        memberDiscountCents: { type: integer }
+        couponCents: { type: integer }
+        freightCents: { type: integer }
+        payableCents: { type: integer }
+        refundedCents: { type: integer }
+
+    OrderItem:
+      type: object
+      properties:
+        id: { type: string }
+        skuId: { type: string }
+        title: { type: string }
+        specText: { type: string }
+        imageKey: { type: string, nullable: true }
+        priceCents: { type: integer }
+        quantity: { type: integer }
+        subtotalCents: { type: integer }
+
+    Order:
+      type: object
+      required: [id, orderNo, status, amount, items]
+      properties:
+        id: { type: string }
+        orderNo: { type: string, example: SY20261106093812 }
+        status:
+          type: string
+          enum: [PENDING_PAYMENT, PAID, SHIPPED, COMPLETED, REFUNDING, REFUNDED, CLOSED]
+        payDeadlineAt: { type: string, format: date-time }
+        paidAt: { type: string, format: date-time, nullable: true }
+        shippedAt: { type: string, format: date-time, nullable: true }
+        createdAt: { type: string, format: date-time }
+        remark: { type: string, nullable: true }
+        address:
+          type: object
+          properties:
+            receiver: { type: string }
+            phone: { type: string }
+            region: { type: string }
+            detail: { type: string }
+        amount: { $ref: '#/components/schemas/AmountBreakdown' }
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/OrderItem' }
+        shipment:
+          type: object
+          nullable: true
+          properties:
+            expressName: { type: string }
+            expressCode: { type: string }
+            trackingNo: { type: string }
+            shippedAt: { type: string, format: date-time }
+
+    PaymentParams:
+      type: object
+      required: [provider, orderNo, outTradeNo, amountCents]
+      properties:
+        provider: { type: string, enum: [mock, wechat] }
+        orderNo: { type: string }
+        prepayId: { type: string, nullable: true }
+        mockConfirmUrl: { type: string, nullable: true }
+        outTradeNo: { type: string }
+        amountCents: { type: integer }
+        expiresAt: { type: string, format: date-time }
+
+    PaymentCallback:
+      type: object
+      required: [outTradeNo, amountCents]
+      properties:
+        outTradeNo: { type: string }
+        transactionId: { type: string, description: 全局唯一，回调幂等依据 }
+        status: { type: string, enum: [SUCCESS, FAILED] }
+        amountCents: { type: integer }
+        paidAt: { type: string, format: date-time }
+
+    Error:
+      type: object
+      required: [code, message, requestId]
+      properties:
+        code: { type: string, example: ORDER_STATE_CONFLICT }
+        message: { type: string }
+        data: { nullable: true }
+        requestId: { type: string }

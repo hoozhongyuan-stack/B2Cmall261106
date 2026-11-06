@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>B2C 商城 · 需求调研与产品设计（PRD v0.2）</title>
+<style>
+  :root{
+    --ink:#15171c;
+    --ink-2:#3d4250;
+    --ink-3:#6b7280;
+    --line:#e6e8ee;
+    --line-strong:#d3d7e0;
+    --bg:#f7f8fa;
+    --card:#ffffff;
+    --accent:#2557d6;
+    --accent-soft:#eef3ff;
+    --warn:#b45309;
+    --warn-soft:#fff7ed;
+    --ok:#0f766e;
+    --ok-soft:#ecfdf5;
+    --danger:#b42318;
+    --danger-soft:#fef3f2;
+    --radius:10px;
+    --mono:"SFMono-Regular",Menlo,Consolas,"Liberation Mono",monospace;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    font-size:15px;line-height:1.75;-webkit-font-smoothing:antialiased;
+  }
+  .shell{display:flex;min-height:100vh;align-items:flex-start;}
+
+  /* ---------- sidebar ---------- */
+  .toc{
+    width:252px;flex:0 0 252px;position:sticky;top:0;height:100vh;overflow-y:auto;
+    padding:28px 18px 40px;border-right:1px solid var(--line);background:#fbfbfd;
+  }
+  .toc-brand{font-size:13px;font-weight:700;letter-spacing:.04em;color:var(--ink);margin-bottom:4px;}
+  .toc-sub{font-size:11.5px;color:var(--ink-3);margin-bottom:22px;letter-spacing:.02em;}
+  .toc nav a{
+    display:block;font-size:12.5px;color:var(--ink-3);text-decoration:none;
+    padding:5px 10px;border-radius:6px;border-left:2px solid transparent;
+    transition:.15s;line-height:1.5;
+  }
+  .toc nav a:hover{color:var(--accent);background:var(--accent-soft);}
+  .toc nav a.lv1{font-weight:600;color:var(--ink-2);margin-top:10px;}
+  .toc nav a.lv2{padding-left:22px;font-size:12px;}
+  .toc nav a.active{color:var(--accent);border-left-color:var(--accent);background:var(--accent-soft);font-weight:600;}
+
+  /* ---------- main ---------- */
+  main{flex:1;min-width:0;padding:56px 56px 120px;max-width:1000px;}
+  header.doc-head{border-bottom:1px solid var(--line-strong);padding-bottom:26px;margin-bottom:40px;}
+  .eyebrow{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);font-weight:700;margin-bottom:12px;}
+  h1{font-size:34px;line-height:1.25;margin:0 0 14px;font-weight:750;letter-spacing:-.01em;}
+  .lede{font-size:15px;color:var(--ink-3);max-width:70ch;margin:0 0 22px;}
+  .meta{display:flex;flex-wrap:wrap;gap:8px;}
+  .pill{font-size:11.5px;padding:3px 10px;border-radius:999px;background:#fff;border:1px solid var(--line-strong);color:var(--ink-3);}
+  .pill b{color:var(--ink);font-weight:600;}
+
+  section{margin-bottom:52px;scroll-margin-top:24px;}
+  h2{
+    font-size:21px;margin:0 0 6px;font-weight:700;letter-spacing:-.005em;
+    padding-top:8px;
+  }
+  h2 .num{color:var(--accent);font-variant-numeric:tabular-nums;margin-right:10px;font-weight:700;}
+  .h2-sub{font-size:13px;color:var(--ink-3);margin:0 0 22px;padding-bottom:14px;border-bottom:1px solid var(--line);}
+  h3{font-size:15.5px;margin:30px 0 10px;font-weight:650;}
+  h4{font-size:13.5px;margin:20px 0 6px;font-weight:650;color:var(--ink-2);}
+  p{margin:0 0 12px;}
+  ul,ol{margin:0 0 14px;padding-left:22px;}
+  li{margin-bottom:5px;}
+  code{font-family:var(--mono);font-size:12.5px;background:#f1f3f7;padding:1px 5px;border-radius:4px;color:#2b3346;}
+  strong{font-weight:650;}
+
+  /* ---------- cards / callouts ---------- */
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin:18px 0 22px;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px;}
+  .card .k{font-size:11px;letter-spacing:.08em;color:var(--ink-3);text-transform:uppercase;margin-bottom:6px;}
+  .card .v{font-size:15px;font-weight:650;line-height:1.45;}
+  .card .d{font-size:12.5px;color:var(--ink-3);margin-top:6px;line-height:1.6;}
+
+  .callout{border-radius:var(--radius);padding:14px 18px;margin:18px 0;font-size:13.5px;line-height:1.7;border:1px solid;}
+  .callout .t{font-weight:700;font-size:12px;letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px;display:block;}
+  .callout.info{background:var(--accent-soft);border-color:#cfdcff;color:#1b2f66;}
+  .callout.info .t{color:var(--accent);}
+  .callout.warn{background:var(--warn-soft);border-color:#fbe0c4;color:#7c3d05;}
+  .callout.warn .t{color:var(--warn);}
+  .callout.ok{background:var(--ok-soft);border-color:#cdeee6;color:#0b4f46;}
+  .callout.ok .t{color:var(--ok);}
+
+  /* ---------- tables ---------- */
+  .table-wrap{overflow-x:auto;margin:14px 0 22px;border:1px solid var(--line);border-radius:var(--radius);background:#fff;}
+  table{width:100%;border-collapse:collapse;font-size:13px;line-height:1.6;}
+  th{
+    text-align:left;font-weight:650;font-size:11.5px;letter-spacing:.04em;color:var(--ink-3);
+    background:#fafbfc;padding:10px 12px;border-bottom:1px solid var(--line-strong);white-space:nowrap;
+  }
+  td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top;color:var(--ink-2);}
+  tr:last-child td{border-bottom:none;}
+  tbody tr:hover{background:#fcfdff;}
+  td.id{font-family:var(--mono);font-size:11.5px;color:var(--accent);white-space:nowrap;font-weight:600;}
+  td.nm{font-weight:600;color:var(--ink);white-space:nowrap;}
+
+  /* ---------- badges ---------- */
+  .tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:999px;font-weight:600;line-height:1.6;white-space:nowrap;}
+  .tag.p0{background:#e8f0ff;color:#1d4ed8;}
+  .tag.p1{background:#f3f0ff;color:#6d28d9;}
+  .tag.out{background:#f3f4f6;color:#6b7280;}
+  .tag.nd{background:#fef3f2;color:#b42318;}
+
+  /* ---------- flow ---------- */
+  .flow{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:18px 0 8px;}
+  .step{
+    background:#fff;border:1px solid var(--line-strong);border-radius:8px;padding:9px 13px;
+    font-size:12.5px;font-weight:600;color:var(--ink-2);box-shadow:0 1px 0 rgba(16,24,40,.02);
+  }
+  .step.hot{background:var(--accent);border-color:var(--accent);color:#fff;}
+  .step.soft{background:var(--accent-soft);border-color:#cfdcff;color:#1b2f66;}
+  .arrow{color:var(--line-strong);font-size:15px;user-select:none;}
+  .flow-note{font-size:12px;color:var(--ink-3);margin-top:2px;}
+
+  /* ---------- state machine ---------- */
+  .state-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:16px 0 8px;}
+  .state{border:1px solid var(--line);border-radius:8px;padding:11px 13px;background:#fff;}
+  .state .s{font-size:12.5px;font-weight:700;color:var(--ink);margin-bottom:3px;}
+  .state .e{font-size:11px;color:var(--ink-3);font-family:var(--mono);}
+  .state .n{font-size:11.5px;color:var(--ink-3);margin-top:6px;line-height:1.5;}
+
+  /* ---------- two col ---------- */
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:22px;}
+  @media(max-width:900px){
+    .cols{grid-template-columns:1fr;}
+    .toc{display:none;}
+    main{padding:32px 22px 80px;}
+    h1{font-size:26px;}
+  }
+
+  .kv{display:grid;grid-template-columns:96px 1fr;gap:6px 14px;font-size:13px;margin:10px 0 18px;}
+  .kv dt{color:var(--ink-3);font-weight:500;}
+  .kv dd{margin:0;color:var(--ink-2);}
+
+  .rule-list{counter-reset:r;list-style:none;padding-left:0;}
+  .rule-list li{
+    counter-increment:r;position:relative;padding-left:34px;margin-bottom:9px;font-size:13.5px;
+  }
+  .rule-list li::before{
+    content:counter(r);position:absolute;left:0;top:2px;width:20px;height:20px;border-radius:50%;
+    background:var(--accent-soft);color:var(--accent);font-size:11px;font-weight:700;
+    display:flex;align-items:center;justify-content:center;
+  }
+
+  footer.doc-foot{margin-top:60px;padding-top:20px;border-top:1px solid var(--line);font-size:12px;color:var(--ink-3);}
+  .tbd{color:var(--danger);font-weight:600;font-size:12.5px;}
+  @media print{
+    .toc{display:none;} body{background:#fff;} main{padding:0;max-width:none;}
+    section{page-break-inside:avoid;}
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+
+<aside class="toc">
+  <div class="toc-brand">B2C 商城</div>
+  <div class="toc-sub">需求调研与产品设计 · v0.2</div>
+  <nav id="toc">
+    <a class="lv1" href="#s0">0 · 摘要</a>
+    <a class="lv1" href="#s1">1 · 需求调研</a>
+    <a class="lv2" href="#s1-1">1.1 参考站模块拆解</a>
+    <a class="lv2" href="#s1-2">1.2 能力域归纳</a>
+    <a class="lv2" href="#s1-3">1.3 调研结论与取舍</a>
+    <a class="lv1" href="#s2">2 · 产品定义</a>
+    <a class="lv2" href="#s2-1">2.1 角色</a>
+    <a class="lv2" href="#s2-2">2.2 场景与任务</a>
+    <a class="lv2" href="#s2-3">2.3 范围与版本</a>
+    <a class="lv1" href="#s3">3 · 核心流程与状态</a>
+    <a class="lv2" href="#s3-1">3.1 消费端主旅程</a>
+    <a class="lv2" href="#s3-2">3.2 后台履约旅程</a>
+    <a class="lv2" href="#s3-3">3.3 订单状态机</a>
+    <a class="lv2" href="#s3-4">3.4 售后状态机</a>
+    <a class="lv1" href="#s4">4 · 功能需求</a>
+    <a class="lv2" href="#s4-1">4.1 小程序商城端</a>
+    <a class="lv2" href="#s4-2">4.2 管理后台端</a>
+    <a class="lv1" href="#s5">5 · 共享规则</a>
+    <a class="lv2" href="#s5-1">5.1 价格与优惠</a>
+    <a class="lv2" href="#s5-2">5.2 库存</a>
+    <a class="lv2" href="#s5-3">5.3 支付与退款</a>
+    <a class="lv2" href="#s5-4">5.4 权限矩阵</a>
+    <a class="lv2" href="#s5-5">5.5 消息通知</a>
+    <a class="lv1" href="#s6">6 · 页面地图</a>
+    <a class="lv1" href="#s7">7 · 决策与待确认</a>
+  </nav>
+</aside>
+
+<main>
+<header class="doc-head">
+  <div class="eyebrow">Product Requirements Document</div>
+  <h1>B2C 商城：微信小程序商城 + 管理后台</h1>
+  <p class="lede">
+    本文档基于对参考站点（销客多 SaaS 商城后台）的功能拆解，定义一套<strong>单商家自营 B2C 商城</strong>的产品边界、交易主流程、功能需求与共享业务规则，供产品、设计、研发对齐决策。
+  </p>
+  <div class="meta">
+    <span class="pill">版本 <b>v0.2</b></span>
+    <span class="pill">状态 <b>待评审</b></span>
+    <span class="pill">日期 <b>2026-11-06</b></span>
+    <span class="pill">形态 <b>微信小程序 + Web 管理后台</b></span>
+    <span class="pill">范围 <b>核心交易闭环 + 营销会员</b></span>
+  </div>
+</header>
+
+<!-- ================= 0 ================= -->
+<section id="s0">
+  <h2><span class="num">0</span>摘要</h2>
+  <p class="h2-sub">一页看懂这次要做什么、不做什么。</p>
+
+  <div class="cards">
+    <div class="card">
+      <div class="k">产品形态</div>
+      <div class="v">微信小程序商城</div>
+      <div class="d">消费者浏览、加购、下单、支付、售后、评价的主阵地。</div>
+    </div>
+    <div class="card">
+      <div class="k">产品形态</div>
+      <div class="v">Web 管理后台</div>
+      <div class="d">商家做商品、订单、会员、营销与数据运营。</div>
+    </div>
+    <div class="card">
+      <div class="k">核心闭环</div>
+      <div class="v">商品 → 下单 → 支付 → 发货 → 收货 → 售后</div>
+      <div class="d">首版必须端到端跑通，且每一步都有异常回退路径。</div>
+    </div>
+    <div class="card">
+      <div class="k">差异重点</div>
+      <div class="v">营销与会员</div>
+      <div class="d">优惠券、等级会员与积分记录，构成复购抓手。</div>
+    </div>
+  </div>
+
+  <div class="callout info">
+    <span class="t">一句话产品定义</span>
+    面向单个品牌/商家自营的微信小程序商城：消费者在微信内完成「挑商品 → 下单 → 支付 → 收收货」；商家在后台完成「上架 → 接单 → 发货 → 售后 → 复购运营」。
+  </div>
+
+  <h3>首版必须达成的可观察结果</h3>
+  <ul>
+    <li>消费者能在小程序内完成一笔真实可追踪的订单，并在订单详情看到状态变化与物流信息。</li>
+    <li>商家能在后台看到该订单、完成发货，发货后消费者侧状态同步为「待收货」。</li>
+    <li>未支付订单在超时后自动关闭，库存正确释放，不需要人工干预。</li>
+    <li>消费者能对已完成订单发起一次售后申请，商家能审核并完成退款，订单与库存同步回滚。</li>
+    <li>优惠券与运费在同一笔订单中按统一规则计算，金额可复算、无二义。</li>
+  </ul>
+</section>
+
+<!-- ================= 1 ================= -->
+<section id="s1">
+  <h2><span class="num">1</span>需求调研</h2>
+  <p class="h2-sub">来源：参考站点 shop.xiaokeduo.com 后台实际菜单与页面结构（2026-11-06 实机查看），以及 B2C 自营商城的通用履约链路。</p>
+
+  <h3 id="s1-1">1.1 参考站模块拆解</h3>
+  <p>参考站是典型的多租户 SaaS 商城系统，后台共 8 个一级模块、60+ 二级功能。实际菜单结构如下：</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th style="width:110px">一级模块</th><th>二级功能（实测菜单）</th><th style="width:200px">能力定位</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="nm">店铺</td>
+          <td>概况、小程序商城、微页面、全店风格、店铺信息、店铺认证、门店管理、图片库、视频库、手机短信、实名认证、消息通知、子账号管理、操作日志</td>
+          <td>店铺装修、素材与账号治理</td>
+        </tr>
+        <tr>
+          <td class="nm">公众号</td>
+          <td>图文素材、消息群发、参数二维码、自定义菜单、自动回复、基本信息</td>
+          <td>微信生态内容与触达</td>
+        </tr>
+        <tr>
+          <td class="nm">商品</td>
+          <td>商品管理、商品分类、商品标签、商品页模板、批量导入、商品设置、参数模板、搜索配置、规格管理、库存同步</td>
+          <td>商品主数据与库存</td>
+        </tr>
+        <tr>
+          <td class="nm">订单</td>
+          <td>所有订单、快递订单、同城订单、自提订单、售后订单、评价管理、自提核销、卡券核销、核销员、新消息提醒、交易设置、退款原因、地址库、发货信息、快递发货、同城配送、上门自提、网店管家</td>
+          <td>交易履约与售后</td>
+        </tr>
+        <tr>
+          <td class="nm">客户</td>
+          <td>全部客户、客户标签、客户导入、注册审核、等级会员卡、付费会员卡、积分管理、储值管理、客户设置、注销设置</td>
+          <td>客户资产与会员体系</td>
+        </tr>
+        <tr>
+          <td class="nm">应用</td>
+          <td>营销玩法、客群维护、活码推广、私域直播、主播管理、微信小店、直播间管理、第三方应用</td>
+          <td>增长与外部渠道</td>
+        </tr>
+        <tr>
+          <td class="nm">财务</td>
+          <td>支付设置、退款管理、总部钱包、客户钱包、提现申请、提现统计、提现设置、对账单、账单明细</td>
+          <td>资金与对账</td>
+        </tr>
+        <tr>
+          <td class="nm">数据</td>
+          <td>今日概况、交易概览、商品概览、商品效果、我的报表、推荐报表、下载中心</td>
+          <td>经营分析</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3 id="s1-2">1.2 能力域归纳</h3>
+  <p>把上述菜单按「业务对象 + 生命周期」重新聚类，可归为 5 个能力域。这也是我们后续设计模块的骨架：</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th style="width:120px">能力域</th><th>包含的业务对象</th><th>关键动作</th><th style="width:150px">参考站对应</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="nm">商品与内容</td>
+          <td>商品（SPU/SKU）、分类、标签、规格、库存、图文素材</td>
+          <td>上架、编辑、调价、改库存、上下架</td>
+          <td>商品 / 店铺（图片库、微页面）</td>
+        </tr>
+        <tr>
+          <td class="nm">交易与履约</td>
+          <td>购物车、订单、支付单、发货单、售后单、评价</td>
+          <td>下单、支付、发货、收货、退款、评价</td>
+          <td>订单</td>
+        </tr>
+        <tr>
+          <td class="nm">客户与会员</td>
+          <td>客户、标签、会员等级、积分、储值</td>
+          <td>识别、分层、积分发放与消耗</td>
+          <td>客户</td>
+        </tr>
+        <tr>
+          <td class="nm">营销与增长</td>
+          <td>优惠券、满减、拼团、秒杀、推广活码</td>
+          <td>创建活动、发放、核销、效果回收</td>
+          <td>应用</td>
+        </tr>
+        <tr>
+          <td class="nm">财务与数据</td>
+          <td>支付渠道、退款流水、对账单、经营指标</td>
+          <td>对账、退款、看板</td>
+          <td>财务 / 数据</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3 id="s1-3">1.3 调研结论与产品取舍</h3>
+  <p>参考站面向「多商家 SaaS + 全渠道代运营」，功能覆盖极广。直接照搬会带来三类成本：大量用不到的后台配置项、跨模块耦合的规则（如同城配送/自提/核销）、以及需要额外资质与运营投入的能力（直播、微信小店、分销）。</p>
+
+  <div class="cols">
+    <div>
+      <h4>保留（构成交易闭环，不可省）</h4>
+      <ul>
+        <li>商品、分类、规格、库存、上下架</li>
+        <li>购物车、下单、支付、订单状态流转</li>
+        <li>快递发货、物流单号、确认收货</li>
+        <li>退款/退货售后、评价</li>
+        <li>客户列表、优惠券、积分、等级会员</li>
+        <li>数据概览（今日/近 7 日核心指标）</li>
+        <li>子账号与操作日志（最小可用）</li>
+      </ul>
+    </div>
+    <div>
+      <h4>收敛（首版不做，保留扩展位）</h4>
+      <ul>
+        <li>同城配送、上门自提、核销员体系</li>
+        <li>付费会员卡、储值卡、钱包提现</li>
+        <li>拼团、秒杀、分销、活码、直播、微信小店</li>
+        <li>公众号图文群发、自定义菜单运营</li>
+        <li>多门店、多商家入驻、多级对账</li>
+        <li>批量导入、库存同步、参数模板等效率工具</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="callout warn">
+    <span class="t">取舍原则</span>
+    首版只解决「一个商家把货卖出去、把钱收回来、把售后处理掉」这一条主线。任何不参与这条主线的配置项，默认不进入 v1，避免把复杂度提前引入产品。
+  </div>
+</section>
+
+<!-- ================= 2 ================= -->
+<section id="s2">
+  <h2><span class="num">2</span>产品定义</h2>
+  <p class="h2-sub">明确谁在用、在什么时刻用、用到什么程度算完成。</p>
+
+  <h3 id="s2-1">2.1 角色</h3>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th style="width:110px">角色</th><th style="width:110px">所在端</th><th>职责与数据边界</th><th style="width:180px">关键动作</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="nm">消费者</td>
+          <td>微信小程序</td>
+          <td>只能看到自己的订单、售后、优惠券、积分与地址；浏览公开商品。</td>
+          <td>浏览、加购、下单、支付、确认收货、申请售后、评价</td>
+        </tr>
+        <tr>
+          <td class="nm">超级管理员</td>
+          <td>管理后台</td>
+          <td>店铺全部数据与配置，包含子账号与权限分配。</td>
+          <td>商品上架、改价、配置营销、查看全部订单与报表</td>
+        </tr>
+        <tr>
+          <td class="nm">商品运营</td>
+          <td>管理后台</td>
+          <td>商品、分类、库存、优惠券；不可见财务与退款金额明细。</td>
+          <td>编辑商品、调库存、创建优惠券</td>
+        </tr>
+        <tr>
+          <td class="nm">客服</td>
+          <td>管理后台</td>
+          <td>订单查询、备注、售后审核；不可改价、不可改库存。</td>
+          <td>处理售后、回复评价、订单备注</td>
+        </tr>
+        <tr>
+          <td class="nm">仓储</td>
+          <td>管理后台</td>
+          <td>仅待发货订单与发货操作。</td>
+          <td>打单、填写物流单号、发货</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="flow-note">角色权限的完整矩阵见 <a href="#s5-4">5.4 权限矩阵</a>；后台子账号体系为 <span class="tag p0">P0</span>，按角色划分即可，不做字段级权限。</p>
+
+  <h3 id="s2-2">2.2 场景与任务</h3>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th style="width:120px">角色</th><th style="width:170px">触发时刻</th><th>要完成的任务</th><th style="width:190px">完成证据</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="nm">消费者</td>
+          <td>在微信群/朋友圈看到商品卡片</td>
+          <td>快速确认价格、规格、库存与到手价，决定是否购买</td>
+          <td>商品详情页显示可选规格与实时库存，结算页显示应付金额构成</td>
+        </tr>
+        <tr>
+          <td class="nm">消费者</td>
+          <td>已付款，等待收货</td>
+          <td>知道货到哪了、什么时候到</td>
+          <td>订单详情可查看物流单号与最新节点</td>
+        </tr>
+        <tr>
+          <td class="nm">消费者</td>
+          <td>收到的商品有问题</td>
+          <td>申请退款或退货，并知道何时能拿到钱</td>
+          <td>售后单有明确状态与预计处理结果</td>
+        </tr>
+        <tr>
+          <td class="nm">商品运营</td>
+          <td>新品到货</td>
+          <td>一次把商品、规格、库存、价格、图文录完并上架</td>
+          <td>商品状态为「出售中」，小程序端可搜索到</td>
+        </tr>
+        <tr>
+          <td class="nm">客服</td>
+          <td>顾客申请售后</td>
+          <td>核对订单与凭证，同意或拒绝，并给出理由</td>
+          <td>售后单状态更新，消费者收到结果通知</td>
+        </tr>
+        <tr>
+          <td class="nm">店主</td>
+          <td>每日复盘</td>
+          <td>快速知道今天卖了多少、哪些商品卖得好、有没有待处理事项</td>
+          <td>后台首页显示核心指标与待办入口</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3 id="s2-3">2.3 范围与版本</h3>
+  <p><span class="tag p0">P0</span> = 首版必须，缺失则主流程断链；<span class="tag p1">P1</span> = 首版内可分批交付，但产品方案需一次讲清；<span class="tag out">不做</span> = 明确排除，避免范围蔓延。</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th style="width:120px">能力</th><th>内容</th><th style="width:70px">优先级</th><th style="width:210px">说明</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="nm">商品浏览</td><td>首页、分类、搜索、商品列表、商品详情、规格选择</td><td><span class="tag p0">P0</span></td><td>无此链路则无法进入交易</td></tr>
+        <tr><td class="nm">购物车</td><td>加购、改数量、勾选结算、失效商品处理</td><td><span class="tag p0">P0</span></td><td>与「立即购买」并存</td></tr>
+        <tr><td class="nm">下单支付</td><td>地址、优惠券、满额包邮运费、备注、模拟支付、超时关闭</td><td><span class="tag p0">P0</span></td><td>首版使用模拟支付，不接真实微信支付</td></tr>
+        <tr><td class="nm">订单履约</td><td>订单列表/详情、发货、物流、确认收货</td><td><span class="tag p0">P0</span></td><td>快递发货一种方式</td></tr>
+        <tr><td class="nm">售后</td><td>仅退款、退货退款、商家审核、退款</td><td><span class="tag p0">P0</span></td><td>退款原路返回</td></tr>
+        <tr><td class="nm">评价</td><td>已完成订单评价、商家回复、审核展示</td><td><span class="tag p1">P1</span></td><td>先审后显，避免违规内容</td></tr>
+        <tr><td class="nm">优惠券</td><td>满减券/无门槛券、发放、领取、核销、过期</td><td><span class="tag p0">P0</span></td><td>营销最小闭环</td></tr>
+        <tr><td class="nm">积分</td><td>积分发放与流水记录，不参与订单抵扣</td><td><span class="tag p1">P1</span></td><td>已确认：订单不支持积分抵扣</td></tr>
+        <tr><td class="nm">等级会员</td><td>按累计消费升级、等级折扣</td><td><span class="tag p1">P1</span></td><td>付费会员卡不做</td></tr>
+        <tr><td class="nm">客户管理</td><td>客户列表、标签、消费统计</td><td><span class="tag p0">P0</span></td><td>与订单联动</td></tr>
+        <tr><td class="nm">数据看板</td><td>今日概况、近 7 日趋势、商品排行</td><td><span class="tag p0">P0</span></td><td>只做决策必需指标</td></tr>
+        <tr><td class="nm">店铺设置</td><td>店铺信息、运费模板、支付配置、子账号、操作日志</td><td><span class="tag p0">P0</span></td><td>最小可用</td></tr>
+        <tr><td class="nm">内容装修</td><td>首页轮播、金刚区、推荐位</td><td><span class="tag p1">P1</span></td><td>用配置化组件，不做自由拖拽</td></tr>
+        <tr><td class="nm">同城/自提</td><td>同城配送、门店自提、核销</td><td><span class="tag out">不做</span></td><td>需要门店与核销员体系</td></tr>
+        <tr><td class="nm">储值/付费会员</td><td>储值卡、付费会员卡、钱包</td><td><span class="tag out">不做</span></td><td>涉及资金合规</td></tr>
+        <tr><td class="nm">分销/直播</td><td>推广员分销、直播、微信小店</td><td><span class="tag out">不做</span></td><td>依赖外部平台与资质</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ================= 3 ================= -->
+<section id="s3">
+  <h2><span class="num">3</span>核心流程与状态</h2>
+  <p class="h2-sub">流程与状态是本文档的「事实来源」，所有功能模块只引用，不重定义。</p>
+
+  <h3 id="s3-1">3.1 消费端主旅程</h3>
+  <div class="flow">
+    <span class="step">进入小程序</span><span class="arrow">→</span>
+    <span class="step">首页 / 分类 / 搜索</span><span class="arrow">→</span>
+    <span class="step">商品详情</span><span class="arrow">→</span>
+    <span class="step">选规格</span><span class="arrow">→</span>
+    <span class="step soft">加购 / 立即购买</span><span class="arrow">→</span>
+    <span class="step">确认订单</span><span class="arrow">→</span>
+    <span class="step hot">支付</span><span class="arrow">→</span>
+    <span class="step">待发货</span><span class="arrow">→</span>
+    <span class="step">待收货</span><span class="arrow">→</span>
+    <span class="step">确认收货</span><span class="arrow">→</span>
+    <span class="step">评价 / 售后</span>
+  </div>
+  <p class="flow-note">进入方式：微信会话卡片、扫码、搜索、小程序历史列表。首版不做公众号菜单跳转与广告投放承接。</p>
+
+  <h4>关键分支</h4>
+  <ul>
+    <li><strong>未登录</strong>：可浏览商品；点「加购/购买/我的」时触发微信授权登录，登录后回到原页面并保留加购意图。</li>
+    <li><strong>库存不足</strong>：商品详情规格置灰并提示；结算页再次校验，失败则定位到具体商品行。</li>
+    <li><strong>未支付</strong>：订单创建后 15 分钟内可支付，超时自动关闭并释放库存。</li>
+    <li><strong>支付失败/取消</strong>：订单保持待付款，可从订单列表继续支付；不重复生成订单。</li>
+    <li><strong>收货后发现问题</strong>：已完成订单在售后期内（默认 7 天）可发起售后。</li>
+  </ul>
+
+  <h3 id="s3-2">3.2 后台履约旅程</h3>
+  <div class="flow">
+    <span class="step">新订单提醒</span><span class="arrow">→</span>
+    <span class="step">订单列表筛选待发货</span><span class="arrow">→</span>
+    <span class="step">核对订单与备注</span><span class="arrow">→</span>
+    <span class="step hot">填写物流并发货</span><span class="arrow">→</span>
+    <span class="step">消费者确认收货</span><span class="arrow">→</span>
+    <span class="step">订单完成</span><span class="arrow">→</span>
+    <span class="step soft">售后退款</span>
+  </div>
+  <ul>
+    <li>发货时校验：订单必须为「待发货」，且每行商品数量已备货。</li>
+    <li>发货后订单不可撤销；如需拦截，走售后「退款」流程，并在备注中标注。</li>
+    <li>售后审核时限默认 48 小时，超时未处理在后台显示超时标记（不自动同意）。</li>
+  </ul>
+
+  <h3 id="s3-3">3.3 订单状态机</h3>
+  <div class="state-grid">
+    <div class="state"><div class="s">待付款</div><div class="e">pending_payment</div><div class="n">下单成功，等待支付；可取消</div></div>
+    <div class="state"><div class="s">待发货</div><div class="e">paid</div><div class="n">支付成功，等待商家发货；可发起退款</div></div>
+    <div class="state"><div class="s">待收货</div><div class="e">shipped</div><div class="n">已发货，可查看物流、确认收货</div></div>
+    <div class="state"><div class="s">已完成</div><div class="e">completed</div><div class="n">确认收货或超时自动确认</div></div>
+    <div class="state"><div class="s">已取消</div><div class="e">cancelled</div><div class="n">用户取消或支付超时关闭</div></div>
+    <div class="state"><div class="s">售后中</div><div class="e">after_sale</div><div class="n">存在进行中的售后单，展示为售后中</div></div>
+    <div class="state"><div class="s">已退款</div><div class="e">refunded</div><div class="n">退款完成，终态</div></div>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th style="width:120px">当前状态</th><th style="width:170px">触发动作</th><th style="width:120px">目标状态</th><th>约束与副作用</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>待付款</td><td>支付成功回调</td><td>待发货</td><td>实扣库存；累计消费与积分计入；发送新订单通知</td></tr>
+        <tr><td>待付款</td><td>用户取消</td><td>已取消</td><td>释放预占库存；释放已使用的优惠券</td></tr>
+        <tr><td>待付款</td><td>15 分钟未支付</td><td>已取消</td><td>系统关单；同上释放资源；记录关单原因</td></tr>
+        <tr><td>待发货</td><td>商家发货</td><td>待收货</td><td>必须填写物流公司 + 单号；发货后不可修改商品</td></tr>
+        <tr><td>待发货</td><td>退款成功（仅退款）</td><td>已退款</td><td>回滚库存；退回优惠券；扣减累计消费与积分</td></tr>
+        <tr><td>待收货</td><td>用户确认收货</td><td>已完成</td><td>开始计算售后期；触发评价邀请</td></tr>
+        <tr><td>待收货</td><td>发货后 10 天未操作</td><td>已完成</td><td>系统自动确认收货</td></tr>
+        <tr><td>待收货 / 已完成</td><td>发起售后</td><td>售后中</td><td>同一订单同时只允许一张进行中的售后单</td></tr>
+        <tr><td>售后中</td><td>售后完成 / 关闭</td><td>已退款 / 回退原状态</td><td>按售后结果决定是否回滚库存与金额</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="callout warn">
+    <span class="t">状态展示规则</span>
+    消费者端只展示 5 个易懂状态（待付款 / 待发货 / 待收货 / 已完成 / 已取消），「售后中」「已退款」在小程序端以角标 + 售后入口呈现，避免与主状态混淆。
+  </div>
+
+  <h3 id="s3-4">3.4 售后状态机</h3>
+  <div class="state-grid">
+    <div class="state"><div class="s">待商家审核</div><div class="e">pending_review</div><div class="n">消费者已提交，含类型、原因、凭证</div></div>
+    <div class="state"><div class="s">待买家退货</div><div class="e">waiting_return</div><div class="n">商家同意退货退款，等待消费者寄回</div></div>
+    <div class="state"><div class="s">待商家收货</div><div class="e">waiting_receive</div><div class="n">消费者已填写退货物流</div></div>
+    <div class="state"><div class="s">退款中</div><div class="e">refunding</div><div class="n">商家确认收货或同意仅退款，等待支付渠道结果</div></div>
+    <div class="state"><div class="s">已完成</div><div class="e">finished</div><div class="n">退款到账，售后关闭</div></div>
+    <div class="state"><div class="s">已拒绝</div><div class="e">rejected</div><div class="n">商家拒绝并填写理由，消费者可撤销重提</div></div>
+  </div>
+  <ul>
+    <li><strong>仅退款</strong>：待商家审核 → 退款中 → 已完成。</li>
+    <li><strong>退货退款</strong>：待商家审核 → 待买家退货 → 待商家收货 → 退款中 → 已完成。</li>
+    <li>消费者在「待商家审核」与「待买家退货」阶段可撤销；进入退款中后不可撤销。</li>
+    <li>整单退款完成后订单转「已退款」；部分退款仅记录售后单，不改变订单主状态。</li>
+  </ul>
+</section>
+
+<!-- ================= 4 ================= -->
+<section id="s4">
+  <h2><span class="num">4</span>功能需求</h2>
+  <p class="h2-sub">按端拆分，每个模块给出目的、触发条件、处理规则、结果与异常。编号用于设计稿、开发任务与测试用例对齐。</p>
+
+  <h3 id="s4-1">4.1 小程序商城端</h3>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th style="width:78px">编号</th><th style="width:120px">模块</th><th>列表与入口</th><th style="width:70px">优先级</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="id">MP-01</td><td class="nm">首页</td><td>轮播、金刚区分类入口、推荐商品流、优惠券领取条</td><td><span class="tag p0">P0</span></td></tr>
+        <tr><td class="id">MP-02</td><td class="nm">分类</td><td>左侧一级分类、右侧二级分类 + 商品网格</td><td><span class="tag p0">P0</span></td></tr>
+        <tr><td class="id">MP-03</td><td class="nm">搜索</td><td>关键词搜索、搜索历史、无结果推荐</td><td><span class="tag p0">P0</span></td></tr>
+        <tr><td class="id">MP-04</td><td class="nm">商品列表</td><td>综合/销量/价格排序、分类与标签筛选、分页加载</td><td><span class="tag p0">P0</span></td></tr>
+        <tr><td class="id">MP-05</td><td class="nm">商品详情</td><td>主图、价格与划线价、规格、库存、图文详情、评价摘要、底部操作栏</td><td><span class="tag p0">P0</span></td></tr>
+        <tr><td class="id">MP-06</td><td class="nm">规格选择</td><td>多规格组合、库存与价格联动、数量步进</td><td><span class="tag p0">P0</span></td></tr>
+        <tr><td class="id">MP-07</td><td class="nm">购物车</td><td>商品行、勾选、数量、合计、失效商品区、去结算</td><td><span class="tag p0">P0</span></td></tr>
+        <tr><td class="id">MP-08</td><td class="nm">确认订单</td><td>收货地址、商品清单、优惠券、运费（满额包邮）、备注、金额明细</td><td><span class="tag p0">P0</span></td></tr>
+        <tr><td class="id">MP-09</td><td class="nm">支付</td><td>模拟支付方式、支付结果页、失败重试</td><td><span class="tag p0">P0</span></td></tr>
+        <tr><td class="id">MP-10</td><td class="nm">订单列表</td><td>全部/待付款/待发货/待收货/待评价、操作按钮</td><td><span class="tag p0">P0</span></td></tr>
+        <tr><td class="id">MP-11</td><td class="nm">订单详情</td><td>状态、物流、商品、金额、地址、订单号、操作入口</td><td><span class="tag p0">P0</span></td></tr>
+        <tr><td class="id">MP-12</td><td class="nm">售后</td><td>申请页（类型/原因/凭证/金额）、售后列表与详情</td><td><span class="tag p0">P0</span></td></tr>
+        <tr><td class="id">MP-13</td><td class="nm">评价</td><td>评分、文字、图片、匿名；我的评价</td><td><span class="tag p1">P1</span></td></tr>
+        <tr><td class="id">MP-14</td><td class="nm">我的</td><td>头像昵称、订单入口、优惠券、地址、客服</td><td><span class="tag p0">P0</span></td></tr>
+        <tr><td class="id">MP-15</td><td class="nm">地址管理</td><td>增删改、默认地址、微信地址导入（视平台能力）</td><td><span class="tag p0">P0</span></td></tr>
+        <tr><td class="id">MP-16</td><td class="nm">会员中心</td><td>等级、成长值、积分明细（仅记录，不抵扣）、优惠券</td><td><span class="tag p1">P1</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h4>MP-05 商品详情 · 关键规则</h4>
+  <ul>
+    <li><strong>库存展示</strong>：可售库存 ≤ 10 时展示「仅剩 N 件」；= 0 时规格置灰、按钮改为「已售罄」并禁用加购。</li>
+    <li><strong>价格展示</strong>：统一展示「到手价」规则见 <a href="#s5-1">5.1</a>；划线价为商品原价，仅在高于到手价时展示。</li>
+    <li><strong>规格未选完</strong>：点击加购/购买时打开规格面板，不直接下单。</li>
+    <li><strong>商品失效</strong>（下架/删除）：详情页展示「商品已下架」，并推荐同类商品；购物车内该行标记失效且不可勾选。</li>
+  </ul>
+
+  <h4>MP-07 购物车 · 关键规则</h4>
+  <ul>
+    <li>加购同一 SKU 累加数量，上限为该 SKU 可售库存与单品限购数（默认不限购）。</li>
+    <li>勾选态与数量按用户持久化；进入结算只带入已勾选且有效的商品行。</li>
+    <li>「去结算」校验：至少 1 行勾选、所有勾选行库存充足；任一失败则定位并提示具体商品。</li>
+    <li>失效商品单独成区，支持「一键清空失效」，不参与金额计算。</li>
+  </ul>
+
+  <h4>MP-08 确认订单 · 关键规则</h4>
+  <ul>
+    <li>进入页面即锁定一次价格与优惠试算结果；若在支付前商品价格或库存变化，提交时二次校验，变化则阻断并提示重新确认。</li>
+    <li>地址为空时，结算页顶部提示「请选择收货地址」，提交按钮置灰。</li>
+    <li>优惠券默认自动选中「最优可用券」，可手动切换或选择不使用；不可用券展示不可用原因。</li>
+    <li>金额明细必须逐项展示：商品金额、优惠券抵扣、运费、应付金额，合计必须等于各项运算结果，不允许四舍五入误差（统一保留 2 位小数，见 <a href="#s5-1">5.1</a>）。订单不支持积分抵扣。</li>
+    <li>备注选填，上限 200 字。</li>
+  </ul>
+
+  <h4>MP-12 售后 · 关键规则</h4>
+  <ul>
+    <li>可申请条件：订单为「待发货 / 待收货 / 已完成」，且在售后期内（确认收货后 7 天）；同一订单同时只允许一张进行中售后单。</li>
+    <li>申请时必须选择售后类型（仅退款 / 退货退款）与原因（后台可配置），退款金额默认整单可退金额，不可超过实付金额。</li>
+    <li>退货退款必须上传至少 1 张凭证图（≤ 5 张）；仅退款凭证选填。</li>
+    <li>商家拒绝后，消费者可查看拒绝理由并撤销后重新提交，或联系客服。</li>
+  </ul>
+
+  <h3 id="s4-2">4.2 管理后台端</h3>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th style="width:78px">编号</th><th style="width:130px">模块</th><th>列表与入口</th><th style="width:70px">优先级</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="id">AD-01</td><td class="nm">登录与权限</td><td>账号密码登录、角色分配、会话失效</td><td><span class="tag p0">P0</span></td></tr>
+        <tr><td class="id">AD-02</td><td class="nm">数据概览</td><td>今日核心指标、待办事项、近 7 日趋势、商品排行</td><td><span class="tag p0">P0</span></td></tr>
+        <tr><td class="id">AD-03</td><td class="nm">商品管理</td><td>商品列表、新建/编辑、规格与库存、上下架、排序</td><td><span class="tag p0">P0</span></td></tr>
+        <tr><td class="id">AD-04</td><td class="nm">分类与标签</td><td>二级分类树、拖拽排序、标签管理</td><td><span class="tag p0">P0</span></td></tr>
+        <tr><td class="id">AD-05</td><td class="nm">订单管理</td><td>订单列表与筛选、详情、备注、发货、关闭</td><td><span class="tag p0">P0</span></td></tr>
+        <tr><td class="id">AD-06</td><td class="nm">售后管理</td><td>售后列表、审核、退货收货、退款、拒绝</td><td><span class="tag p0">P0</span></td></tr>
+        <tr><td class="id">AD-07</td><td class="nm">评价管理</td><td>评价列表、审核（通过/隐藏）、商家回复</td><td><span class="tag p1">P1</span></td></tr>
+        <tr><td class="id">AD-08</td><td class="nm">客户管理</td><td>客户列表、消费概览、标签、禁用</td><td><span class="tag p0">P0</span></td></tr>
+        <tr><td class="id">AD-09</td><td class="nm">优惠券</td><td>券列表、新建（类型/面额/门槛/有效期/数量）、发放记录</td><td><span class="tag p0">P0</span></td></tr>
+        <tr><td class="id">AD-10</td><td class="nm">积分与等级</td><td>积分发放规则、积分流水（不参与订单抵扣）、等级规则与折扣</td><td><span class="tag p1">P1</span></td></tr>
+        <tr><td class="id">AD-11</td><td class="nm">店铺设置</td><td>店铺信息、运费模板、支付配置、售后期配置</td><td><span class="tag p0">P0</span></td></tr>
+        <tr><td class="id">AD-12</td><td class="nm">素材管理</td><td>图片上传、分组、引用检查</td><td><span class="tag p1">P1</span></td></tr>
+        <tr><td class="id">AD-13</td><td class="nm">子账号</td><td>账号列表、角色、启用/停用、重置密码</td><td><span class="tag p0">P0</span></td></tr>
+        <tr><td class="id">AD-14</td><td class="nm">操作日志</td><td>按人/时间/模块检索关键操作</td><td><span class="tag p1">P1</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h4>AD-03 商品管理 · 关键规则</h4>
+  <ul>
+    <li><strong>商品结构</strong>：商品（SPU）下挂 1~N 个规格组合（SKU）；单规格商品默认生成 1 个默认 SKU。</li>
+    <li><strong>必填项</strong>：名称、分类、主图（≥1）、售价、库存；划线价、副图、详情图文为选填。</li>
+    <li><strong>SKU 唯一</strong>：同一商品下规格值组合不可重复；编码（SKU Code）全局唯一，可自动生成。</li>
+    <li><strong>上下架</strong>：下架后小程序端不可见，已加购的行标记失效；出售中商品编辑价格立即生效（已生成订单不受影响）。</li>
+    <li><strong>删除</strong>：仅允许删除从未产生订单的商品；已产生订单的商品只允许下架，保证历史订单可追溯。</li>
+    <li><strong>库存</strong>：商家手动修改库存时，需记录变更前后值；不允许改为负数。</li>
+  </ul>
+
+  <h4>AD-05 订单管理 · 关键规则</h4>
+  <ul>
+    <li><strong>筛选维度</strong>：订单状态、支付状态、下单时间、商品名称、收货人/手机号、订单号。</li>
+    <li><strong>发货</strong>：仅「待发货」可操作；需选择物流公司并填写单号，支持批量发货（同物流公司）。发货成功后消费者端立即变为「待收货」。</li>
+    <li><strong>改地址</strong>：仅在「待发货」且未发货时允许，修改后需记录变更前后地址与操作人。</li>
+    <li><strong>订单备注</strong>：商家备注与消费者备注分开展示，商家备注仅后台可见。</li>
+    <li><strong>关闭订单</strong>：仅「待付款」可手动关闭，需填写关闭原因。</li>
+    <li><strong>导出</strong>：按当前筛选条件导出订单明细，字段包含订单号、商品、数量、实付、状态、收货信息、时间。</li>
+  </ul>
+
+  <h4>AD-06 售后管理 · 关键规则</h4>
+  <ul>
+    <li>审核动作三选一：同意、同意退货、拒绝；拒绝必须填写理由。</li>
+    <li>「同意退货」后等待消费者寄回；商家确认收货后方可发起退款，退款金额不得超过售后单申请金额。</li>
+    <li>退款为原路退回，金额不可编辑；退款成功后回滚库存（仅整单退款，或售后单标记「商品可二次销售」）。</li>
+    <li>售后单超过 48 小时未处理，列表标记「超时」，并在数据概览计入待办。</li>
+  </ul>
+
+  <h4>AD-09 优惠券 · 关键规则</h4>
+  <ul>
+    <li><strong>类型</strong>：满减券（满 X 减 Y）、无门槛券（减 Y）。首版不做折扣券与品类券。</li>
+    <li><strong>发放方式</strong>：后台手动发放给指定客户 / 全部客户；小程序首页与个人中心可领取。</li>
+    <li><strong>限制</strong>：每张券可设置每人限领张数（默认 1）、发放总量、有效期（固定区间或领取后 N 天）。</li>
+    <li><strong>状态</strong>：未使用、已使用、已过期、已作废；订单取消或整单退款时，已使用券在有效期内自动退回为「未使用」。</li>
+    <li><strong>叠加</strong>：一笔订单只能使用 1 张优惠券，不可与满减活动叠加（首版不做满减活动）。</li>
+  </ul>
+</section>
+
+<!-- ================= 5 ================= -->
+<section id="s5">
+  <h2><span class="num">5</span>共享规则</h2>
+  <p class="h2-sub">这些规则被多个模块引用，必须全局唯一，不允许各页面自行解释。</p>
+
+  <h3 id="s5-1">5.1 价格与优惠计算</h3>
+  <p>金额计算按固定顺序执行，任何页面展示的「应付金额」都由此顺序得出：</p>
+
+  <div class="flow">
+    <span class="step">商品金额（Σ 售价 × 数量）</span><span class="arrow">→</span>
+    <span class="step soft">会员折扣</span><span class="arrow">→</span>
+    <span class="step soft">优惠券抵扣</span><span class="arrow">→</span>
+    <span class="step soft">+ 运费（满额包邮）</span><span class="arrow">→</span>
+    <span class="step hot">应付金额</span>
+  </div>
+
+  <ol class="rule-list">
+    <li><strong>币种与精度</strong>：人民币，所有金额以「分」为最小单位参与运算，展示时保留 2 位小数。</li>
+    <li><strong>会员折扣</strong>：仅对商品金额打折，不作用于运费；折扣后金额向下取整到分。等级折扣与优惠券可同享。</li>
+    <li><strong>优惠券门槛</strong>：按「商品金额 - 会员折扣」判断是否满足门槛，不含运费；抵扣金额不超过该小计。</li>
+    <li><strong>积分</strong>：订单不支持积分抵扣，也不展示积分抵扣项；积分仅按后台规则发放并记录流水，不影响金额。</li>
+    <li><strong>运费</strong>：按满额包邮规则计算——商品实付小计（扣除会员折扣与优惠券后）达到包邮门槛则免运费，否则按模板收取固定运费；运费不参与折扣与优惠券抵扣。</li>
+    <li><strong>应付金额下限</strong>：优惠后应付金额小于 0.01 元时按 0.01 元计，保证支付渠道可受理。</li>
+    <li><strong>一致性</strong>：下单、支付、退款、售后各环节均以订单创建时保存的金额快照为准，商品后续改价不影响历史订单。</li>
+  </ol>
+
+  <div class="callout info">
+    <span class="t">为什么要快照</span>
+    订单必须保存「商品金额、会员折扣、券抵扣、运费、应付」五项明细及所用的券。否则售后退款时无法复算，也无法解释给用户。
+  </div>
+
+  <h3 id="s5-2">5.2 库存</h3>
+  <ul>
+    <li><strong>可售库存</strong> = 实物库存 − 已下单未支付的预占库存。小程序端展示可售库存。</li>
+    <li><strong>预占</strong>：提交订单时锁定，支付成功转为实扣；订单取消/超时关闭时释放。</li>
+    <li><strong>并发</strong>：同一 SKU 在库存不足时下单必须失败并提示，不允许超卖；库存扣减需保证原子性（实现层负责）。</li>
+    <li><strong>退款回滚</strong>：整单退款或售后单标记「商品可二次销售」时回滚库存；商品已损毁则选择不回滚。</li>
+    <li><strong>售罄</strong>：可售库存为 0 时商品不下架，仅标记售罄，保留页面与收藏入口。</li>
+  </ul>
+
+  <h3 id="s5-3">5.3 支付与退款</h3>
+  <ul>
+    <li><strong>支付方式</strong>：首版使用模拟支付，不接真实微信支付；支付流程、回调与状态流转按真实渠道设计，便于后续替换。真实商户号与小程序的接入延后。<span class="tbd">[TBD 接入时间]</span></li>
+    <li><strong>支付结果</strong>：以支付渠道异步回调为唯一可信结果；前端轮询仅用于展示，不作为入账依据。</li>
+    <li><strong>重复支付</strong>：同一订单收到多次成功回调时，后续回调只记录不重复入账，并对多付金额发起自动退款。</li>
+    <li><strong>超时</strong>：下单后 15 分钟未支付自动关单；关单后不可再支付。</li>
+    <li><strong>退款</strong>：原路退回，1~3 个工作日到账（以渠道为准）；退款失败时售后单保留「退款失败」标记，允许重试。</li>
+    <li><strong>资金口径</strong>：财务统计以「实付金额 − 已退款金额」为净收入；运费计入收入，优惠券抵扣计入营销成本。</li>
+  </ul>
+
+  <h3 id="s5-4">5.4 权限矩阵</h3>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th style="width:150px">能力</th><th>超级管理员</th><th>商品运营</th><th>客服</th><th>仓储</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="nm">数据概览</td><td>全部</td><td>商品相关</td><td>待办相关</td><td>发货相关</td></tr>
+        <tr><td class="nm">商品与分类</td><td>增删改查</td><td>增删改查</td><td>只读</td><td>只读</td></tr>
+        <tr><td class="nm">库存调整</td><td>✓</td><td>✓</td><td>—</td><td>—</td></tr>
+        <tr><td class="nm">订单查看</td><td>全部</td><td>全部</td><td>全部</td><td>待发货</td></tr>
+        <tr><td class="nm">订单发货</td><td>✓</td><td>—</td><td>—</td><td>✓</td></tr>
+        <tr><td class="nm">订单改价 / 关闭</td><td>✓</td><td>—</td><td>—</td><td>—</td></tr>
+        <tr><td class="nm">售后审核与退款</td><td>✓</td><td>—</td><td>✓</td><td>—</td></tr>
+        <tr><td class="nm">客户与会员</td><td>全部</td><td>只读</td><td>全部</td><td>—</td></tr>
+        <tr><td class="nm">优惠券</td><td>全部</td><td>全部</td><td>只读</td><td>—</td></tr>
+        <tr><td class="nm">店铺与支付设置</td><td>✓</td><td>—</td><td>—</td><td>—</td></tr>
+        <tr><td class="nm">子账号管理</td><td>✓</td><td>—</td><td>—</td><td>—</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3 id="s5-5">5.5 消息通知</h3>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th style="width:170px">事件</th><th>接收方</th><th>渠道</th><th style="width:70px">优先级</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>新订单（支付成功）</td><td>商家（管理员/客服）</td><td>后台站内消息 + 角标</td><td><span class="tag p0">P0</span></td></tr>
+        <tr><td>订单发货</td><td>消费者</td><td>小程序订阅消息</td><td><span class="tag p0">P0</span></td></tr>
+        <tr><td>售后申请提交</td><td>商家</td><td>后台站内消息</td><td><span class="tag p0">P0</span></td></tr>
+        <tr><td>售后结果（同意/拒绝/退款到账）</td><td>消费者</td><td>小程序订阅消息</td><td><span class="tag p0">P0</span></td></tr>
+        <tr><td>优惠券即将过期</td><td>消费者</td><td>小程序订阅消息</td><td><span class="tag p1">P1</span></td></tr>
+        <tr><td>库存不足预警</td><td>商品运营</td><td>后台站内消息</td><td><span class="tag p1">P1</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="flow-note">订阅消息需用户主动授权，首版在「支付成功」「售后提交」两个节点引导订阅，不强制。</p>
+</section>
+
+<!-- ================= 6 ================= -->
+<section id="s6">
+  <h2><span class="num">6</span>页面地图</h2>
+  <p class="h2-sub">设计稿与开发任务拆分的最小单元。</p>
+
+  <div class="cols">
+    <div>
+      <h4>小程序商城（约 17 页）</h4>
+      <ul>
+        <li>首页</li>
+        <li>分类 / 商品列表 / 搜索结果</li>
+        <li>商品详情 + 规格面板（弹层）</li>
+        <li>购物车</li>
+        <li>确认订单</li>
+        <li>支付结果</li>
+        <li>订单列表 / 订单详情 / 物流详情</li>
+        <li>售后申请 / 售后列表 / 售后详情</li>
+        <li>评价发布 / 我的评价</li>
+        <li>我的 / 会员中心 / 优惠券 / 积分明细</li>
+        <li>地址列表 / 地址编辑</li>
+      </ul>
+    </div>
+    <div>
+      <h4>管理后台（约 24 页）</h4>
+      <ul>
+        <li>登录</li>
+        <li>数据概览</li>
+        <li>商品列表 / 商品编辑 / 规格库存</li>
+        <li>分类管理 / 标签管理</li>
+        <li>订单列表 / 订单详情 / 发货弹窗</li>
+        <li>售后列表 / 售后详情</li>
+        <li>评价管理</li>
+        <li>客户列表 / 客户详情</li>
+        <li>优惠券列表 / 新建优惠券 / 发放记录</li>
+        <li>积分规则 / 等级规则</li>
+        <li>店铺信息 / 运费模板 / 支付设置</li>
+        <li>素材库</li>
+        <li>子账号 / 操作日志</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 7 ================= -->
+<section id="s7">
+  <h2><span class="num">7</span>已确认决策与待确认问题</h2>
+  <p class="h2-sub">会改变业务规则与主流程的问题，结论已确认的在此固化；其余细节按文中 <span class="tbd">[Assumption, TBD]</span> 处理。</p>
+
+  <h3>7.1 已确认决策</h3>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th style="width:60px">编号</th><th style="width:190px">决策项</th><th style="width:150px">结论</th><th>对本文档的影响</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="id">D1</td><td>经营模式</td><td><strong>单商家自营</strong></td><td>不做商家入驻、分账与商家结算；后台仅本店铺一套数据，角色为店内岗位。</td></tr>
+        <tr><td class="id">D2</td><td>支付方式</td><td><strong>先模拟支付</strong></td><td>首版不接真实微信支付；按真实渠道的回调、超时、退款结构设计，后续替换即可。</td></tr>
+        <tr><td class="id">D3</td><td>运费规则</td><td><strong>满额包邮</strong></td><td>按商品实付小计是否达包邮门槛决定免运费，未达标收取固定运费；门槛值在运费模板中配置。</td></tr>
+        <tr><td class="id">D4</td><td>积分抵扣</td><td><strong>订单不支持积分抵扣（需求删除）</strong></td><td>结算页与金额计算不再包含积分抵扣；积分仅记录发放与流水，不影响订单金额。</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>7.2 待确认问题</h3>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th style="width:60px">编号</th><th style="width:190px">问题</th><th>影响</th><th style="width:150px">默认假设</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="id">Q5</td><td>是否需要开发票？</td><td>涉及资质与订单字段</td><td>首版不做</td></tr>
+        <tr><td class="id">Q6</td><td>售后期是否统一 7 天？</td><td>影响售后入口与自动确认收货时间</td><td>7 天</td></tr>
+        <tr><td class="id">Q7</td><td>商品规格维度上限（如颜色 × 尺码）？</td><td>影响商品编辑交互复杂度</td><td>2 个维度，SKU ≤ 50</td></tr>
+        <tr><td class="id">Q8</td><td>是否需要客服会话能力（在线聊天）？</td><td>涉及第三方客服或微信客服接入</td><td>首版仅电话/企微跳转</td></tr>
+        <tr><td class="id">Q9</td><td>满额包邮的门槛金额与未达标运费？</td><td>影响结算金额与运费模板默认值</td><td>满 99 元包邮，否则 10 元</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout ok">
+    <span class="t">下一步</span>
+    主业务流程与金额规则已冻结，可进入 UI 设计与技术方案；Q5–Q9 可在设计与开发阶段逐步确认，不阻塞主流程。
+  </div>
+</section>
+
+<footer class="doc-foot">
+  B2C 商城 · 需求调研与产品设计 PRD v0.2 · 2026-11-06 · 参考站点：shop.xiaokeduo.com（多租户 SaaS 商城后台，仅作功能参考）
+</footer>
+
+</main>
+</div>
+
+<script>
+  (function(){
+    var links = Array.prototype.slice.call(document.querySelectorAll('#toc a'));
+    var map = {};
+    links.forEach(function(a){
+      var id = a.getAttribute('href').slice(1);
+      var el = document.getElementById(id);
+      if(el) map[id] = a;
+    });
+    var obs = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        if(e.isIntersecting){
+          links.forEach(function(a){ a.classList.remove('active'); });
+          var a = map[e.target.id];
+          if(a) a.classList.add('active');
+        }
+      });
+    }, { rootMargin: '-10% 0px -75% 0px', threshold: 0 });
+    Object.keys(map).forEach(function(id){
+      var el = document.getElementById(id);
+      if(el) obs.observe(el);
+    });
+  })();
+</script>
+</body>
+</html>

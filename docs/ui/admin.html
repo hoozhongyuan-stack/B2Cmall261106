@@ -1,0 +1,1111 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#FFFFFF">
+<title>山野商城 · 管理后台设计稿 24 屏</title>
+<style>
+  :root{
+    --canvas:#FFFFFF; --card:#FFFFFF; --card-2:#FAFAF9;
+    --ink:#16181A; --ink-2:#55585C; --ink-3:#8E9399; --line:#EBEBE8; --line-2:#DEDEDA;
+    --brand:#E2231A; --brand-2:#C21B14; --brand-soft:#FDEDEB;
+    --price:#E2231A; --price-soft:#FDEDEB;
+    --ok:#1F7A4C; --warn:#A9691A; --danger:#C22C1E;
+    --serif:"Songti SC","Noto Serif SC",Georgia,serif;
+    --sans:"PingFang SC",-apple-system,BlinkMacSystemFont,"Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    --mono:"SFMono-Regular",Menlo,Consolas,monospace;
+    --ease:cubic-bezier(.2,.7,.3,1);
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:#FFFFFF;font-family:var(--sans);color:var(--ink);-webkit-font-smoothing:antialiased;font-size:13px;line-height:1.6;}
+  button{font-family:inherit;}
+
+  .docbar{
+    position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:16px;padding:12px 24px;
+    background:rgba(246,244,239,.94);backdrop-filter:blur(10px);border-bottom:1px solid #EBEBE8;
+  }
+  .docbar .bm{display:flex;align-items:center;gap:9px;}
+  .docbar .sq{width:24px;height:24px;border-radius:5px;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-size:14px;}
+  .docbar .tt{font-family:var(--serif);font-size:14px;letter-spacing:.05em;}
+  .docbar .sp{flex:1;}
+  .docbar a{font-size:12px;color:var(--ink-3);text-decoration:none;padding:6px 10px;border-radius:6px;transition:background-color 160ms var(--ease),color 160ms var(--ease);}
+  .docbar a:hover{background:var(--brand-soft);color:var(--brand);}
+  .docbar a:focus-visible{outline:2px solid var(--brand);outline-offset:2px;}
+
+  .wrap{display:grid;grid-template-columns:212px minmax(0,1fr);align-items:start;}
+  aside.rail{position:sticky;top:49px;height:calc(100vh - 49px);overflow-y:auto;padding:20px 14px 40px;border-right:1px solid #EBEBE8;background:#FFFFFF;}
+  .rail h1{font-family:var(--serif);font-size:17px;font-weight:600;margin:0 0 2px;}
+  .rail .cnt{font-size:11px;color:var(--ink-3);margin-bottom:14px;}
+  .grp{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);margin:14px 0 5px;padding-left:8px;font-weight:600;}
+  .rail nav button{
+    display:flex;gap:8px;align-items:baseline;width:100%;text-align:left;background:none;border:0;cursor:pointer;
+    padding:7px 8px;border-radius:6px;font-size:12.5px;color:var(--ink-3);line-height:1.4;border-left:2px solid transparent;
+    transition:background-color 160ms var(--ease),color 160ms var(--ease);
+  }
+  .rail nav button .id{font-family:var(--mono);font-size:10px;opacity:.6;}
+  .rail nav button:hover{background:var(--brand-soft);color:var(--brand);}
+  .rail nav button[aria-current="true"]{background:var(--brand-soft);color:var(--brand);border-left-color:var(--brand);font-weight:600;}
+  .rail nav button:focus-visible{outline:2px solid var(--brand);outline-offset:2px;}
+
+  main{padding:26px 30px 90px;min-width:0;}
+  .stage{display:grid;grid-template-columns:minmax(0,1fr) 250px;gap:26px;align-items:start;}
+  @media(max-width:1280px){.stage{grid-template-columns:minmax(0,1fr) 220px;gap:18px;}}
+  @media(max-width:1080px){
+    .wrap{grid-template-columns:1fr;}
+    aside.rail{position:static;height:auto;border-right:0;border-bottom:1px solid #EBEBE8;}
+    .rail nav{display:flex;flex-wrap:wrap;gap:4px;}
+    .rail nav button{width:auto;}
+    .grp{width:100%;}
+    .stage{grid-template-columns:1fr;}
+    main{padding:18px 12px 60px;}
+  }
+
+  /* ================= app frame ================= */
+  .frame{
+    border:1px solid #E4E2DC;border-radius:14px;background:#FFFFFF;overflow:hidden;
+    box-shadow:0 18px 44px -30px rgba(23,33,29,.22);
+    display:flex;flex-direction:column;height:772px;
+    transition:opacity 180ms var(--ease),transform 180ms var(--ease);
+  }
+  .frame.swap{opacity:0;transform:translateY(6px);}
+  .frame-body{display:flex;flex:1;min-height:0;}
+
+  .side{width:196px;flex:0 0 196px;background:#FFFFFF;border-right:1px solid var(--line);display:flex;flex-direction:column;}
+  .side .logo{display:flex;align-items:center;gap:9px;padding:16px 16px 14px;}
+  .side .logo .sq{width:24px;height:24px;border-radius:5px;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-size:13px;}
+  .side .logo .n{font-family:var(--serif);font-size:13.5px;letter-spacing:.08em;}
+  .side .logo .b{font-size:10px;color:var(--ink-3);}
+  .side nav{padding:4px 8px 16px;overflow-y:auto;scrollbar-width:none;}
+  .side nav::-webkit-scrollbar{display:none;}
+  .side .navgrp{font-size:10px;letter-spacing:.1em;color:#A3ADA6;padding:10px 10px 4px;text-transform:uppercase;}
+  .side .item{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:6px;font-size:12px;color:#5C665F;text-decoration:none;transition:background-color 160ms var(--ease),color 160ms var(--ease);}
+  .side .item:hover{background:#F6F6F4;color:var(--ink);}
+  .side .item:focus-visible{outline:2px solid var(--brand);outline-offset:-1px;}
+  .side .item.on{background:var(--brand-soft);color:var(--brand);font-weight:600;}
+  .side .item .dot{width:5px;height:5px;border-radius:50%;background:transparent;}
+  .side .item.on .dot{background:var(--brand);}
+  .side .foot{margin-top:auto;padding:12px 14px;border-top:1px solid var(--line);font-size:10.5px;color:#A3ADA6;display:flex;align-items:center;gap:7px;}
+  .side .foot .av{width:22px;height:22px;border-radius:50%;background:var(--brand-soft);color:var(--brand);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;}
+
+  .work{flex:1;min-width:0;display:flex;flex-direction:column;background:var(--canvas);}
+  .topbar2{height:46px;flex:0 0 auto;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;padding:0 16px;}
+  .topbar2 .bc{font-size:11.5px;color:var(--ink-3);}
+  .topbar2 .bc b{color:var(--ink);font-weight:600;}
+  .topbar2 .sp{flex:1;}
+  .topbar2 .search{display:flex;align-items:center;gap:6px;background:var(--card-2);border:1px solid var(--line);border-radius:6px;padding:4px 9px;color:var(--ink-3);font-size:11px;min-width:150px;}
+  .topbar2 .search input{border:0;background:none;outline:0;font-size:11px;font-family:inherit;color:var(--ink);width:100%;}
+  .topbar2 .ib{width:26px;height:26px;border:0;background:none;border-radius:6px;color:var(--ink-3);cursor:pointer;display:flex;align-items:center;justify-content:center;position:relative;}
+  .topbar2 .ib:hover{background:#F1EFE9;color:var(--ink);}
+  .topbar2 .ib:focus-visible{outline:2px solid var(--brand);outline-offset:1px;}
+  .topbar2 .ib .bd{position:absolute;top:3px;right:3px;width:5px;height:5px;border-radius:50%;background:var(--price);}
+
+  .canvas{padding:20px 24px 40px;overflow-y:auto;flex:1;min-height:0;scrollbar-width:thin;}
+  .canvas::-webkit-scrollbar{width:8px;}
+  .canvas::-webkit-scrollbar-thumb{background:#DCD9D2;border-radius:4px;}
+
+  .ph{display:flex;align-items:flex-end;gap:16px;margin-bottom:18px;}
+  .ph h2{font-size:19px;font-weight:650;margin:0;letter-spacing:-.005em;line-height:1.3;}
+  .ph .s{font-size:11.5px;color:var(--ink-3);margin-top:2px;}
+  .ph .acts{margin-left:auto;display:flex;gap:8px;align-items:center;}
+
+  .btn{height:30px;border-radius:6px;font-size:12px;font-weight:600;padding:0 12px;cursor:pointer;border:1px solid transparent;
+    display:inline-flex;align-items:center;gap:5px;transition:background-color 160ms var(--ease),border-color 160ms var(--ease),color 160ms var(--ease);}
+  .btn.primary{background:var(--brand);color:#fff;}
+  .btn.primary:hover{background:var(--brand-2);}
+  .btn.ghost{background:#fff;border-color:var(--line-2);color:var(--ink-2);}
+  .btn.ghost:hover{border-color:var(--brand);color:var(--brand);}
+  .btn.text{background:none;color:var(--brand);padding:0 6px;height:26px;}
+  .btn.text:hover{background:var(--brand-soft);}
+  .btn.danger{background:none;border-color:#E2C7C0;color:var(--danger);}
+  .btn.danger:hover{background:#FBEFEC;}
+  .btn:focus-visible{outline:2px solid var(--brand);outline-offset:2px;}
+  .btn[disabled]{background:#EFEFED;color:#9AA49D;border-color:transparent;cursor:not-allowed;}
+  .btn.sm{height:26px;font-size:11.5px;padding:0 9px;}
+
+  .tag{display:inline-flex;align-items:center;font-size:10.5px;font-weight:600;padding:1px 7px;border-radius:3px;line-height:1.7;white-space:nowrap;}
+  .tag.ok{background:#EAF5EE;color:var(--ok);}
+  .tag.warn{background:#FBF3E2;color:var(--warn);}
+  .tag.danger{background:#FBEFEC;color:var(--danger);}
+  .tag.neutral{background:#F1EFE9;color:var(--ink-3);}
+  .tag.brand{background:var(--brand-soft);color:var(--brand);}
+  .tag.dot::before{content:"";width:4px;height:4px;border-radius:50%;margin-right:4px;background:currentColor;}
+
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:8px;}
+  .panel .ph2{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line);}
+  .panel .ph2 .t{font-size:12px;font-weight:650;}
+  .panel .ph2 .s{font-size:11px;color:var(--ink-3);}
+  .panel .ph2 .acts{margin-left:auto;display:flex;gap:6px;}
+  .panel .pb{padding:14px 16px;}
+
+  .kpis{display:flex;background:var(--card);border:1px solid var(--line);border-radius:8px;margin-bottom:14px;}
+  .kpi{flex:1;padding:14px 16px;border-right:1px solid var(--line);}
+  .kpi:last-child{border-right:0;}
+  .kpi .l{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);margin-bottom:8px;}
+  .kpi .v{font-size:22px;font-weight:650;font-variant-numeric:tabular-nums;letter-spacing:-.01em;line-height:1.2;}
+  .kpi .v i{font-size:12px;font-style:normal;color:var(--ink-3);margin-right:2px;}
+  .kpi .d{font-size:10.5px;color:var(--ink-3);margin-top:5px;}
+  .kpi .d b{color:var(--ok);font-weight:600;}
+  .kpi.act .v{color:var(--price);}
+
+  .tbl{width:100%;border-collapse:collapse;font-size:12.5px;}
+  .tbl th{text-align:left;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);font-weight:600;
+    padding:9px 12px;background:var(--card-2);border-bottom:1px solid var(--line);white-space:nowrap;}
+  .tbl th.r,.tbl td.r{text-align:right;font-variant-numeric:tabular-nums;}
+  .tbl td{padding:10px 12px;border-bottom:1px solid var(--line);color:var(--ink-2);vertical-align:middle;}
+  .tbl tr:last-child td{border-bottom:0;}
+  .tbl tbody tr:hover{background:#FCFCFA;}
+  .tbl td .nm{color:var(--ink);font-weight:600;}
+  .tbl td .sub{color:var(--ink-3);font-size:10.5px;margin-top:1px;}
+  .tbl .thumb{width:30px;height:30px;border-radius:4px;object-fit:cover;background:#E8E4DA;vertical-align:middle;}
+  .tbl .ops{display:flex;gap:2px;}
+
+  .toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:12px 14px;border-bottom:1px solid var(--line);background:var(--card);}
+  .toolbar .inp{height:28px;border:1px solid var(--line-2);border-radius:5px;background:#fff;font-size:11.5px;padding:0 9px;font-family:inherit;color:var(--ink);min-width:140px;}
+  .toolbar .inp:focus-visible{outline:none;border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-soft);}
+  .toolbar select.inp{min-width:110px;}
+  .toolbar .sp{flex:1;}
+  .seg2{display:flex;gap:2px;background:#F4F4F2;padding:2px;border-radius:6px;}
+  .seg2 button{border:0;background:none;font-size:11.5px;color:var(--ink-3);padding:4px 10px;border-radius:4px;cursor:pointer;font-family:inherit;white-space:nowrap;}
+  .seg2 button.on{background:#fff;color:var(--ink);font-weight:600;box-shadow:0 1px 2px rgba(23,33,29,.06);}
+  .seg2 button:focus-visible{outline:2px solid var(--brand);outline-offset:1px;}
+
+  .pager{display:flex;align-items:center;justify-content:flex-end;gap:6px;padding:12px 16px;border-top:1px solid var(--line);font-size:11px;color:var(--ink-3);}
+  .pager button{width:24px;height:24px;border:1px solid var(--line);background:#fff;border-radius:4px;font-size:11px;color:var(--ink-3);cursor:pointer;}
+  .pager button.on{background:var(--brand);border-color:var(--brand);color:#fff;}
+
+  .cols2{display:grid;grid-template-columns:1.55fr 1fr;gap:14px;align-items:start;}
+  .cols3{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start;}
+  @media(max-width:1100px){.cols2,.cols3{grid-template-columns:1fr;}}
+
+  .field{display:flex;flex-direction:column;gap:5px;margin-bottom:12px;}
+  .field label{font-size:11px;font-weight:600;color:var(--ink-2);}
+  .field .inp,.field select,.field textarea{height:30px;border:1px solid var(--line-2);border-radius:5px;background:#fff;font-size:12px;padding:0 9px;font-family:inherit;color:var(--ink);width:100%;}
+  .field textarea{height:66px;padding:7px 9px;resize:none;line-height:1.6;}
+  .field .inp::placeholder,.field textarea::placeholder{color:#A3ADA6;}
+  .field .inp:focus-visible,.field select:focus-visible,.field textarea:focus-visible{outline:none;border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-soft);}
+  .field .hint{font-size:10.5px;color:var(--ink-3);}
+  .field .err{font-size:10.5px;color:var(--danger);}
+  .grid2f{display:grid;grid-template-columns:1fr 1fr;gap:0 12px;}
+  .grid3f{display:grid;grid-template-columns:repeat(3,1fr);gap:0 12px;}
+
+  .chart{position:relative;padding:4px 6px 0;}
+  .chart svg{display:block;width:100%;height:150px;}
+  .chart .axis{display:flex;justify-content:space-between;padding:6px 2px 0;font-size:10px;color:#A3ADA6;font-variant-numeric:tabular-nums;}
+  .legend{display:flex;gap:14px;padding:0 16px 12px;font-size:10.5px;color:var(--ink-3);}
+  .legend i{width:10px;height:2px;display:inline-block;margin-right:5px;vertical-align:middle;}
+
+  .todo{padding:0;}
+  .todo .row{display:flex;align-items:center;gap:10px;padding:11px 16px;border-bottom:1px solid var(--line);font-size:12px;color:var(--ink-2);}
+  .todo .row:last-child{border-bottom:0;}
+  .todo .row .c{margin-left:auto;font-variant-numeric:tabular-nums;font-weight:650;color:var(--ink);}
+  .todo .row .c.alarm{color:var(--price);}
+
+  .sku-row{display:grid;grid-template-columns:1fr 1fr 90px 90px 70px;gap:8px;align-items:center;padding:7px 0;border-bottom:1px solid var(--line);font-size:11.5px;}
+  .sku-row input{height:26px;border:1px solid var(--line);border-radius:4px;font-size:11.5px;padding:0 7px;font-family:inherit;width:100%;text-align:right;font-variant-numeric:tabular-nums;}
+  .sku-row input:focus-visible{outline:none;border-color:var(--brand);box-shadow:0 0 0 2px var(--brand-soft);}
+  .sku-head{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);padding-bottom:6px;}
+
+  .tree{font-size:12px;}
+  .tree .node{display:flex;align-items:center;gap:8px;padding:9px 10px;border-bottom:1px solid var(--line);}
+  .tree .node .nm{font-weight:600;color:var(--ink);}
+  .tree .node .c{font-size:10.5px;color:var(--ink-3);}
+  .tree .node .ops{margin-left:auto;display:flex;gap:2px;}
+  .tree .node.child{padding-left:32px;}
+  .tree .node.child .nm{font-weight:500;color:var(--ink-2);}
+
+  .coupon{display:flex;align-items:stretch;background:#fff;border:1px solid var(--line);border-radius:8px;overflow:hidden;margin-bottom:10px;}
+  .coupon .amt{width:112px;flex:0 0 112px;background:var(--brand-soft);color:var(--brand);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:14px 8px;position:relative;}
+  .coupon .amt b{font-size:24px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.1;}
+  .coupon .amt b .c{font-size:12px;}
+  .coupon .amt span{font-size:10.5px;margin-top:3px;opacity:.8;}
+  .coupon .info{flex:1;padding:12px 14px;min-width:0;}
+  .coupon .info .t{font-size:12.5px;font-weight:650;margin-bottom:3px;}
+  .coupon .info .d{font-size:10.5px;color:var(--ink-3);line-height:1.6;}
+  .coupon .info .bar{height:3px;background:#EFEFED;border-radius:2px;margin-top:9px;overflow:hidden;}
+  .coupon .info .bar i{display:block;height:100%;background:var(--brand);}
+  .coupon .st{align-self:center;padding:0 14px;}
+
+  .modalwrap{position:absolute;inset:0;background:rgba(20,28,24,.42);display:flex;align-items:center;justify-content:center;z-index:5;}
+  .modal{width:430px;background:#fff;border-radius:10px;box-shadow:0 24px 60px -12px rgba(20,30,26,.28);overflow:hidden;}
+  .modal .mh{display:flex;align-items:center;padding:14px 18px;border-bottom:1px solid var(--line);}
+  .modal .mh .t{font-size:13px;font-weight:650;}
+  .modal .mh button{margin-left:auto;background:none;border:0;color:var(--ink-3);cursor:pointer;padding:2px;border-radius:4px;}
+  .modal .mb{padding:16px 18px;}
+  .modal .mf{display:flex;justify-content:flex-end;gap:8px;padding:12px 18px;border-top:1px solid var(--line);background:var(--card-2);}
+
+  .logrow{display:grid;grid-template-columns:110px 90px 1fr;gap:12px;padding:10px 14px;border-bottom:1px solid var(--line);font-size:11.5px;}
+  .logrow .t{color:var(--ink-3);font-variant-numeric:tabular-nums;}
+  .logrow .who{color:var(--ink);font-weight:600;}
+  .logrow .what{color:var(--ink-2);}
+
+  .imggrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+  .imggrid figure{margin:0;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:#fff;}
+  .imggrid img{width:100%;aspect-ratio:1;object-fit:cover;display:block;background:#E8E4DA;}
+  .imggrid figcaption{font-size:10px;color:var(--ink-3);padding:5px 7px;display:flex;justify-content:space-between;}
+
+  /* ---------- login ---------- */
+  .login-frame{
+    height:772px;border:1px solid #D9D5CB;border-radius:14px;overflow:hidden;position:relative;
+    background:linear-gradient(160deg,#B7170F 0%,#E2231A 52%,#C21B14 100%);
+    box-shadow:0 22px 54px -28px rgba(23,33,29,.3);
+    display:flex;align-items:center;padding:0 72px;
+  }
+  .login-frame .grain{position:absolute;inset:0;opacity:.16;background-image:radial-gradient(rgba(255,255,255,.35) .6px,transparent .6px);background-size:3px 3px;}
+  .login-frame .brandcol{position:absolute;left:72px;top:60px;color:#fff;}
+  .login-frame .brandcol .wm{font-family:var(--serif);font-size:13px;letter-spacing:.28em;opacity:.9;}
+  .login-frame .brandcol .big{font-family:var(--serif);font-size:40px;line-height:1.2;margin-top:26px;max-width:420px;text-wrap:balance;}
+  .login-frame .brandcol .sm{font-size:11.5px;opacity:.62;margin-top:14px;max-width:320px;line-height:1.8;}
+  .login-card{position:relative;margin-left:auto;width:330px;color:#fff;}
+  .login-card h3{font-size:16px;font-weight:600;margin:0 0 4px;}
+  .login-card p{font-size:11.5px;opacity:.66;margin:0 0 26px;}
+  .lf{display:flex;flex-direction:column;gap:6px;margin-bottom:14px;}
+  .lf label{font-size:11px;opacity:.8;}
+  .lf input{height:38px;border-radius:7px;border:1px solid rgba(255,255,255,.28);background:rgba(255,255,255,.08);color:#fff;padding:0 11px;font-size:12.5px;font-family:inherit;outline:none;transition:border-color 160ms var(--ease),background-color 160ms var(--ease);}
+  .lf input::placeholder{color:rgba(255,255,255,.42);}
+  .lf input:focus-visible{border-color:rgba(255,255,255,.72);background:rgba(255,255,255,.12);box-shadow:0 0 0 3px rgba(255,255,255,.12);}
+  .lf .err{font-size:10.5px;color:#F2B8AA;display:flex;align-items:center;gap:5px;}
+  .loginbtn{width:100%;height:40px;border-radius:7px;border:0;background:#fff;color:#B7170F;font-size:13px;font-weight:650;cursor:pointer;margin-top:8px;transition:background-color 160ms var(--ease);}
+  .loginbtn:hover{background:#EDF3EE;}
+  .loginbtn:focus-visible{outline:2px solid #fff;outline-offset:3px;}
+  .login-card .foot{font-size:10.5px;opacity:.48;margin-top:22px;line-height:1.7;}
+
+  /* ---------- notes ---------- */
+  .notes{padding-top:2px;}
+  .notes .nid{font-family:var(--mono);font-size:11px;color:var(--brand);letter-spacing:.08em;margin-bottom:8px;}
+  .notes h2{font-family:var(--serif);font-size:22px;font-weight:600;margin:0 0 6px;}
+  .notes .meta{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;}
+  .notes .sec{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);font-weight:600;margin:20px 0 4px;}
+  .notes ul{list-style:none;padding:0;margin:0;}
+  .notes li{position:relative;padding:9px 0 9px 16px;font-size:12px;color:var(--ink-2);border-bottom:1px solid #EBEBE8;line-height:1.6;}
+  .notes li::before{content:"";position:absolute;left:0;top:15px;width:6px;height:1px;background:var(--brand);}
+  .notes .states span{margin:0 5px 6px 0;}
+  .notes .kv{display:grid;grid-template-columns:70px 1fr;gap:4px 8px;font-size:11.5px;margin-top:6px;}
+  .notes .kv dt{color:var(--ink-3);}
+  .notes .kv dd{margin:0;color:var(--ink-2);}
+
+  svg.sprite{display:none;}
+  .icon{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;}
+  .icon.sm{width:13px;height:13px;}
+
+  @media (prefers-reduced-motion:reduce){
+    *{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important;}
+    .frame.swap{opacity:1;transform:none;}
+  }
+</style>
+</head>
+<body>
+
+<svg class="sprite" aria-hidden="true" focusable="false">
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="m16 16 4 4"/></symbol>
+  <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 9a6 6 0 0 1 12 0c0 6 2 7 2 7H4s2-1 2-7z"/><path d="M10 20a2 2 0 0 0 4 0"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></symbol>
+  <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6l-12 12"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7"/></symbol>
+  <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V6m-4 4 4-4 4 4"/><path d="M4 17v2h16v-2"/></symbol>
+  <symbol id="i-filter" viewBox="0 0 24 24"><path d="M4 7h16M7 12h10M10 17h4"/></symbol>
+</svg>
+
+<div class="docbar">
+  <div class="bm"><span class="sq" aria-hidden="true">山</span><span class="tt">后台设计稿</span></div>
+  <span style="font-size:11.5px;color:#8E9399;font-family:'SFMono-Regular',Menlo,monospace;">24 SCREENS · 1280 自适应</span>
+  <div class="sp"></div>
+  <a href="./design-system.html">设计规范</a>
+  <a href="./miniapp.html">小程序 17 屏</a>
+  <a href="../B2C商城-需求调研与产品设计.html">PRD</a>
+</div>
+
+<div class="wrap">
+  <aside class="rail">
+    <h1>山野商城</h1>
+    <div class="cnt">管理后台 · 24 屏</div>
+    <nav id="nav" aria-label="后台页面列表"></nav>
+  </aside>
+  <main>
+    <div class="stage">
+      <div id="host"></div>
+      <section class="notes" id="notes" aria-live="polite"></section>
+    </div>
+  </main>
+</div>
+
+<script>
+(function(){
+  var IMG = {
+    hero: "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=editorial%20still%20life%20of%20tea%20cakes%20and%20clay%20cup%20on%20natural%20linen%20cloth%2C%20warm%20morning%20light%2C%20muted%20beige%20palette%2C%20minimal%20composition%2C%20no%20text&image_size=landscape_4_3",
+    coffee: "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=single%20product%20shot%20of%20a%20kraft%20paper%20coffee%20bag%20with%20whole%20beans%2C%20soft%20daylight%2C%20plain%20warm%20beige%20background%2C%20no%20text%20no%20logo&image_size=square",
+    tea: "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=compressed%20puer%20tea%20cake%20wrapped%20in%20cotton%20paper%20on%20a%20wooden%20table%2C%20soft%20side%20light%2C%20warm%20neutral%20background%2C%20no%20text&image_size=square",
+    honey: "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=glass%20jar%20of%20raw%20mountain%20honey%20with%20a%20wooden%20spoon%2C%20warm%20neutral%20beige%20background%2C%20soft%20daylight%2C%20no%20text&image_size=square",
+    ceramic: "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=handmade%20rough%20ceramic%20pitcher%20on%20linen%20cloth%2C%20muted%20earthy%20tones%2C%20soft%20light%2C%20no%20text&image_size=square",
+    linen: "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=folded%20natural%20linen%20table%20runner%20with%20subtle%20texture%2C%20beige%20background%2C%20soft%20light%2C%20no%20text&image_size=square",
+    mushroom: "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=dried%20porcini%20mushrooms%20in%20a%20wooden%20bowl%2C%20warm%20neutral%20background%2C%20soft%20light%2C%20no%20text&image_size=square"
+  };
+
+  function ic(n, cls){ return '<svg class="icon ' + (cls||'') + '" aria-hidden="true"><use href="#i-' + n + '"/></svg>'; }
+  function y(n){ return '<i>¥</i>' + n; }
+
+  var NAV = [
+    {g:'概览', items:[['dashboard','数据概览','AD-02']]},
+    {g:'商品', items:[['products','商品列表','AD-03'],['product-edit','商品编辑','AD-04'],['categories','分类管理','AD-05'],['tags','标签管理','AD-06']]},
+    {g:'交易', items:[['orders','订单列表','AD-07'],['order-detail','订单详情','AD-08'],['ship','发货弹窗','AD-09']]},
+    {g:'售后与评价', items:[['aftersales','售后列表','AD-10'],['after-detail','售后详情','AD-11'],['reviews','评价管理','AD-12']]},
+    {g:'客户', items:[['customers','客户列表','AD-13'],['customer-detail','客户详情','AD-14']]},
+    {g:'营销', items:[['coupons','优惠券','AD-15'],['coupon-new','新建优惠券','AD-16'],['points','积分规则','AD-17'],['levels','等级规则','AD-18']]},
+    {g:'店铺', items:[['shop','店铺信息','AD-19'],['shipping','运费模板','AD-20'],['payment','支付设置','AD-21'],['assets','素材库','AD-22'],['accounts','子账号','AD-23'],['logs','操作日志','AD-24']]}
+  ];
+
+  function sidebar(active){
+    var h = '<div class="logo"><span class="sq" aria-hidden="true">山</span><div><div class="n">山野 · 后台</div><div class="b">单商家自营</div></div></div><nav aria-label="后台主导航">';
+    NAV.forEach(function(section){
+      h += '<div class="navgrp">' + section.g + '</div>';
+      section.items.forEach(function(it){
+        h += '<a class="item ' + (it[0] === active ? 'on' : '') + '" href="#" onclick="return false;">' + ic('chev','sm') + '<span>' + it[1] + '</span></a>';
+      });
+    });
+    h += '</nav><div class="foot"><span class="av" aria-hidden="true">王</span><span>王管理员 · 超管</span></div>';
+    return h;
+  }
+
+  function shell(active, inner){
+    return '<div class="frame" role="group" aria-label="后台界面预览"><div class="frame-body">'
+      + '<div class="side">' + sidebar(active) + '</div>'
+      + '<div class="work"><div class="topbar2"><span class="bc">山野 / <b>工作台</b></span><div class="sp"></div>'
+      + '<span class="search">' + ic('search','sm') + '<input type="search" name="globalSearch" placeholder="搜索商品、订单号…" aria-label="全局搜索"></span>'
+      + '<button class="ib" type="button" aria-label="通知">' + ic('bell','sm') + '<span class="bd"></span></button>'
+      + '<button class="ib" type="button" aria-label="帮助">?</button></div>'
+      + '<div class="canvas">' + inner + '</div></div></div></div>';
+  }
+
+  function ph(title, sub, acts){
+    return '<div class="ph"><div><h2>' + title + '</h2><div class="s">' + sub + '</div></div><div class="acts">' + (acts||'') + '</div></div>';
+  }
+
+  function t(row, cls){ return '<tr' + (cls ? ' class="' + cls + '"' : '') + '>' + row + '</tr>'; }
+
+  var AD = [
+    /* ---------- 01 登录 ---------- */
+    {
+      id:'AD-01', name:'登录', group:'入口', nav:null, bare:true,
+      tags:['P0','AD-01'], keyEl:'满幅正红 + 窄表单列',
+      states:['校验错误','账号锁定','网络失败'],
+      notes:[
+        '不做卡片浮层：整屏正红 + 右侧窄表单列，专业、有冲击力，和移动端红白体系保持一致。',
+        '错误信息就近显示在字段下方，并说明怎么修（「密码错误，还可尝试 4 次」）。',
+        '登录按钮是整屏唯一白色实心块，视觉引导明确。'
+      ],
+      body: function(){
+        return '<div class="login-frame"><div class="grain" aria-hidden="true"></div>'
+          + '<div class="brandcol"><div class="wm">山 野 · 商 城</div>'
+          + '<div class="big">把山里的味道<br>带回厨房。</div>'
+          + '<div class="sm">云南山野选品 · 单商家自营<br>管理商品、订单、会员与营销</div></div>'
+          + '<div class="login-card"><h3>商家登录</h3><p>使用店铺管理员账号进入后台</p>'
+          + '<div class="lf"><label for="acc">账号</label><input id="acc" name="account" type="text" placeholder="手机号或邮箱" autocomplete="username" spellcheck="false" value="admin@shanye.com"></div>'
+          + '<div class="lf"><label for="pwd">密码</label><input id="pwd" name="password" type="password" placeholder="请输入密码" autocomplete="current-password" aria-describedby="pwdErr" value="••••••••">'
+          + '<span class="err" id="pwdErr" aria-live="polite">密码错误，还可尝试 4 次</span></div>'
+          + '<button class="loginbtn" type="button">进入后台</button>'
+          + '<div class="foot">连续 5 次失败将锁定 15 分钟。<br>忘记密码请联系店铺超级管理员重置。</div>'
+          + '</div></div>';
+      }
+    },
+
+    /* ---------- 02 数据概览 ---------- */
+    {
+      id:'AD-02', name:'数据概览', group:'概览', nav:'dashboard',
+      tags:['P0','AD-02'], keyEl:'指标带 + 趋势线',
+      states:['零数据','区间切换','加载中'],
+      notes:[
+        '指标做成一条带分隔线的横带，而不是四张卡片——避免「仪表盘卡片拼贴」。',
+        '待办区放在首屏右上，直接影响今天要不要发货、要不要审售后。',
+        '趋势图只用正红一条线，坐标标签弱化到 10px 灰。'
+      ],
+      body: function(){
+        return ph('数据概览','今日 2026-11-06 · 数据更新于 09:16','<div class="seg2"><button type="button">今日</button><button class="on" type="button">近 7 日</button><button type="button">近 30 日</button></div>')
+          + '<div class="kpis">'
+          + '<div class="kpi"><div class="l">支付金额</div><div class="v">' + y('4 286') + '</div><div class="d"><b>+18%</b> 较上周期</div></div>'
+          + '<div class="kpi"><div class="l">支付订单</div><div class="v">32</div><div class="d"><b>+6</b> 单</div></div>'
+          + '<div class="kpi"><div class="l">支付人数</div><div class="v">28</div><div class="d"><b>+4</b> 人</div></div>'
+          + '<div class="kpi act"><div class="l">待处理</div><div class="v">7</div><div class="d">3 待发货 · 2 售后</div></div>'
+          + '</div>'
+          + '<div class="cols2">'
+          + '<div class="panel"><div class="ph2"><span class="t">经营趋势</span><span class="s">过去 7 天</span></div>'
+          + '<div class="legend"><span><i style="background:#E2231A"></i>支付金额</span><span><i style="background:#F0C9C4"></i>上一周期</span></div>'
+          + '<div class="chart"><svg viewBox="0 0 520 150" preserveAspectRatio="none" role="img" aria-label="近 7 日支付金额趋势，整体上行">'
+          + '<path d="M0 140h520" stroke="#E7E5E0"/><path d="M0 105h520" stroke="#F1EFE9"/><path d="M0 70h520" stroke="#F1EFE9"/><path d="M0 35h520" stroke="#F1EFE9"/>'
+          + '<path d="M0 118 L86 104 L173 112 L260 84 L346 92 L433 54 L520 38" fill="none" stroke="#F0C9C4" stroke-width="1.4"/>'
+          + '<path d="M0 126 L86 112 L173 96 L260 100 L346 70 L433 62 L520 40" fill="none" stroke="#E2231A" stroke-width="2"/>'
+          + '<circle cx="520" cy="40" r="3.2" fill="#E2231A"/>'
+          + '</svg><div class="axis"><span>10-31</span><span>11-01</span><span>11-02</span><span>11-03</span><span>11-04</span><span>11-05</span><span>11-06</span></div></div></div>'
+          + '<div class="panel"><div class="ph2"><span class="t">今日待办</span><span class="s">按优先级</span></div><div class="todo">'
+          + '<div class="row"><span class="tag warn dot">待发货</span><span>订单 SY…0938 已付款 2 小时</span><span class="c alarm">3</span></div>'
+          + '<div class="row"><span class="tag danger dot">待审核</span><span>售后 AS…4021 商品破损</span><span class="c alarm">2</span></div>'
+          + '<div class="row"><span class="tag neutral dot">低库存</span><span>云南小粒咖啡 仅剩 12 件</span><span class="c">1</span></div>'
+          + '<div class="row"><span class="tag neutral dot">待审核</span><span>评价 3 条待审</span><span class="c">3</span></div>'
+          + '</div></div></div>'
+          + '<div class="panel" style="margin-top:14px;"><div class="ph2"><span class="t">商品销量 Top 5</span><span class="s">近 7 日</span><span class="acts"><button class="btn text" type="button">查看全部</button></span></div>'
+          + '<table class="tbl"><thead><tr><th style="width:46%">商品</th><th class="r">销量</th><th class="r">销售额</th><th class="r">库存</th></tr></thead><tbody>'
+          + t('<td><img class="thumb" src="' + IMG.coffee + '" alt="" width="30" height="30"><span style="margin-left:8px;vertical-align:middle;" class="nm">云南小粒咖啡 日晒</span></td><td class="r">68</td><td class="r">¥6 664</td><td class="r">12</td>')
+          + t('<td><img class="thumb" src="' + IMG.tea + '" alt="" width="30" height="30"><span style="margin-left:8px;vertical-align:middle;" class="nm">勐海古树普洱 2019</span></td><td class="r">31</td><td class="r">¥8 308</td><td class="r">86</td>')
+          + t('<td><img class="thumb" src="' + IMG.honey + '" alt="" width="30" height="30"><span style="margin-left:8px;vertical-align:middle;" class="nm">高山野蜂蜜</span></td><td class="r">24</td><td class="r">¥3 072</td><td class="r">54</td>')
+          + '</tbody></table></div>';
+      }
+    },
+
+    /* ---------- 03 商品列表 ---------- */
+    {
+      id:'AD-03', name:'商品列表', group:'商品', nav:'products',
+      tags:['P0','AD-03'], keyEl:'高密度表格',
+      states:['空','筛选无结果','批量操作'],
+      notes:[
+        '表格是后台的主舞台：12.5px 字号、44px 行高、首列带图，扫一眼能认出商品。',
+        '状态用文字标签而非彩色圆点，避免出现第三种强调色。',
+        '操作列只保留高频动作，低频动作收进「更多」。'
+      ],
+      body: function(){
+        return ph('商品列表','共 6 件 · 出售中 4 · 仓库中 2','<button class="btn ghost" type="button">批量导入</button><button class="btn primary" type="button">' + ic('plus','sm') + ' 发布商品</button>')
+          + '<div class="panel"><div class="toolbar"><input class="inp" type="search" name="kw" placeholder="商品名称 / 编码" aria-label="搜索商品">'
+          + '<select class="inp" name="status" aria-label="商品状态"><option>全部状态</option><option>出售中</option><option>仓库中</option><option>已售罄</option></select>'
+          + '<select class="inp" name="category" aria-label="商品分类"><option>全部分类</option><option>茶</option><option>咖啡</option></select>'
+          + '<button class="btn ghost sm" type="button">' + ic('filter','sm') + ' 更多筛选</button><div class="sp"></div><span style="font-size:11px;color:#8E9399;">已选 0 项</span></div>'
+          + '<table class="tbl"><thead><tr><th style="width:32px"><input type="checkbox" aria-label="全选商品"></th><th>商品</th><th>分类</th><th class="r">售价</th><th class="r">库存</th><th class="r">已售</th><th>状态</th><th style="width:112px">操作</th></tr></thead><tbody>'
+          + t('<td><input type="checkbox" aria-label="选择 勐海古树普洱"></td><td><img class="thumb" src="' + IMG.tea + '" alt="" width="30" height="30"><span style="margin-left:8px;vertical-align:middle;"><span class="nm">勐海古树普洱 2019</span><div class="sub">SPU-1001 · 2 个规格</div></span></td><td>茶 · 普洱</td><td class="r">¥268.00</td><td class="r">86</td><td class="r">328</td><td><span class="tag ok dot">出售中</span></td><td><div class="ops"><button class="btn text" type="button">编辑</button><button class="btn text" type="button">下架</button></div></td>')
+          + t('<td><input type="checkbox" aria-label="选择 云南小粒咖啡"></td><td><img class="thumb" src="' + IMG.coffee + '" alt="" width="30" height="30"><span style="margin-left:8px;vertical-align:middle;"><span class="nm">云南小粒咖啡 日晒</span><div class="sub">SPU-1002 · 2 个规格</div></span></td><td>咖啡</td><td class="r">¥98.00</td><td class="r" style="color:#B4442A;font-weight:600;">12</td><td class="r">1 246</td><td><span class="tag ok dot">出售中</span></td><td><div class="ops"><button class="btn text" type="button">编辑</button><button class="btn text" type="button">下架</button></div></td>')
+          + t('<td><input type="checkbox" aria-label="选择 高山野蜂蜜"></td><td><img class="thumb" src="' + IMG.honey + '" alt="" width="30" height="30"><span style="margin-left:8px;vertical-align:middle;"><span class="nm">高山野蜂蜜</span><div class="sub">SPU-1003 · 1 个规格</div></span></td><td>蜂蜜</td><td class="r">¥128.00</td><td class="r">54</td><td class="r">82</td><td><span class="tag ok dot">出售中</span></td><td><div class="ops"><button class="btn text" type="button">编辑</button><button class="btn text" type="button">下架</button></div></td>')
+          + t('<td><input type="checkbox" aria-label="选择 手作粗陶公道杯"></td><td><img class="thumb" src="' + IMG.ceramic + '" alt="" width="30" height="30"><span style="margin-left:8px;vertical-align:middle;"><span class="nm">手作粗陶公道杯</span><div class="sub">SPU-1004 · 1 个规格</div></span></td><td>器皿</td><td class="r">¥86.00</td><td class="r">0</td><td class="r">73</td><td><span class="tag neutral dot">已售罄</span></td><td><div class="ops"><button class="btn text" type="button">编辑</button><button class="btn text" type="button">上架</button></div></td>')
+          + t('<td><input type="checkbox" aria-label="选择 亚麻桌旗"></td><td><img class="thumb" src="' + IMG.linen + '" alt="" width="30" height="30"><span style="margin-left:8px;vertical-align:middle;"><span class="nm">亚麻桌旗</span><div class="sub">SPU-1005 · 1 个规格</div></span></td><td>织物</td><td class="r">¥59.00</td><td class="r">120</td><td class="r">46</td><td><span class="tag neutral dot">仓库中</span></td><td><div class="ops"><button class="btn text" type="button">编辑</button><button class="btn text" type="button">上架</button></div></td>')
+          + '</tbody></table>'
+          + '<div class="pager"><span>共 6 件 · 每页 20 件</span><button type="button" aria-label="上一页" disabled style="opacity:.4">‹</button><button class="on" type="button" aria-current="page">1</button><button type="button" aria-label="下一页">›</button></div></div>';
+      }
+    },
+
+    /* ---------- 04 商品编辑 ---------- */
+    {
+      id:'AD-04', name:'商品编辑', group:'商品', nav:'product-edit',
+      tags:['P0','AD-03'], keyEl:'左表单 + 右规格矩阵',
+      states:['必填校验','SKU 重复','图片未上传'],
+      notes:[
+        '左表单右规格，两列并排可减少一次纵向滚动；规格矩阵是后台最复杂的表格，必须行高紧凑。',
+        'SKU 编码自动生成，重复时行内标红并提示，不用弹窗打断。',
+        '图片上传区固定 88px 高度，缺主图时整块变虚线并给出原因。'
+      ],
+      body: function(){
+        return ph('编辑商品','勐海古树普洱 2019 · SPU-1001','<button class="btn ghost" type="button">预览</button><button class="btn primary" type="button">保存并上架</button>')
+          + '<div class="cols2">'
+          + '<div><div class="panel"><div class="ph2"><span class="t">基本信息</span></div><div class="pb">'
+          + '<div class="field"><label for="pn">商品名称</label><input class="inp" id="pn" name="title" type="text" value="勐海古树普洱 2019 生茶饼" autocomplete="off"><span class="hint">会展示在小程序商品详情页标题</span></div>'
+          + '<div class="grid2f"><div class="field"><label for="pc">分类</label><select id="pc" name="category"><option>茶 · 普洱</option><option>咖啡</option></select></div>'
+          + '<div class="field"><label for="pt">标签</label><input class="inp" id="pt" name="tags" type="text" value="本期精选" autocomplete="off"></div></div>'
+          + '<div class="field"><label for="pd">商品简介</label><textarea id="pd" name="desc">海拔 1 800 米古树春料，石磨压制，汤感厚实回甘持久。</textarea></div>'
+          + '</div></div>'
+          + '<div class="panel" style="margin-top:14px;"><div class="ph2"><span class="t">主图与详情</span><span class="s">建议 1:1</span></div><div class="pb">'
+          + '<div style="display:flex;gap:8px;"><div style="width:88px;height:88px;border-radius:6px;overflow:hidden;border:1px solid var(--line);"><img src="' + IMG.tea + '" alt="主图" width="88" height="88" style="width:100%;height:100%;object-fit:cover;display:block;"></div>'
+          + '<button type="button" class="btn ghost" style="height:88px;width:88px;flex-direction:column;gap:4px;border-style:dashed;">' + ic('upload') + '<span style="font-size:10.5px;">上传</span></button>'
+          + '<div style="font-size:10.5px;color:#8E9399;align-self:center;line-height:1.7;">第一张为主图。<br>尺寸 ≥ 800×800。<br>禁止带文字与 Logo。</div></div></div></div>'
+          + '<div class="panel" style="margin-top:14px;"><div class="ph2"><span class="t">价格与库存</span><span class="s">单位：元</span></div><div class="pb"><div class="grid3f">'
+          + '<div class="field"><label for="pp">售价</label><input class="inp" id="pp" name="price" type="number" inputmode="decimal" value="268" style="text-align:right;font-variant-numeric:tabular-nums;"></div>'
+          + '<div class="field"><label for="pw">划线价</label><input class="inp" id="pw" name="originPrice" type="number" inputmode="decimal" value="328" style="text-align:right;font-variant-numeric:tabular-nums;"></div>'
+          + '<div class="field"><label for="ps">总库存</label><input class="inp" id="ps" name="stock" type="number" value="86" style="text-align:right;font-variant-numeric:tabular-nums;"></div>'
+          + '</div></div></div></div>'
+          + '<div><div class="panel"><div class="ph2"><span class="t">规格与 SKU</span><span class="s">2 个规格组合</span><span class="acts"><button class="btn text" type="button">' + ic('plus','sm') + ' 添加规格</button></span></div>'
+          + '<div class="pb" style="padding-bottom:6px;"><div class="sku-row sku-head"><span>规格组合</span><span>SKU 编码</span><span style="text-align:right;">售价</span><span style="text-align:right;">库存</span><span style="text-align:right;">状态</span></div>'
+          + '<div class="sku-row"><span style="color:var(--ink);font-weight:600;">357g 单饼</span><input value="SPU-1001-01" aria-label="SKU 编码 357g 单饼" style="text-align:left;font-family:var(--mono);font-size:10.5px;"><input value="268" aria-label="售价 357g 单饼"><input value="8" aria-label="库存 357g 单饼"><span style="text-align:right;"><span class="tag ok">在售</span></span></div>'
+          + '<div class="sku-row"><span style="color:var(--ink);font-weight:600;">一提 7 饼</span><input value="SPU-1001-02" aria-label="SKU 编码 一提 7 饼" style="text-align:left;font-family:var(--mono);font-size:10.5px;"><input value="1680" aria-label="售价 一提 7 饼"><input value="12" aria-label="库存 一提 7 饼"><span style="text-align:right;"><span class="tag ok">在售</span></span></div>'
+          + '<div style="font-size:10.5px;color:var(--danger);padding:8px 0 2px;">规格组合不可重复；SKU 编码需全店唯一。</div></div></div>'
+          + '<div class="panel" style="margin-top:14px;position:relative;"><div class="ph2"><span class="t">规格矩阵</span><span class="s">年份 × 包装</span></div><div class="pb">'
+          + '<table class="tbl"><thead><tr><th>年份</th><th>包装</th><th class="r">库存</th><th class="r">售价</th></tr></thead><tbody>'
+          + t('<td><span class="nm">2019</span></td><td>357g 单饼</td><td class="r">8</td><td class="r">268.00</td>')
+          + t('<td><span class="nm">2019</span></td><td>一提 7 饼</td><td class="r">12</td><td class="r">1 680.00</td>')
+          + t('<td><span class="nm">2016</span></td><td>357g 单饼</td><td class="r">0</td><td class="r">398.00</td>')
+          + '</tbody></table></div></div></div></div>';
+      }
+    },
+
+    /* ---------- 05 分类管理 ---------- */
+    {
+      id:'AD-05', name:'分类管理', group:'商品', nav:'categories',
+      tags:['P0','AD-04'], keyEl:'树形列表',
+      states:['空','删除被引用'],
+      notes:[
+        '两级分类足够自营店使用，树形缩进 22px，层级一眼可辨。',
+        '删除前必须提示「该分类下有 N 件商品」，并禁止直接删除。'
+      ],
+      body: function(){
+        return ph('分类管理','2 个一级 · 5 个二级','<button class="btn primary" type="button">' + ic('plus','sm') + ' 新建分类</button>')
+          + '<div class="panel" style="overflow:hidden;"><div class="tree">'
+          + '<div class="node"><span class="nm">茶</span><span class="c">2 件商品</span><span class="ops"><button class="btn text" type="button">添加子类</button><button class="btn text" type="button">编辑</button></span></div>'
+          + '<div class="node child"><span class="nm">普洱 · 生茶</span><span class="c">1 件</span><span class="ops"><button class="btn text" type="button">编辑</button><button class="btn text" type="button" style="color:#C22C1E;">删除</button></span></div>'
+          + '<div class="node child"><span class="nm">普洱 · 熟茶</span><span class="c">0 件</span><span class="ops"><button class="btn text" type="button">编辑</button><button class="btn text" type="button" style="color:#C22C1E;">删除</button></span></div>'
+          + '<div class="node"><span class="nm">咖啡</span><span class="c">1 件商品</span><span class="ops"><button class="btn text" type="button">添加子类</button><button class="btn text" type="button">编辑</button></span></div>'
+          + '<div class="node child"><span class="nm">日晒</span><span class="c">1 件</span><span class="ops"><button class="btn text" type="button">编辑</button><button class="btn text" type="button" style="color:#C22C1E;">删除</button></span></div>'
+          + '<div class="node"><span class="nm">蜂蜜</span><span class="c">1 件商品</span><span class="ops"><button class="btn text" type="button">编辑</button><button class="btn text" type="button" style="color:#C22C1E;">删除</button></span></div>'
+          + '<div class="node"><span class="nm">器皿</span><span class="c">1 件商品</span><span class="ops"><button class="btn text" type="button">编辑</button><button class="btn text" type="button" style="color:#C22C1E;">删除</button></span></div>'
+          + '<div class="node"><span class="nm">织物</span><span class="c">1 件商品</span><span class="ops"><button class="btn text" type="button">编辑</button><button class="btn text" type="button" style="color:#C22C1E;">删除</button></span></div>'
+          + '</div></div>'
+          + '<div style="margin-top:14px;padding:11px 14px;border:1px solid #F0DCC8;background:#FDF8F2;border-radius:7px;font-size:11.5px;color:#7C4A0A;">删除被商品引用的分类会失败，请先把商品移到其他分类。</div>';
+      }
+    },
+
+    /* ---------- 06 标签管理 ---------- */
+    {
+      id:'AD-06', name:'标签管理', group:'商品', nav:'tags',
+      tags:['P1','AD-04'], keyEl:'标签列表 + 计数',
+      states:['同名冲突','无标签'],
+      notes:[
+        '标签是轻量筛选维度，页面保持极简：一行一个，右侧显示商品数。',
+        '新建标签用行内输入 + 回车，不弹窗。'
+      ],
+      body: function(){
+        return ph('标签管理','3 个标签','')
+          + '<div class="panel" style="max-width:620px;"><div class="toolbar" style="border-bottom:1px solid var(--line);"><input class="inp" type="text" name="newTag" placeholder="输入标签名后回车…" aria-label="新建标签" autocomplete="off"><button class="btn primary sm" type="button">添加</button></div>'
+          + '<table class="tbl"><thead><tr><th>标签</th><th class="r">商品数</th><th style="width:90px">操作</th></tr></thead><tbody>'
+          + t('<td><span class="tag brand">本期精选</span></td><td class="r">4</td><td><button class="btn text" type="button" style="color:#C22C1E;">删除</button></td>')
+          + t('<td><span class="tag neutral">送礼</span></td><td class="r">2</td><td><button class="btn text" type="button" style="color:#C22C1E;">删除</button></td>')
+          + t('<td><span class="tag neutral">新客</span></td><td class="r">1</td><td><button class="btn text" type="button" style="color:#C22C1E;">删除</button></td>')
+          + '</tbody></table></div>';
+      }
+    },
+
+    /* ---------- 07 订单列表 ---------- */
+    {
+      id:'AD-07', name:'订单列表', group:'交易', nav:'orders',
+      tags:['P0','AD-05'], keyEl:'状态页签 + 表格',
+      states:['空','超时单标记','批量发货'],
+      notes:[
+        '状态页签带数量，客服可以据此判断今天忙不忙。',
+        '待发货行整行标浅黄底，是全表唯一允许的整行底色。',
+        '发货是最高频动作，直接放在行内，不要求先进详情。'
+      ],
+      body: function(){
+        return ph('订单列表','今日新增 6 单 · 待发货 3 单','<button class="btn ghost" type="button">导出</button><button class="btn primary" type="button">批量发货</button>')
+          + '<div class="panel"><div class="toolbar"><div class="seg2"><button class="on" type="button">全部 32</button><button type="button">待付款 1</button><button type="button">待发货 3</button><button type="button">待收货 5</button><button type="button">售后中 2</button></div>'
+          + '<div class="sp"></div><input class="inp" type="search" name="orderKw" placeholder="订单号 / 收货人 / 手机号" aria-label="搜索订单"><button class="btn ghost sm" type="button">今天</button></div>'
+          + '<table class="tbl"><thead><tr><th style="width:32px"><input type="checkbox" aria-label="全选订单"></th><th>订单号</th><th>商品</th><th class="r">实付</th><th>收货人</th><th>下单时间</th><th>状态</th><th style="width:130px">操作</th></tr></thead><tbody>'
+          + t('<td><input type="checkbox" aria-label="选择订单 SY0938"></td><td><span class="nm" style="font-variant-numeric:tabular-nums;">SY…0938</span><div class="sub">1 件商品</div></td><td>勐海古树普洱 2019</td><td class="r">¥268.00</td><td>王先生<div class="sub">138 **** 6621</div></td><td style="font-variant-numeric:tabular-nums;">11-06 09:38</td><td><span class="tag warn dot">待发货</span></td><td><div class="ops"><button class="btn text" type="button">详情</button><button class="btn text" type="button" style="color:var(--brand);font-weight:600;">发货</button></div></td>')
+          + t('<td><input type="checkbox" aria-label="选择订单 SY0931"></td><td><span class="nm" style="font-variant-numeric:tabular-nums;">SY…0931</span><div class="sub">2 件商品</div></td><td>云南小粒咖啡 · 高山野蜂蜜</td><td class="r">¥354.00</td><td>李女士<div class="sub">139 **** 3320</div></td><td style="font-variant-numeric:tabular-nums;">11-06 08:52</td><td><span class="tag warn dot">待发货</span></td><td><div class="ops"><button class="btn text" type="button">详情</button><button class="btn text" type="button" style="color:var(--brand);font-weight:600;">发货</button></div></td>')
+          + t('<td><input type="checkbox" aria-label="选择订单 SY0820"></td><td><span class="nm" style="font-variant-numeric:tabular-nums;">SY…0820</span><div class="sub">1 件商品</div></td><td>亚麻桌旗</td><td class="r">¥59.00</td><td>陈先生<div class="sub">137 **** 8801</div></td><td style="font-variant-numeric:tabular-nums;">11-05 18:20</td><td><span class="tag ok dot">待收货</span></td><td><div class="ops"><button class="btn text" type="button">详情</button></div></td>')
+          + t('<td><input type="checkbox" aria-label="选择订单 SY0912"></td><td><span class="nm" style="font-variant-numeric:tabular-nums;">SY…0912</span><div class="sub">1 件商品</div></td><td>手作粗陶公道杯</td><td class="r">¥86.00</td><td>赵女士<div class="sub">136 **** 4402</div></td><td style="font-variant-numeric:tabular-nums;">11-06 09:12</td><td><span class="tag danger dot">售后中</span></td><td><div class="ops"><button class="btn text" type="button">详情</button></div></td>')
+          + t('<td><input type="checkbox" aria-label="选择订单 SY0755"></td><td><span class="nm" style="font-variant-numeric:tabular-nums;">SY…0755</span><div class="sub">1 件商品</div></td><td>香格里拉松茸干</td><td class="r">¥198.00</td><td>周先生<div class="sub">135 **** 1190</div></td><td style="font-variant-numeric:tabular-nums;">11-05 15:32</td><td><span class="tag neutral dot">待付款</span></td><td><div class="ops"><button class="btn text" type="button">详情</button><button class="btn text" type="button" style="color:#C22C1E;">关闭</button></div></td>')
+          + '</tbody></table>'
+          + '<div class="pager"><span>共 32 单</span><button type="button" aria-label="上一页" disabled style="opacity:.4">‹</button><button class="on" type="button" aria-current="page">1</button><button type="button">2</button><button type="button" aria-label="下一页">›</button></div></div>';
+      }
+    },
+
+    /* ---------- 08 订单详情 ---------- */
+    {
+      id:'AD-08', name:'订单详情', group:'交易', nav:'orders',
+      tags:['P0','AD-05'], keyEl:'状态头 + 时间线',
+      states:['不可发货','已退款','改地址'],
+      notes:[
+        '订单详情不给表格，逐块阅读：状态 → 商品 → 金额 → 收货 → 日志。',
+        '操作按钮全部放在首屏右上，避免长页面下找不到「发货」。',
+        '金额行与小程序结算页完全一致，客服沟通时口径统一。'
+      ],
+      body: function(){
+        return ph('订单 SY20261106093812','2026-11-06 09:38 下单 · 模拟支付','<button class="btn ghost" type="button">备注</button><button class="btn ghost" type="button">改地址</button><button class="btn primary" type="button">发货</button>')
+          + '<div class="cols2"><div>'
+          + '<div class="panel"><div class="ph2"><span class="tag warn dot">待发货</span><span class="s">已支付 2 小时 12 分</span></div><div class="pb">'
+          + '<table class="tbl"><thead><tr><th>商品</th><th class="r">单价</th><th class="r">数量</th><th class="r">小计</th></tr></thead><tbody>'
+          + t('<td><img class="thumb" src="' + IMG.tea + '" alt="" width="30" height="30"><span style="margin-left:8px;vertical-align:middle;"><span class="nm">勐海古树普洱 2019</span><div class="sub">357g 单饼</div></span></td><td class="r">¥268.00</td><td class="r">1</td><td class="r">¥268.00</td>')
+          + '</tbody></table>'
+          + '<div style="border-top:1px solid var(--line);padding-top:10px;margin-top:4px;">'
+          + '<div style="display:flex;justify-content:space-between;font-size:11.5px;padding:3px 0;color:var(--ink-2);"><span>商品金额</span><span style="font-variant-numeric:tabular-nums;">¥268.00</span></div>'
+          + '<div style="display:flex;justify-content:space-between;font-size:11.5px;padding:3px 0;color:var(--ink-2);"><span>优惠券</span><span style="font-variant-numeric:tabular-nums;color:var(--price);">−¥0.00</span></div>'
+          + '<div style="display:flex;justify-content:space-between;font-size:11.5px;padding:3px 0;color:var(--ink-2);"><span>运费（满额包邮）</span><span style="font-variant-numeric:tabular-nums;">¥0.00</span></div>'
+          + '<div style="display:flex;justify-content:space-between;font-size:13px;font-weight:650;padding:8px 0 0;margin-top:6px;border-top:1px solid var(--line);"><span>实付金额</span><span style="font-variant-numeric:tabular-nums;color:var(--price);">¥268.00</span></div></div>'
+          + '</div></div>'
+          + '<div class="panel" style="margin-top:14px;"><div class="ph2"><span class="t">收货信息</span><span class="s">未修改</span></div><div class="pb" style="font-size:11.5px;color:var(--ink-2);line-height:1.8;">王先生 · 138 **** 6621<br>云南省昆明市五华区 文林街 12 号 3 单元 502<br><span style="color:var(--ink-3);">买家留言：请用环保包装，谢谢。</span></div></div>'
+          + '</div><div>'
+          + '<div class="panel"><div class="ph2"><span class="t">订单流转</span></div><div class="pb" style="padding-top:10px;">'
+          + '<div style="display:flex;gap:9px;padding:0 0 14px;position:relative;"><span style="width:7px;height:7px;border-radius:50%;background:var(--brand);margin-top:5px;"></span><div style="font-size:11.5px;color:var(--ink-2);"><b style="color:var(--ink);">买家已支付</b><div style="color:var(--ink-3);font-size:10.5px;">11-06 09:38 · 模拟支付</div></div></div>'
+          + '<div style="display:flex;gap:9px;padding:0 0 14px;"><span style="width:7px;height:7px;border-radius:50%;background:var(--brand);margin-top:5px;"></span><div style="font-size:11.5px;color:var(--ink-2);"><b style="color:var(--ink);">订单创建</b><div style="color:var(--ink-3);font-size:10.5px;">11-06 09:38</div></div></div>'
+          + '<div style="display:flex;gap:9px;"><span style="width:7px;height:7px;border-radius:50%;border:1px solid var(--line-2);margin-top:5px;"></span><div style="font-size:11.5px;color:var(--ink-3);">等待商家发货</div></div></div></div>'
+          + '<div class="panel" style="margin-top:14px;"><div class="ph2"><span class="t">商家备注</span></div><div class="pb"><textarea class="field" style="border:1px solid var(--line);border-radius:5px;min-height:62px;font-size:11.5px;padding:8px;width:100%;font-family:inherit;resize:none;" placeholder="仅后台可见，例：已联系顺丰优先发出…" aria-label="商家备注"></textarea></div></div>'
+          + '</div></div>';
+      }
+    },
+
+    /* ---------- 09 发货弹窗 ---------- */
+    {
+      id:'AD-09', name:'发货弹窗', group:'交易', nav:'ship',
+      tags:['P0','AD-05'], keyEl:'单列表单 + 明细确认',
+      states:['单号格式错误','批量发货部分失败'],
+      notes:[
+        '弹层只做一件事：填物流并发货。背景保持订单详情，用户不会丢失上下文。',
+        '物流公司用下拉，单号实时校验格式；错误提示在字段下方而不是弹窗级。',
+        '底部显示「本次发货 1 件」，避免发错订单。'
+      ],
+      body: function(){ return ''; }
+    },
+
+    /* ---------- 10 售后列表 ---------- */
+    {
+      id:'AD-10', name:'售后列表', group:'售后与评价', nav:'aftersales',
+      tags:['P0','AD-06'], keyEl:'表格 + 超时标记',
+      states:['空','退款失败','超时未处理'],
+      notes:[
+        '超时未处理是后台唯一需要「催」的状态，用陶土色时间文案而非整行变色。',
+        '售后类型（仅退款 / 退货退款）直接在列里显示，客服不用点进去判断。'
+      ],
+      body: function(){
+        return ph('售后管理','待审核 2 · 待收货 1 · 超时 1','<button class="btn ghost" type="button">导出</button>')
+          + '<div class="panel"><div class="toolbar"><div class="seg2"><button class="on" type="button">全部</button><button type="button">待审核 2</button><button type="button">待买家退货</button><button type="button">待收货</button><button type="button">已完成</button></div><div class="sp"></div><input class="inp" type="search" name="asKw" placeholder="售后单号 / 订单号" aria-label="搜索售后"><button class="btn ghost sm" type="button">超时优先</button></div>'
+          + '<table class="tbl"><thead><tr><th>售后单</th><th>订单</th><th>商品</th><th>类型</th><th class="r">退款金额</th><th>提交时间</th><th>状态</th><th style="width:96px">操作</th></tr></thead><tbody>'
+          + t('<td><span class="nm">AS…4021</span></td><td style="font-variant-numeric:tabular-nums;">SY…0912</td><td>手作粗陶公道杯</td><td>仅退款</td><td class="r">¥86.00</td><td style="font-variant-numeric:tabular-nums;">11-06 09:40</td><td><span class="tag warn dot">待审核</span></td><td><button class="btn text" type="button" style="color:var(--brand);font-weight:600;">处理</button></td>')
+          + t('<td><span class="nm">AS…3955</span><div class="sub" style="color:var(--price);">已超时 6 小时</div></td><td style="font-variant-numeric:tabular-nums;">SY…0880</td><td>高山野蜂蜜</td><td>退货退款</td><td class="r">¥128.00</td><td style="font-variant-numeric:tabular-nums;">11-04 14:12</td><td><span class="tag warn dot">待审核</span></td><td><button class="btn text" type="button" style="color:var(--brand);font-weight:600;">处理</button></td>')
+          + t('<td><span class="nm">AS…3902</span></td><td style="font-variant-numeric:tabular-nums;">SY…0811</td><td>亚麻桌旗</td><td>退货退款</td><td class="r">¥59.00</td><td style="font-variant-numeric:tabular-nums;">11-05 10:08</td><td><span class="tag neutral dot">待商家收货</span></td><td><button class="btn text" type="button">详情</button></td>')
+          + t('<td><span class="nm">AS…3770</span></td><td style="font-variant-numeric:tabular-nums;">SY…0720</td><td>云南小粒咖啡</td><td>仅退款</td><td class="r">¥98.00</td><td style="font-variant-numeric:tabular-nums;">10-30 12:05</td><td><span class="tag ok dot">已完成</span></td><td><button class="btn text" type="button">详情</button></td>')
+          + '</tbody></table><div class="pager"><span>共 12 条</span><button type="button" aria-label="上一页" disabled style="opacity:.4">‹</button><button class="on" type="button">1</button><button type="button">2</button><button type="button" aria-label="下一页">›</button></div></div>';
+      }
+    },
+
+    /* ---------- 11 售后详情 ---------- */
+    {
+      id:'AD-11', name:'售后详情', group:'售后与评价', nav:'after-detail',
+      tags:['P0','AD-06'], keyEl:'凭证图 + 金额 + 操作区',
+      states:['凭证缺失','已关闭','退款失败重试'],
+      notes:[
+        '凭证图是审核的主要判断依据，放在最上方且尺寸不缩得太小。',
+        '三种处理动作并列，拒绝需要填写理由，按钮为薄弱红色，不威胁主操作。',
+        '右侧显示可退金额上限，防止客服填错。'
+      ],
+      body: function(){
+        return ph('售后 AS20261106094021','订单 SY20261106093812 · 提交于 11-06 09:40','<button class="btn ghost" type="button">联系买家</button>')
+          + '<div class="cols2"><div>'
+          + '<div class="panel"><div class="ph2"><span class="tag warn dot">待商家审核</span><span class="s">剩余处理时间 46 小时</span></div><div class="pb">'
+          + '<div style="font-size:11.5px;color:var(--ink-3);margin-bottom:8px;">买家上传的凭证</div>'
+          + '<div style="display:flex;gap:8px;"><img src="' + IMG.honey + '" alt="买家上传的破损凭证：蜂蜜瓶身裂纹" width="112" height="112" style="width:112px;height:112px;object-fit:cover;border-radius:6px;border:1px solid var(--line);background:#E8E4DA;">'
+          + '<img src="' + IMG.hero + '" alt="买家上传的包装外箱照片" width="112" height="112" style="width:112px;height:112px;object-fit:cover;border-radius:6px;border:1px solid var(--line);background:#E8E4DA;"></div>'
+          + '<div style="margin-top:14px;font-size:11.5px;color:var(--ink-2);line-height:1.8;"><b style="color:var(--ink);">买家描述</b><br>收到时瓶身有裂纹，蜂蜜渗漏到外箱，希望退款。</div>'
+          + '</div></div>'
+          + '<div class="panel" style="margin-top:14px;"><div class="ph2"><span class="t">关联订单</span></div><div class="pb">'
+          + '<table class="tbl"><thead><tr><th>商品</th><th class="r">实付</th><th class="r">数量</th></tr></thead><tbody>'
+          + t('<td><img class="thumb" src="' + IMG.honey + '" alt="" width="30" height="30"><span style="margin-left:8px;vertical-align:middle;" class="nm">高山野蜂蜜 500g</span></td><td class="r">¥128.00</td><td class="r">1</td>')
+          + '</tbody></table></div></div></div>'
+          + '<div><div class="panel"><div class="ph2"><span class="t">审核处理</span></div><div class="pb">'
+          + '<div class="field"><label for="asAmt">退款金额</label><input class="inp" id="asAmt" name="refundAmount" type="number" inputmode="decimal" value="128" style="text-align:right;font-variant-numeric:tabular-nums;"><span class="hint">上限 ¥128.00 · 原路退回</span></div>'
+          + '<div class="field"><label for="asReject">拒绝理由（拒绝时必填）</label><textarea id="asReject" placeholder="例：凭证不足，请补充开箱视频…"></textarea></div>'
+          + '<div style="display:flex;flex-direction:column;gap:8px;margin-top:4px;">'
+          + '<button class="btn primary" type="button" style="justify-content:center;height:34px;">同意退款</button>'
+          + '<button class="btn ghost" type="button" style="justify-content:center;height:34px;">同意退货，等待寄回</button>'
+          + '<button class="btn danger" type="button" style="justify-content:center;height:34px;">拒绝申请</button></div>'
+          + '<div style="font-size:10.5px;color:var(--ink-3);margin-top:10px;line-height:1.7;">退款后库存按「可二次销售」标记回滚；本次商品已破损，建议不回滚。</div>'
+          + '</div></div></div></div>';
+      }
+    },
+
+    /* ---------- 12 评价管理 ---------- */
+    {
+      id:'AD-12', name:'评价管理', group:'售后与评价', nav:'reviews',
+      tags:['P1','AD-07'], keyEl:'评价行 + 回复框',
+      states:['待审核','已隐藏','无评价'],
+      notes:[
+        '评价先审后显：待审核行给「通过 / 隐藏」两个动作，隐藏必须填理由。',
+        '商家回复用行内展开，不跳页。'
+      ],
+      body: function(){
+        return ph('评价管理','待审核 3 · 已展示 128','')
+          + '<div class="panel"><div class="toolbar"><div class="seg2"><button class="on" type="button">待审核 3</button><button type="button">已展示</button><button type="button">已隐藏</button></div><div class="sp"></div><input class="inp" type="search" name="rvKw" placeholder="商品 / 评价内容" aria-label="搜索评价"></div>'
+          + '<div style="padding:0 16px;">'
+          + '<div style="padding:14px 0;border-bottom:1px solid var(--line);"><div style="display:flex;gap:10px;align-items:flex-start;">'
+          + '<img src="' + IMG.tea + '" alt="" width="36" height="36" style="width:36px;height:36px;border-radius:4px;object-fit:cover;background:#E8E4DA;">'
+          + '<div style="flex:1;min-width:0;"><div style="font-size:11.5px;"><span class="nm" style="font-weight:600;">陈 * 生</span> <span style="color:#C08A3E;">★★★★★</span> <span style="color:var(--ink-3);font-size:10.5px;">勐海古树普洱 2019 · 11-05</span></div>'
+          + '<div style="font-size:11.5px;color:var(--ink-2);margin-top:4px;line-height:1.65;">汤感很厚，第三泡开始回甘，包装也体面，送人合适。</div>'
+          + '<div style="display:flex;gap:6px;margin-top:8px;"><button class="btn ghost sm" type="button">通过</button><button class="btn ghost sm" type="button">隐藏</button><button class="btn text sm" type="button">回复</button></div></div></div></div>'
+          + '<div style="padding:14px 0;border-bottom:1px solid var(--line);"><div style="display:flex;gap:10px;align-items:flex-start;">'
+          + '<img src="' + IMG.coffee + '" alt="" width="36" height="36" style="width:36px;height:36px;border-radius:4px;object-fit:cover;background:#E8E4DA;">'
+          + '<div style="flex:1;min-width:0;"><div style="font-size:11.5px;"><span class="nm" style="font-weight:600;">林 *</span> <span style="color:#C08A3E;">★★★★</span> <span style="color:var(--ink-3);font-size:10.5px;">云南小粒咖啡 · 11-04</span></div>'
+          + '<div style="font-size:11.5px;color:var(--ink-2);margin-top:4px;">风味不错，就是包装袋有点难撕。</div>'
+          + '<div style="display:flex;gap:6px;margin-top:8px;"><button class="btn ghost sm" type="button">通过</button><button class="btn ghost sm" type="button">隐藏</button></div></div></div></div>'
+          + '</div></div>';
+      }
+    },
+
+    /* ---------- 13 客户列表 ---------- */
+    {
+      id:'AD-13', name:'客户列表', group:'客户', nav:'customers',
+      tags:['P0','AD-08'], keyEl:'表格 + 消费汇总',
+      states:['空','无订单客户','隐私脱敏'],
+      notes:[
+        '手机号默认脱敏，需要查看完整号码时点小眼睛，并记录操作日志。',
+        '消费数据用等宽数字右对齐，方便比较。'
+      ],
+      body: function(){
+        return ph('客户列表','共 1 286 位 · 本月新增 96','<button class="btn ghost" type="button">导出</button><button class="btn primary" type="button">打标签</button>')
+          + '<div class="panel"><div class="toolbar"><input class="inp" type="search" name="ckw" placeholder="昵称 / 手机号" aria-label="搜索客户"><select class="inp" name="clv" aria-label="会员等级"><option>全部等级</option><option>Lv.1 访客</option><option>Lv.2 山民</option></select><div class="sp"></div><span style="font-size:11px;color:#8E9399;">按累计消费降序</span></div>'
+          + '<table class="tbl"><thead><tr><th>客户</th><th>等级</th><th class="r">累计消费</th><th class="r">订单数</th><th class="r">积分</th><th>最近下单</th><th style="width:80px">操作</th></tr></thead><tbody>'
+          + t('<td><span class="nm">王先生</span><div class="sub">138 **** 6621</div></td><td><span class="tag brand">Lv.2 山民</span></td><td class="r">¥1 286.00</td><td class="r">7</td><td class="r">128</td><td style="font-variant-numeric:tabular-nums;">11-06</td><td><button class="btn text" type="button">详情</button></td>')
+          + t('<td><span class="nm">李女士</span><div class="sub">139 **** 3320</div></td><td><span class="tag brand">Lv.3 常客</span></td><td class="r">¥3 042.00</td><td class="r">18</td><td class="r">420</td><td style="font-variant-numeric:tabular-nums;">11-06</td><td><button class="btn text" type="button">详情</button></td>')
+          + t('<td><span class="nm">陈先生</span><div class="sub">137 **** 8801</div></td><td><span class="tag neutral">Lv.1 访客</span></td><td class="r">¥59.00</td><td class="r">1</td><td class="r">0</td><td style="font-variant-numeric:tabular-nums;">11-05</td><td><button class="btn text" type="button">详情</button></td>')
+          + t('<td><span class="nm">赵女士</span><div class="sub">136 **** 4402</div></td><td><span class="tag neutral">Lv.1 访客</span></td><td class="r">¥86.00</td><td class="r">1</td><td class="r">0</td><td style="font-variant-numeric:tabular-nums;">11-06</td><td><button class="btn text" type="button">详情</button></td>')
+          + '</tbody></table><div class="pager"><span>共 1 286 位</span><button type="button" aria-label="上一页" disabled style="opacity:.4">‹</button><button class="on" type="button">1</button><button type="button">2</button><button type="button">3</button><button type="button" aria-label="下一页">›</button></div></div>';
+      }
+    },
+
+    /* ---------- 14 客户详情 ---------- */
+    {
+      id:'AD-14', name:'客户详情', group:'客户', nav:'customer-detail',
+      tags:['P0','AD-08'], keyEl:'客群档案 + 订单轨迹',
+      states:['隐私脱敏','无订单'],
+      notes:[
+        '档案卡不做头像大图，用姓名 + 等级 + 三个数字承担识别。',
+        '订单轨迹直接复用订单表，避免维护第二套样式。'
+      ],
+      body: function(){
+        return ph('王先生','注册于 2026-03-12 · 最近下单 11-06','<button class="btn ghost" type="button">发优惠券</button>')
+          + '<div class="panel" style="margin-bottom:14px;"><div class="pb" style="display:flex;gap:28px;align-items:center;padding:16px 18px;">'
+          + '<div style="display:flex;gap:10px;align-items:center;min-width:200px;"><div style="width:40px;height:40px;border-radius:50%;background:var(--brand-soft);color:var(--brand);display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-size:16px;">王</div>'
+          + '<div><div style="font-size:13px;font-weight:650;">王先生</div><div style="font-size:10.5px;color:var(--ink-3);">138 **** 6621 · Lv.2 山民</div></div></div>'
+          + '<div style="display:flex;gap:32px;">'
+          + '<div><div style="font-size:10.5px;color:var(--ink-3);letter-spacing:.05em;">累计消费</div><div style="font-size:18px;font-weight:650;font-variant-numeric:tabular-nums;">¥1 286</div></div>'
+          + '<div><div style="font-size:10.5px;color:var(--ink-3);letter-spacing:.05em;">订单数</div><div style="font-size:18px;font-weight:650;font-variant-numeric:tabular-nums;">7</div></div>'
+          + '<div><div style="font-size:10.5px;color:var(--ink-3);letter-spacing:.05em;">积分</div><div style="font-size:18px;font-weight:650;font-variant-numeric:tabular-nums;">128</div></div>'
+          + '</div><div style="margin-left:auto;"><span class="tag brand">常购：茶</span></div></div></div>'
+          + '<div class="panel"><div class="ph2"><span class="t">订单轨迹</span><span class="s">最近 4 单</span></div>'
+          + '<table class="tbl"><thead><tr><th>订单号</th><th>商品</th><th class="r">实付</th><th>时间</th><th>状态</th></tr></thead><tbody>'
+          + t('<td style="font-variant-numeric:tabular-nums;">SY…0938</td><td>勐海古树普洱 2019</td><td class="r">¥268.00</td><td style="font-variant-numeric:tabular-nums;">11-06 09:38</td><td><span class="tag warn dot">待发货</span></td>')
+          + t('<td style="font-variant-numeric:tabular-nums;">SY…0820</td><td>亚麻桌旗</td><td class="r">¥59.00</td><td style="font-variant-numeric:tabular-nums;">11-05 18:20</td><td><span class="tag ok dot">待收货</span></td>')
+          + t('<td style="font-variant-numeric:tabular-nums;">SY…0755</td><td>香格里拉松茸干</td><td class="r">¥198.00</td><td style="font-variant-numeric:tabular-nums;">11-05 15:32</td><td><span class="tag ok dot">已完成</span></td>')
+          + '</tbody></table></div>';
+      }
+    },
+
+    /* ---------- 15 优惠券列表 ---------- */
+    {
+      id:'AD-15', name:'优惠券列表', group:'营销', nav:'coupons',
+      tags:['P0','AD-09'], keyEl:'券面 + 核销进度',
+      states:['已过期','库存为 0','未开始'],
+      notes:[
+        '券用左侧色块 + 右侧信息的形式，色块是页面唯一大面积浅红区域。',
+        '核销进度条让运营判断「还要不要补券」，比纯数字直观。'
+      ],
+      body: function(){
+        return ph('优惠券','进行中 2 · 已过期 1','<button class="btn ghost" type="button">发放记录</button><button class="btn primary" type="button">' + ic('plus','sm') + ' 新建优惠券</button>')
+          + '<div class="coupon"><div class="amt"><b><span class="c">¥</span>30</b><span>满 400 可用</span></div>'
+          + '<div class="info"><div class="t">全场满 400 减 30</div><div class="d">有效期 11-01 至 11-30 · 每人限领 1 张 · 小程序可领</div>'
+          + '<div class="bar"><i style="width:42%"></i></div><div class="d" style="margin-top:4px;">已领 420 / 1 000 · 已核销 168</div></div>'
+          + '<div class="st"><span class="tag ok dot">进行中</span></div></div>'
+          + '<div class="coupon"><div class="amt"><b><span class="c">¥</span>10</b><span>无门槛</span></div>'
+          + '<div class="info"><div class="t">新客无门槛 10 元</div><div class="d">领取后 7 天有效 · 每人限领 1 张 · 手动发放</div>'
+          + '<div class="bar"><i style="width:74%"></i></div><div class="d" style="margin-top:4px;">已领 740 / 1 000 · 已核销 312</div></div>'
+          + '<div class="st"><span class="tag ok dot">进行中</span></div></div>'
+          + '<div class="coupon" style="opacity:.72;"><div class="amt" style="background:#F1EFE9;color:#8E9399;"><b><span class="c">¥</span>50</b><span>满 800 可用</span></div>'
+          + '<div class="info"><div class="t">双十一满 800 减 50</div><div class="d">有效期 10-20 至 11-03 · 已过期</div>'
+          + '<div class="bar"><i style="width:100%;background:#C9C5BC;"></i></div><div class="d" style="margin-top:4px;">已领 500 / 500 · 已核销 302</div></div>'
+          + '<div class="st"><span class="tag neutral dot">已过期</span></div></div>';
+      }
+    },
+
+    /* ---------- 16 新建优惠券 ---------- */
+    {
+      id:'AD-16', name:'新建优惠券', group:'营销', nav:'coupon-new',
+      tags:['P0','AD-09'], keyEl:'左表单 + 右实时券面预览',
+      states:['门槛冲突','数量超出','时间非法'],
+      notes:[
+        '左侧配置、右侧实时预览，运营不用脑补「发出来长什么样」。',
+        '门槛低于面额时立即报错：「满 20 减 30 会让顾客白拿」这类错误必须在提交前拦住。'
+      ],
+      body: function(){
+        return ph('新建优惠券','配置后可在小程序领取','<button class="btn ghost" type="button">取消</button><button class="btn primary" type="button">创建并发布</button>')
+          + '<div class="cols2"><div><div class="panel"><div class="ph2"><span class="t">基础配置</span></div><div class="pb">'
+          + '<div class="field"><label for="cn">券名称</label><input class="inp" id="cn" name="couponName" type="text" value="全场满 400 减 30" autocomplete="off"></div>'
+          + '<div class="grid3f"><div class="field"><label for="ct">类型</label><select id="ct" name="couponType"><option>满减券</option><option>无门槛券</option></select></div>'
+          + '<div class="field"><label for="cm">门槛（元）</label><input class="inp" id="cm" name="threshold" type="number" value="400" style="text-align:right;"></div>'
+          + '<div class="field"><label for="cv">面额（元）</label><input class="inp" id="cv" name="faceValue" type="number" value="30" style="text-align:right;"></div></div>'
+          + '<div class="grid2f"><div class="field"><label for="cs">开始时间</label><input class="inp" id="cs" name="startAt" type="date" value="2026-11-01"></div>'
+          + '<div class="field"><label for="ce">结束时间</label><input class="inp" id="ce" name="endAt" type="date" value="2026-11-30"></div></div>'
+          + '<div class="grid3f"><div class="field"><label for="cq">发放总量</label><input class="inp" id="cq" name="total" type="number" value="1000" style="text-align:right;"></div>'
+          + '<div class="field"><label for="cp">每人限领</label><input class="inp" id="cp" name="perLimit" type="number" value="1" style="text-align:right;"></div>'
+          + '<div class="field"><label for="cd">领取方式</label><select id="cd" name="channel"><option>小程序可领</option><option>仅手动发放</option></select></div></div>'
+          + '<div class="field" style="margin-bottom:0;"><label for="cd2">使用说明（选填）</label><textarea id="cd2" placeholder="例：仅限全场商品，不与其他券叠加…"></textarea></div>'
+          + '</div></div></div>'
+          + '<div><div class="panel"><div class="ph2"><span class="t">券面预览</span><span class="s">小程序领取卡片</span></div><div class="pb">'
+          + '<div style="border:1px solid var(--line);border-radius:8px;overflow:hidden;"><div style="background:var(--brand-soft);color:var(--brand);padding:18px 16px;text-align:center;"><div style="font-size:28px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.1;"><span style="font-size:14px;">¥</span>30</div><div style="font-size:11px;margin-top:4px;">满 400 可用</div></div>'
+          + '<div style="padding:14px 16px;"><div style="font-size:12px;font-weight:650;">全场满 400 减 30</div><div style="font-size:10.5px;color:var(--ink-3);margin-top:4px;line-height:1.6;">11-01 至 11-30 · 每人限领 1 张</div></div></div>'
+          + '<div style="margin-top:12px;font-size:10.5px;color:var(--ink-3);line-height:1.8;">规则提示：一笔订单仅可用 1 张券；订单取消或整单退款后，券在有效期内自动退回。</div>'
+          + '</div></div></div></div>';
+      }
+    },
+
+    /* ---------- 17 积分规则 ---------- */
+    {
+      id:'AD-17', name:'积分规则', group:'营销', nav:'points',
+      tags:['P1','AD-10'], keyEl:'规则行 + 流水表',
+      states:['不参与抵扣说明','无流水'],
+      notes:[
+        '页面顶部固定一条说明：积分不参与订单抵扣，只做记录与等级成长。避免运营误解为营销抵扣工具。',
+        '流水按时间倒序，每条都显示来源与变动值。'
+      ],
+      body: function(){
+        return ph('积分规则','仅记录发放与消耗 · 不参与订单抵扣','<button class="btn primary" type="button">保存规则</button>')
+          + '<div style="margin-bottom:14px;padding:11px 14px;border:1px solid #F0DCC8;background:#FDF8F2;border-radius:7px;font-size:11.5px;color:#7C4A0A;line-height:1.7;">已确认：订单不支持积分抵扣。积分只用于记录与会员成长，结算页不会出现积分抵扣项。</div>'
+          + '<div class="cols2"><div><div class="panel"><div class="ph2"><span class="t">发放规则</span></div><div class="pb">'
+          + '<div style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--line);font-size:11.5px;"><span>每消费 1 元获得积分</span><span style="display:flex;align-items:center;gap:6px;"><input class="inp" type="number" value="1" aria-label="每消费一元获得积分" style="width:64px;height:26px;text-align:right;font-variant-numeric:tabular-nums;border:1px solid var(--line);border-radius:4px;"> 分</span></div>'
+          + '<div style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--line);font-size:11.5px;"><span>评价晒图奖励</span><span style="display:flex;align-items:center;gap:6px;"><input class="inp" type="number" value="10" aria-label="评价晒图奖励积分" style="width:64px;height:26px;text-align:right;font-variant-numeric:tabular-nums;border:1px solid var(--line);border-radius:4px;"> 分</span></div>'
+          + '<div style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;font-size:11.5px;"><span>退款订单积分</span><span><span class="tag neutral">自动扣回</span></span></div>'
+          + '</div></div></div>'
+          + '<div><div class="panel"><div class="ph2"><span class="t">积分流水</span><span class="s">最近 5 条</span></div>'
+          + '<table class="tbl"><thead><tr><th>客户</th><th>来源</th><th class="r">变动</th><th>时间</th></tr></thead><tbody>'
+          + t('<td class="nm">王先生</td><td>订单 SY…0938 消费</td><td class="r">+128</td><td style="font-variant-numeric:tabular-nums;">11-06</td>')
+          + t('<td class="nm">李女士</td><td>评价晒图奖励</td><td class="r">+10</td><td style="font-variant-numeric:tabular-nums;">11-05</td>')
+          + t('<td class="nm">陈先生</td><td>订单 SY…0820 消费</td><td class="r">+59</td><td style="font-variant-numeric:tabular-nums;">11-05</td>')
+          + t('<td class="nm">赵女士</td><td>退款扣回</td><td class="r" style="color:var(--price);">−86</td><td style="font-variant-numeric:tabular-nums;">11-04</td>')
+          + '</tbody></table></div></div></div>';
+      }
+    },
+
+    /* ---------- 18 等级规则 ---------- */
+    {
+      id:'AD-18', name:'等级规则', group:'营销', nav:'levels',
+      tags:['P1','AD-10'], keyEl:'等级阶梯表',
+      states:['门槛重叠校验','折扣冲突'],
+      notes:[
+        '等级按累计消费划分，门槛必须递增且不重叠；保存时逐行校验。',
+        '折扣作用于商品金额，不作用于运费——表下方直接写明。'
+      ],
+      body: function(){
+        return ph('等级规则','3 个等级 · 按累计消费升级','<button class="btn primary" type="button">保存规则</button>')
+          + '<div class="panel" style="max-width:720px;"><table class="tbl"><thead><tr><th>等级</th><th>名称</th><th class="r">累计消费门槛</th><th class="r">商品折扣</th><th>权益</th><th style="width:64px">操作</th></tr></thead><tbody>'
+          + t('<td class="nm">Lv.1</td><td>访客</td><td class="r">¥0</td><td class="r">无</td><td><span class="tag neutral">基础</span></td><td><button class="btn text" type="button">编辑</button></td>')
+          + t('<td class="nm">Lv.2</td><td>山民</td><td class="r">¥500</td><td class="r">98 折</td><td><span class="tag brand">会员价</span> <span class="tag brand">生日券</span></td><td><button class="btn text" type="button">编辑</button></td>')
+          + t('<td class="nm">Lv.3</td><td>常客</td><td class="r">¥2 000</td><td class="r">95 折</td><td><span class="tag brand">会员价</span> <span class="tag brand">包邮</span></td><td><button class="btn text" type="button">编辑</button></td>')
+          + '</tbody></table>'
+          + '<div style="padding:11px 16px;border-top:1px solid var(--line);font-size:10.5px;color:var(--ink-3);line-height:1.7;">折扣仅作用于商品金额，不作用于运费；折扣与优惠券可同享，但等级折扣先于优惠券计算。</div></div>';
+      }
+    },
+
+    /* ---------- 19 店铺信息 ---------- */
+    {
+      id:'AD-19', name:'店铺信息', group:'店铺', nav:'shop',
+      tags:['P0','AD-11'], keyEl:'分组表单',
+      states:['未保存离开提示','上传失败'],
+      notes:[
+        '分组表单不必加卡片，用发丝分隔的 fieldset 即可，避免后台变成卡片墙。',
+        '底部固定保存栏：有修改才出现，并提示「有未保存的修改」。'
+      ],
+      body: function(){
+        return ph('店铺信息','单商家自营 · 山野','<button class="btn ghost" type="button">预览小程序</button><button class="btn primary" type="button">保存</button>')
+          + '<div class="panel" style="max-width:760px;"><div class="pb">'
+          + '<div style="font-size:10.5px;letter-spacing:.08em;color:var(--ink-3);margin-bottom:10px;">基础信息</div>'
+          + '<div class="grid2f"><div class="field"><label for="sn">店铺名称</label><input class="inp" id="sn" name="shopName" type="text" value="山野" autocomplete="off"></div>'
+          + '<div class="field"><label for="st">客服电话</label><input class="inp" id="st" name="shopPhone" type="tel" value="400-800-1234"></div></div>'
+          + '<div class="field"><label for="sd">店铺简介</label><textarea id="sd" name="shopIntro">云南山野风物选品店，只做当季、少量、可溯源的东西。</textarea></div>'
+          + '<div style="font-size:10.5px;letter-spacing:.08em;color:var(--ink-3);margin:18px 0 10px;padding-top:14px;border-top:1px solid var(--line);">品牌素材</div>'
+          + '<div style="display:flex;gap:12px;align-items:center;margin-bottom:14px;"><div style="width:56px;height:56px;border-radius:6px;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-size:18px;">山</div><button class="btn ghost" type="button">' + ic('upload','sm') + ' 更换 Logo</button><span style="font-size:10.5px;color:var(--ink-3);">建议 200×200，透明底</span></div>'
+          + '<div style="font-size:10.5px;letter-spacing:.08em;color:var(--ink-3);margin:18px 0 10px;padding-top:14px;border-top:1px solid var(--line);">交易配置</div>'
+          + '<div class="grid3f"><div class="field"><label for="so">售后期（天）</label><input class="inp" id="so" name="afterSaleDays" type="number" value="7" style="text-align:right;"></div>'
+          + '<div class="field"><label for="sp">支付超时（分钟）</label><input class="inp" id="sp" name="payTimeout" type="number" value="15" style="text-align:right;"></div>'
+          + '<div class="field"><label for="sa">自动确认收货（天）</label><input class="inp" id="sa" name="autoConfirm" type="number" value="10" style="text-align:right;"></div></div>'
+          + '</div></div>'
+          + '<div style="max-width:760px;margin-top:12px;display:flex;align-items:center;gap:10px;padding:10px 14px;background:#FDF8F2;border:1px solid #F0DCC8;border-radius:7px;font-size:11.5px;color:#7C4A0A;"><span>有未保存的修改</span><span style="margin-left:auto;display:flex;gap:8px;"><button class="btn ghost sm" type="button">放弃</button><button class="btn primary sm" type="button">保存</button></span></div>';
+      }
+    },
+
+    /* ---------- 20 运费模板 ---------- */
+    {
+      id:'AD-20', name:'运费模板', group:'店铺', nav:'shipping',
+      tags:['P0','AD-11'], keyEl:'包邮门槛 + 运费值',
+      states:['门槛为空','地区冲突'],
+      notes:[
+        '已确认用满额包邮：只需两个数字（门槛、未达标运费），不引入首件/续件复杂度。',
+        '偏远地区例外单独成行，说明「不参与满额包邮」，避免运营误以为优惠能覆盖。'
+      ],
+      body: function(){
+        return ph('运费模板','满额包邮 · 单模板','<button class="btn primary" type="button">保存</button>')
+          + '<div class="cols2"><div><div class="panel"><div class="ph2"><span class="t">满额包邮规则</span><span class="s">作用于全部地区</span></div><div class="pb">'
+          + '<div class="grid2f"><div class="field"><label for="ft">包邮门槛（元）</label><input class="inp" id="ft" name="freeThreshold" type="number" inputmode="decimal" value="99" style="text-align:right;font-variant-numeric:tabular-nums;"><span class="hint">按商品实付小计判断，不含运费</span></div>'
+          + '<div class="field"><label for="ff">未达标运费（元）</label><input class="inp" id="ff" name="flatFee" type="number" inputmode="decimal" value="10" style="text-align:right;font-variant-numeric:tabular-nums;"><span class="hint">全国统一收取</span></div></div>'
+          + '<div style="padding:11px 12px;background:var(--card-2);border:1px solid var(--line);border-radius:6px;font-size:11px;color:var(--ink-2);line-height:1.7;">示例：商品实付 ¥98 → 收取运费 ¥10，应付 ¥108；商品实付 ¥99 → 免运费。</div>'
+          + '</div></div></div>'
+          + '<div><div class="panel"><div class="ph2"><span class="t">地区例外</span><span class="s">不参与满额包邮</span><span class="acts"><button class="btn text" type="button">+ 添加</button></span></div>'
+          + '<table class="tbl"><thead><tr><th>地区</th><th class="r">运费</th><th style="width:56px">操作</th></tr></thead><tbody>'
+          + t('<td class="nm">新疆 / 西藏</td><td class="r">¥18.00</td><td><button class="btn text" type="button" style="color:#C22C1E;">删除</button></td>')
+          + t('<td class="nm">内蒙古 / 青海</td><td class="r">¥12.00</td><td><button class="btn text" type="button" style="color:#C22C1E;">删除</button></td>')
+          + '</tbody></table></div>'
+          + '<div style="margin-top:12px;font-size:10.5px;color:var(--ink-3);line-height:1.8;">地区例外优先于满额包邮：命中例外地区时一律按例外运费收取。</div></div></div>';
+      }
+    },
+
+    /* ---------- 21 支付设置 ---------- */
+    {
+      id:'AD-21', name:'支付设置', group:'店铺', nav:'payment',
+      tags:['P0','AD-11'], keyEl:'模拟支付状态条',
+      states:['已启用','未配置真实渠道'],
+      notes:[
+        '首版就是模拟支付：页面要显式告诉大家「不会真实扣款」，避免测试时误解。',
+        '真实微信支付放成一条待接入项，不做表单，减少误操作。'
+      ],
+      body: function(){
+        return ph('支付设置','当前：模拟支付（不接真实微信支付）','<button class="btn primary" type="button">保存</button>')
+          + '<div class="panel" style="max-width:760px;margin-bottom:14px;"><div class="pb" style="display:flex;align-items:center;gap:14px;">'
+          + '<span style="width:8px;height:8px;border-radius:50%;background:var(--ok);"></span>'
+          + '<div style="flex:1;"><div style="font-size:12.5px;font-weight:650;">模拟支付 · 已启用</div><div style="font-size:10.5px;color:var(--ink-3);margin-top:2px;">下单后点击「确认支付」即视为支付成功，不产生真实资金流。</div></div>'
+          + '<span class="tag ok">启用中</span></div></div>'
+          + '<div class="panel" style="max-width:760px;"><div class="ph2"><span class="t">渠道配置</span></div><div class="pb">'
+          + '<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);font-size:11.5px;"><span style="width:120px;color:var(--ink-2);">模拟支付</span><span class="tag ok">已启用</span><span style="color:var(--ink-3);margin-left:8px;">用于首版联调与演示</span></div>'
+          + '<div style="display:flex;align-items:center;gap:12px;padding:10px 0;font-size:11.5px;"><span style="width:120px;color:var(--ink-2);">微信支付</span><span class="tag neutral">待接入</span><span style="color:var(--ink-3);margin-left:8px;">需要商户号与小程序 AppID，暂不配置</span><button class="btn ghost sm" type="button" style="margin-left:auto;" disabled>去配置</button></div>'
+          + '</div></div>'
+          + '<div style="max-width:760px;margin-top:12px;font-size:10.5px;color:var(--ink-3);line-height:1.8;">支付结果以渠道回调为准；退款原路退回。切换到真实渠道后，模拟支付按钮自动隐藏。</div>';
+      }
+    },
+
+    /* ---------- 22 素材库 ---------- */
+    {
+      id:'AD-22', name:'素材库', group:'店铺', nav:'assets',
+      tags:['P1','AD-12'], keyEl:'图片网格 + 分组',
+      states:['空','引用中不可删'],
+      notes:[
+        '图片网格 4 列，尺寸一致；每张图标注「引用中」，避免误删导致商品图裂。',
+        '素材不带任何边框装饰，图片本身就是内容。'
+      ],
+      body: function(){
+        return ph('素材库','36 张图片 · 2 个分组','<button class="btn ghost" type="button">新建分组</button><button class="btn primary" type="button">' + ic('upload','sm') + ' 上传图片</button>')
+          + '<div class="panel"><div class="toolbar"><div class="seg2"><button class="on" type="button">全部 36</button><button type="button">商品图 24</button><button type="button">场景图 12</button></div><div class="sp"></div><span style="font-size:11px;color:#8E9399;">共 36 张 · 已用 12 张</span></div>'
+          + '<div class="pb"><div class="imggrid">'
+          + '<figure><img src="' + IMG.tea + '" alt="茶饼商品图" width="200" height="200"><figcaption><span>tea-01.jpg</span><span>引用中</span></figcaption></figure>'
+          + '<figure><img src="' + IMG.coffee + '" alt="咖啡商品图" width="200" height="200"><figcaption><span>coffee-01.jpg</span><span>引用中</span></figcaption></figure>'
+          + '<figure><img src="' + IMG.honey + '" alt="蜂蜜商品图" width="200" height="200"><figcaption><span>honey-01.jpg</span><span>引用中</span></figcaption></figure>'
+          + '<figure><img src="' + IMG.ceramic + '" alt="陶器商品图" width="200" height="200"><figcaption><span>clay-01.jpg</span><span>引用中</span></figcaption></figure>'
+          + '<figure><img src="' + IMG.linen + '" alt="亚麻桌旗商品图" width="200" height="200"><figcaption><span>linen-01.jpg</span><span>未使用</span></figcaption></figure>'
+          + '<figure><img src="' + IMG.mushroom + '" alt="松茸干商品图" width="200" height="200"><figcaption><span>mushroom-01.jpg</span><span>未使用</span></figcaption></figure>'
+          + '<figure><img src="' + IMG.hero + '" alt="首页场景图" width="200" height="200"><figcaption><span>hero-01.jpg</span><span>引用中</span></figcaption></figure>'
+          + '<figure style="display:flex;align-items:center;justify-content:center;aspect-ratio:1;border:1px dashed var(--line-2);background:var(--card-2);color:var(--ink-3);font-size:11px;flex-direction:column;gap:4px;">' + ic('upload') + '<span>上传</span></figure>'
+          + '</div></div></div>';
+      }
+    },
+
+    /* ---------- 23 子账号 ---------- */
+    {
+      id:'AD-23', name:'子账号', group:'店铺', nav:'accounts',
+      tags:['P0','AD-13'], keyEl:'账号表 + 角色标签',
+      states:['已停用','重复账号','权限只读'],
+      notes:[
+        '角色只有 4 个预设，不做字段级权限配置，降低理解成本。',
+        '停用状态用中性标签，避免用红色制造恐慌。'
+      ],
+      body: function(){
+        return ph('子账号','4 个角色 · 3 个子账号','<button class="btn primary" type="button">' + ic('plus','sm') + ' 新建子账号</button>')
+          + '<div class="panel"><table class="tbl"><thead><tr><th>账号</th><th>角色</th><th>可访问模块</th><th>最近登录</th><th>状态</th><th style="width:112px">操作</th></tr></thead><tbody>'
+          + t('<td><span class="nm">王管理员</span><div class="sub">admin@shanye.com</div></td><td><span class="tag brand">超级管理员</span></td><td>全部</td><td style="font-variant-numeric:tabular-nums;">11-06 09:02</td><td><span class="tag ok dot">启用</span></td><td><div class="ops"><button class="btn text" type="button">编辑</button></div></td>')
+          + t('<td><span class="nm">小林</span><div class="sub">lin@shanye.com</div></td><td><span class="tag neutral">商品运营</span></td><td>商品、分类、库存、优惠券</td><td style="font-variant-numeric:tabular-nums;">11-05 17:20</td><td><span class="tag ok dot">启用</span></td><td><div class="ops"><button class="btn text" type="button">编辑</button><button class="btn text" type="button" style="color:#C22C1E;">停用</button></div></td>')
+          + t('<td><span class="nm">小周</span><div class="sub">zhou@shanye.com</div></td><td><span class="tag neutral">客服</span></td><td>订单查询、售后审核、评价</td><td style="font-variant-numeric:tabular-nums;">11-06 08:40</td><td><span class="tag ok dot">启用</span></td><td><div class="ops"><button class="btn text" type="button">编辑</button><button class="btn text" type="button" style="color:#C22C1E;">停用</button></div></td>')
+          + t('<td><span class="nm">老陈</span><div class="sub">chen@shanye.com</div></td><td><span class="tag neutral">仓储</span></td><td>待发货订单、发货</td><td style="font-variant-numeric:tabular-nums;">10-28 14:10</td><td><span class="tag neutral dot">已停用</span></td><td><div class="ops"><button class="btn text" type="button">启用</button></div></td>')
+          + '</tbody></table></div>';
+      }
+    },
+
+    /* ---------- 24 操作日志 ---------- */
+    {
+      id:'AD-24', name:'操作日志', group:'店铺', nav:'logs',
+      tags:['P1','AD-14'], keyEl:'时间线式表格',
+      states:['筛选无结果','保留 90 天'],
+      notes:[
+        '日志只记关键写操作：改价、改库存、发货、退款、权限变更。',
+        '三列固定结构（时间 / 操作人 / 动作），便于快速扫读与追责。'
+      ],
+      body: function(){
+        return ph('操作日志','保留最近 90 天','<button class="btn ghost" type="button">导出</button>')
+          + '<div class="panel"><div class="toolbar"><input class="inp" type="search" name="logKw" placeholder="操作人 / 对象" aria-label="搜索日志"><select class="inp" name="logType" aria-label="操作类型"><option>全部类型</option><option>商品</option><option>订单</option><option>售后</option><option>权限</option></select><button class="btn ghost sm" type="button">最近 7 天</button></div>'
+          + '<div>'
+          + '<div class="logrow"><span class="t">11-06 09:41</span><span class="who">王管理员</span><span class="what">审核售后 AS…4021，同意退款 ¥128.00</span></div>'
+          + '<div class="logrow"><span class="t">11-06 09:36</span><span class="who">小林</span><span class="what">修改商品「云南小粒咖啡 日晒」库存：24 → 12</span></div>'
+          + '<div class="logrow"><span class="t">11-06 09:12</span><span class="who">小周</span><span class="what">为订单 SY…0912 添加商家备注</span></div>'
+          + '<div class="logrow"><span class="t">11-05 18:42</span><span class="who">老陈</span><span class="what">发货 SY…0820 · 顺丰速运 SF1234 5678 9012</span></div>'
+          + '<div class="logrow"><span class="t">11-05 15:08</span><span class="who">王管理员</span><span class="what">新建优惠券「全场满 400 减 30」，总量 1 000</span></div>'
+          + '<div class="logrow"><span class="t">11-04 11:20</span><span class="who">王管理员</span><span class="what">停用子账号「老陈」（仓储）</span></div>'
+          + '</div>'
+          + '<div class="pager"><span>共 128 条</span><button type="button" aria-label="上一页" disabled style="opacity:.4">‹</button><button class="on" type="button">1</button><button type="button">2</button><button type="button" aria-label="下一页">›</button></div></div>';
+      }
+    }
+  ];
+
+  /* 09 发货弹窗：基于订单详情 + 弹层 */
+  (function(){
+    var idx = AD.map(function(s){ return s.id; }).indexOf('AD-09');
+    AD[idx].body = function(){
+      var detail = AD.filter(function(s){ return s.id === 'AD-08'; })[0].body();
+      return '<div style="position:relative;min-height:100%;">'
+        + '<div style="filter:blur(.6px);opacity:.66;pointer-events:none;" aria-hidden="true">' + detail + '</div>'
+        + '<div class="modalwrap"><div class="modal" role="dialog" aria-modal="true" aria-labelledby="shipTitle">'
+        + '<div class="mh"><span class="t" id="shipTitle">发货 · 1 件商品</span><button type="button" aria-label="关闭发货弹窗">' + ic('close') + '</button></div>'
+        + '<div class="mb">'
+        + '<div class="field"><label for="exp">物流公司</label><select id="exp" name="express"><option>顺丰速运</option><option>中通快递</option><option>圆通速递</option><option>京东物流</option></select></div>'
+        + '<div class="field"><label for="expNo">运单号</label><input class="inp" id="expNo" name="trackingNo" type="text" value="SF123456789012" autocomplete="off" spellcheck="false"><span class="hint">扫码枪可直接输入，支持大小写字母与数字</span></div>'
+        + '<div class="field" style="margin-bottom:0;"><label for="expNote">发货备注（选填）</label><input class="inp" id="expNote" name="shipNote" type="text" placeholder="例：已加防震填充…" autocomplete="off"></div>'
+        + '<div style="margin-top:14px;padding:10px 12px;background:var(--card-2);border:1px solid var(--line);border-radius:6px;font-size:11px;color:var(--ink-2);line-height:1.7;">本次发货：勐海古树普洱 2019 · 357g 单饼 × 1<br>发货后订单转为「待收货」，买家将收到订阅消息。</div>'
+        + '</div>'
+        + '<div class="mf"><button class="btn ghost" type="button">取消</button><button class="btn primary" type="button">确认发货</button></div>'
+        + '</div></div></div>';
+    };
+  })();
+
+  /* ================= render ================= */
+  var host = document.getElementById('host');
+  var notesEl = document.getElementById('notes');
+  var navEl = document.getElementById('nav');
+
+  function buildNav(){
+    var groups = [];
+    AD.forEach(function(s){ if(groups.indexOf(s.group) < 0) groups.push(s.group); });
+    var h = '';
+    groups.forEach(function(g){
+      h += '<div class="grp">' + g + '</div>';
+      AD.filter(function(s){ return s.group === g; }).forEach(function(s){
+        h += '<button type="button" data-id="' + s.id + '"><span class="id">' + s.id + '</span><span>' + s.name + '</span></button>';
+      });
+    });
+    navEl.innerHTML = h;
+    navEl.addEventListener('click', function(e){
+      var b = e.target.closest('button[data-id]');
+      if(!b) return;
+      select(b.getAttribute('data-id'));
+    });
+  }
+
+  function buildNotes(s){
+    var tags = s.tags.map(function(t){
+      if(t === 'P0') return '<span class="tag brand">P0</span>';
+      if(t === 'P1') return '<span class="tag brand" style="background:#F0EEF8;color:#5B4B8A;">P1</span>';
+      return '<span class="tag neutral">' + t + '</span>';
+    }).join('');
+    var list = s.notes.map(function(n){ return '<li>' + n + '</li>'; }).join('');
+    var states = s.states.map(function(x){ return '<span class="tag neutral">' + x + '</span>'; }).join('');
+    return '<div class="nid">' + s.id + ' · ' + s.group + '</div>'
+      + '<h2>' + s.name + '</h2>'
+      + '<div class="meta">' + tags + '</div>'
+      + '<div class="sec">设计要点</div><ul>' + list + '</ul>'
+      + '<div class="sec">必须覆盖的状态</div><div class="states">' + states + '</div>'
+      + '<div class="sec">规格</div><dl class="kv"><dt>主导元素</dt><dd>' + s.keyEl + '</dd>'
+      + '<dt>画布</dt><dd>' + (s.bare ? '1280 × 772 登录页' : '1280 × 772（侧栏 196）') + '</dd>'
+      + '<dt>密度</dt><dd>表格 12.5px · 行高 44 · 数字右对齐</dd>'
+      + '<dt>强调色</dt><dd>正红仅用于主按钮与激活项</dd></dl>';
+  }
+
+  function select(id, first){
+    var s = AD.filter(function(x){ return x.id === id; })[0] || AD[0];
+    var markup = s.bare ? s.body() : shell(s.nav, s.body());
+    var tmp = document.createElement('div');
+    tmp.innerHTML = markup;
+    var node = tmp.firstChild;
+    var old = host.firstChild;
+    if(old && !first){
+      node.classList.add('swap');
+      host.appendChild(node);
+      requestAnimationFrame(function(){ requestAnimationFrame(function(){ node.classList.remove('swap'); }); });
+      setTimeout(function(){ if(old && old.parentNode) old.parentNode.removeChild(old); }, 200);
+    } else {
+      host.innerHTML = '';
+      host.appendChild(node);
+    }
+    notesEl.innerHTML = buildNotes(s);
+    Array.prototype.forEach.call(navEl.querySelectorAll('button'), function(b){
+      b.setAttribute('aria-current', b.getAttribute('data-id') === s.id ? 'true' : 'false');
+    });
+    document.title = '山野商城 · ' + s.name + '（' + s.id + '）· 后台设计稿';
+  }
+
+  buildNav();
+  select('AD-02', true);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#FFFFFF">
+<title>山野商城 · 工程契约 v1.0</title>
+<style>
+  :root{
+    --paper:#FFFFFF; --surface-2:#FAFAF9; --tint:#F6F6F4;
+    --ink:#16181A; --ink-2:#55585C; --ink-3:#8E9399;
+    --line:#EBEBE8; --line-2:#DEDEDA;
+    --brand:#E2231A; --brand-2:#C21B14; --brand-soft:#FDEDEB;
+    --ok:#1F7A4C; --warn:#A9691A; --danger:#C22C1E;
+    --mono:"SFMono-Regular",Menlo,Consolas,monospace;
+    --serif:"Songti SC","Noto Serif SC",Georgia,serif;
+    --sans:"PingFang SC",-apple-system,BlinkMacSystemFont,"Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    --ease:cubic-bezier(.2,.7,.3,1);
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{margin:0;background:#fff;color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.7;-webkit-font-smoothing:antialiased;}
+
+  .shell{display:flex;align-items:flex-start;min-height:100vh;}
+  aside.rail{width:224px;flex:0 0 224px;position:sticky;top:0;height:100vh;overflow-y:auto;padding:28px 18px 44px;border-right:1px solid var(--line);background:var(--surface-2);}
+  .bm{display:flex;align-items:center;gap:9px;margin-bottom:20px;}
+  .bm .sq{width:26px;height:26px;border-radius:50%;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-size:14px;}
+  .bm .t{font-family:var(--serif);font-size:14px;letter-spacing:.06em;}
+  .bm .s{font-size:10.5px;color:var(--ink-3);}
+  nav a{display:block;font-size:12px;color:var(--ink-3);text-decoration:none;padding:6px 9px;border-radius:7px;transition:background-color 160ms var(--ease),color 160ms var(--ease);}
+  nav a:hover{background:var(--brand-soft);color:var(--brand);}
+  nav a:focus-visible{outline:2px solid var(--brand);outline-offset:2px;}
+  .railfoot{margin-top:24px;padding-top:14px;border-top:1px solid var(--line);font-size:11px;color:var(--ink-3);line-height:1.8;}
+  .railfoot code{font-size:10px;}
+
+  main{flex:1;min-width:0;padding:50px 50px 110px;max-width:1000px;}
+  .head{padding-bottom:26px;margin-bottom:38px;border-bottom:1px solid var(--line);}
+  .kicker{font-size:10.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--brand);font-weight:700;margin-bottom:14px;}
+  h1{font-family:var(--serif);font-size:34px;line-height:1.25;font-weight:600;margin:0 0 14px;letter-spacing:-.01em;text-wrap:balance;}
+  .lede{font-size:14.5px;color:var(--ink-2);max-width:68ch;margin:0 0 18px;}
+  .meta{display:flex;flex-wrap:wrap;gap:8px;}
+  .pill{font-size:11px;padding:3px 10px;border-radius:999px;border:1px solid var(--line-2);color:var(--ink-3);background:#fff;}
+  .pill b{color:var(--ink);font-weight:600;}
+
+  section{margin-bottom:48px;scroll-margin-top:20px;}
+  h2{font-size:20px;font-weight:700;margin:0 0 8px;display:flex;gap:10px;align-items:baseline;}
+  h2 .n{font-family:var(--mono);font-size:11px;color:var(--brand);letter-spacing:.08em;font-weight:500;}
+  .sub{font-size:12.5px;color:var(--ink-3);margin:0 0 20px;padding-bottom:13px;border-bottom:1px solid var(--line);}
+  h3{font-size:14px;font-weight:700;margin:26px 0 10px;}
+  p{margin:0 0 12px;}
+  ul,ol{margin:0 0 14px;padding-left:22px;}
+  li{margin-bottom:6px;}
+  code{font-family:var(--mono);font-size:11.5px;background:var(--tint);padding:1px 5px;border-radius:4px;color:#3A3E42;}
+
+  .tw{overflow-x:auto;margin:12px 0 18px;border:1px solid var(--line);border-radius:10px;background:#fff;}
+  table{width:100%;border-collapse:collapse;font-size:12.5px;}
+  th{text-align:left;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);font-weight:600;background:var(--surface-2);padding:9px 12px;border-bottom:1px solid var(--line-2);white-space:nowrap;}
+  td{padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top;color:var(--ink-2);}
+  td:first-child{color:var(--ink);font-weight:600;}
+  tr:last-child td{border-bottom:0;}
+  td.mn{font-family:var(--mono);font-size:11px;font-weight:400;}
+
+  .rule{border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin-bottom:12px;background:#fff;}
+  .rule .rt{display:flex;align-items:baseline;gap:9px;margin-bottom:8px;}
+  .rule .no{font-family:var(--mono);font-size:10.5px;color:#fff;background:var(--brand);border-radius:4px;padding:2px 7px;letter-spacing:.04em;}
+  .rule .nm{font-size:14px;font-weight:700;}
+  .rule .why{font-size:12px;color:var(--ink-2);margin-bottom:10px;line-height:1.65;}
+  .rule .chk{display:flex;flex-wrap:wrap;gap:6px;}
+  .badge{font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:999px;background:var(--tint);color:var(--ink-3);}
+  .badge.ci{background:var(--brand-soft);color:var(--brand);}
+
+  .codebox{border:1px solid var(--line);border-radius:10px;background:#FCFCFB;overflow:hidden;margin:12px 0;}
+  .codebox .bar{display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--line);background:var(--surface-2);font-size:10.5px;color:var(--ink-3);font-family:var(--mono);}
+  .codebox pre{margin:0;padding:13px 15px;overflow-x:auto;font-family:var(--mono);font-size:11.5px;line-height:1.75;color:#2B2F33;}
+  .codebox pre .c{color:#8E9399;}
+  .codebox pre .k{color:var(--brand);}
+  .codebox pre .s{color:#1F7A4C;}
+
+  .note{border-left:2px solid var(--brand);background:var(--surface-2);padding:12px 16px;margin:14px 0;font-size:12.5px;color:var(--ink-2);border-radius:0 8px 8px 0;}
+  .note b{color:var(--ink);}
+  .warnbox{border:1px solid #F0DCC8;background:#FDF8F2;padding:12px 16px;border-radius:10px;font-size:12.5px;color:#7C4A0A;margin:14px 0;}
+
+  .checks{list-style:none;padding:0;margin:12px 0;}
+  .checks li{position:relative;padding:9px 0 9px 30px;border-bottom:1px solid var(--line);font-size:12.5px;color:var(--ink-2);}
+  .checks li::before{content:"";position:absolute;left:0;top:14px;width:15px;height:15px;border-radius:3px;border:1px solid var(--line-2);}
+  .checks li b{color:var(--ink);}
+
+  .files{display:grid;gap:8px;margin:12px 0 18px;}
+  .file{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:12px;background:#fff;}
+  .file .p{font-family:var(--mono);font-size:11px;color:var(--ink);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .file .d{font-size:10.5px;color:var(--ink-3);white-space:nowrap;}
+
+  footer{margin-top:50px;padding-top:18px;border-top:1px solid var(--line);font-size:11.5px;color:var(--ink-3);}
+
+  @media(max-width:980px){aside.rail{display:none;}main{padding:32px 20px 70px;}h1{font-size:26px;}}
+  @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto;}*{transition-duration:.01ms !important;}}
+</style>
+</head>
+<body>
+<div class="shell">
+<aside class="rail">
+  <div class="bm">
+    <span class="sq" aria-hidden="true">山</span>
+    <div><div class="t">工程契约</div><div class="s">v1.0 · 可执行</div></div>
+  </div>
+  <nav aria-label="工程契约目录">
+    <a href="#s1">01 · 执行原则</a>
+    <a href="#s2">02 · 六条硬规则</a>
+    <a href="#s3">03 · 优先级与变更</a>
+    <a href="#s4">04 · 完成定义 DoD</a>
+    <a href="#s5">05 · 自动化载体</a>
+    <a href="#s6">06 · 明确不做</a>
+    <a href="#s7">07 · 落地清单</a>
+  </nav>
+  <div class="railfoot">
+    关联文档
+    <a href="../B2C商城-需求调研与产品设计.html">PRD v0.2</a>
+    <a href="../tech/B2C商城-技术方案.html">技术方案 v1.0</a>
+    <a href="../ui/design-system.html">设计规范 v1.2</a>
+  </div>
+</aside>
+
+<main>
+<header class="head">
+  <div class="kicker">Engineering Contract · v1.0</div>
+  <h1>能被 CI 拦住的才叫契约。</h1>
+  <p class="lede">
+    本契约只写两类内容：会直接造成返工或事故的规则，以及每条规则的检查点。全文两页以内，随代码一起演进；无法自动检查的条款不写进来。
+  </p>
+  <div class="meta">
+    <span class="pill">适用 <b>apps/api · miniapp · admin</b></span>
+    <span class="pill">生效 <b>M0 起</b></span>
+    <span class="pill">变更 <b>PR + 声明</b></span>
+  </div>
+</header>
+
+<!-- ============ 1 ============ -->
+<section id="s1">
+  <h2><span class="n">01</span>执行原则</h2>
+  <p class="sub">三条原则决定这份文档的形态，也决定它不会变成废纸。</p>
+  <ul>
+    <li><strong>少而硬。</strong>只保留会引发返工、资损或安全事故的条款。风格问题交给 Prettier/ESLint，不进契约。</li>
+    <li><strong>每条都有检查点。</strong>要么 CI 拦截，要么评审清单强制勾选；纯口头约定不写。</li>
+    <li><strong>文档随代码走。</strong>契约变更与代码变更在同一个 PR 内完成，不允许「先改代码后补文档」。</li>
+  </ul>
+  <div class="note">
+    <b>判断方法：</b>如果一条规则无法回答「违反了会怎样被拦住」，就删掉它。这比多写十条更有价值。
+  </div>
+</section>
+
+<!-- ============ 2 ============ -->
+<section id="s2">
+  <h2><span class="n">02</span>六条硬规则</h2>
+  <p class="sub">每条都附检查点。CI 列为自动化，评审列为 PR 模板勾选项。</p>
+
+  <div class="rule">
+    <div class="rt"><span class="no">R1</span><span class="nm">事实来源与冲突优先级</span></div>
+    <div class="why">业务规则以 PRD 为准，实现方式以技术方案为准，视觉以设计规范为准。冲突时按 <code>PRD &gt; 技术方案 &gt; 设计规范 &gt; 代码</code> 处理，代码不是事实来源。</div>
+    <div class="chk"><span class="badge">评审：PR 模板声明</span><span class="badge">文档：变更记录</span></div>
+  </div>
+
+  <div class="rule">
+    <div class="rt"><span class="no">R2</span><span class="nm">接口契约单点定义</span></div>
+    <div class="why">接口以仓库根目录 <code>openapi.yaml</code> 为唯一来源。前端类型与请求方法由 codegen 生成，禁止手写重复 DTO；破坏性变更必须新增版本号，不允许悄悄改字段语义。</div>
+    <div class="chk"><span class="badge ci">CI：契约测试</span><span class="badge ci">CI：codegen 后 diff 为空</span><span class="badge">评审</span></div>
+  </div>
+
+  <div class="rule">
+    <div class="rt"><span class="no">R3</span><span class="nm">数据契约</span></div>
+    <div class="why">金额一律整数分，字段以 <code>_cents</code> 结尾；时间一律 <code>timestamptz</code>，接口输出 ISO 8601；迁移只增不毁（加字段 → 回填 → 弃用），禁止在同一次发布中删列或改类型。</div>
+    <div class="chk"><span class="badge ci">CI：迁移 lint</span><span class="badge">评审：schema diff</span></div>
+  </div>
+
+  <div class="rule">
+    <div class="rt"><span class="no">R4</span><span class="nm">规则单一实现</span></div>
+    <div class="why">金额计算与订单/售后状态机只允许存在于 <code>packages/shared</code>。Controller、页面、组件中不得复制判断逻辑（例如自己写「满 99 包邮」）。</div>
+    <div class="chk"><span class="badge ci">CI：覆盖率门槛 90%</span><span class="badge ci">CI：禁止跨层 import</span></div>
+  </div>
+
+  <div class="rule">
+    <div class="rt"><span class="no">R5</span><span class="nm">视觉只认 token</span></div>
+    <div class="why">颜色、字号、间距只能引用 <code>packages/tokens</code>。源码中禁止出现裸色值（<code>#E2231A</code>）与魔法字号（<code>font-size:13px</code>）。新增组件必须先在组件清单登记。</div>
+    <div class="chk"><span class="badge ci">CI：ESLint 规则</span><span class="badge">评审：组件清单</span></div>
+  </div>
+
+  <div class="rule">
+    <div class="rt"><span class="no">R6</span><span class="nm">完成定义（DoD）</span></div>
+    <div class="why">一张卡只有满足五项才算完成：四态覆盖、契约测试、可观测日志、无遗留 TODO、契约同步。未达标的卡不进验收。</div>
+    <div class="chk"><span class="badge">评审：PR 模板五项勾选</span><span class="badge ci">CI：TODO 扫描</span></div>
+  </div>
+</section>
+
+<!-- ============ 3 ============ -->
+<section id="s3">
+  <h2><span class="n">03</span>优先级与变更</h2>
+  <p class="sub">冲突时按固定顺序裁决，变更走固定路径，避免「谁声音大听谁的」。</p>
+
+  <div class="tw">
+    <table>
+      <thead><tr><th style="width:150px">层级</th><th>文档</th><th style="width:220px">改动需要</th></tr></thead>
+      <tbody>
+        <tr><td>1 业务规则</td><td>PRD v0.2</td><td>产品确认 + 变更记录（影响金额/状态必须重跑用例）</td></tr>
+        <tr><td>2 实现方案</td><td>技术方案 v1.0</td><td>技术评审；涉及接口需同步 <code>openapi.yaml</code></td></tr>
+        <tr><td>3 视觉语言</td><td>设计规范 v1.2</td><td>设计确认；涉及 token 需同步 <code>packages/tokens</code></td></tr>
+        <tr><td>4 代码实现</td><td>仓库</td><td>不得单方面改变以上三层</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>变更路径</h3>
+  <ul>
+    <li><strong>小改动</strong>（字段说明、文案、组件内部实现）：直接进 PR，在 PR 模板勾选「契约变更：是」并写一句影响范围。</li>
+    <li><strong>大改动</strong>（金额口径、状态机、接口破坏性变更、权限矩阵）：先写一页 RFC 落到 <code>docs/rfc/</code>，评审通过后再改代码。</li>
+    <li><strong>紧急修复</strong>：允许先合并后补文档，但必须在 24 小时内补 PR，否则 CI 阻断下一次合并。</li>
+  </ul>
+</section>
+
+<!-- ============ 4 ============ -->
+<section id="s4">
+  <h2><span class="n">04</span>完成定义 DoD</h2>
+  <p class="sub">五项全勾才算完成，少一项就是「看起来做完了」。</p>
+
+  <ul class="checks">
+    <li><b>四态覆盖。</b>空、错、载、禁四种状态都有实现，不只是理想态；空态有出口按钮，错误态写清下一步。</li>
+    <li><b>契约测试。</b>新增或修改的接口，响应结构能被 <code>openapi.yaml</code> 校验通过；金额与状态相关逻辑有单测。</li>
+    <li><b>可观测。</b>请求带 <code>requestId</code>，关键写操作日志含订单号/商品 id/操作人，异常有明确错误码。</li>
+    <li><b>无遗留。</b>不提交 <code>TODO</code>、<code>FIXME</code>、被注释掉的代码块；临时开关必须写清理条件。</li>
+    <li><b>契约同步。</b>涉及接口、表结构、token 的改动，同一 PR 内更新对应文档。</li>
+  </ul>
+
+  <div class="warnbox">
+    <b>验收口径：</b>看勾选，不看口头说明。评审人只需检查这五项与 CI 结果，不重复判断风格问题。
+  </div>
+</section>
+
+<!-- ============ 5 ============ -->
+<section id="s5">
+  <h2><span class="n">05</span>自动化载体</h2>
+  <p class="sub">文档只是索引，真正生效的是这几份文件。</p>
+
+  <h3>CI 流水线（合并前必过）</h3>
+  <div class="tw">
+    <table>
+      <thead><tr><th style="width:70px">阶段</th><th style="width:230px">命令</th><th>拦截什么</th></tr></thead>
+      <tbody>
+        <tr><td>1 lint</td><td class="mn">pnpm lint</td><td>裸色值、魔法字号、跨层 import、未使用变量</td></tr>
+        <tr><td>2 typecheck</td><td class="mn">pnpm typecheck</td><td>契约类型漂移（前端与 openapi 不一致）</td></tr>
+        <tr><td>3 unit</td><td class="mn">pnpm test --coverage</td><td>金额矩阵、状态机覆盖率低于 90%</td></tr>
+        <tr><td>4 contract</td><td class="mn">pnpm test:contract</td><td>接口响应与 openapi.yaml 不符</td></tr>
+        <tr><td>5 codegen</td><td class="mn">pnpm codegen &amp;&amp; git diff --exit-code</td><td>改了契约却没重新生成类型</td></tr>
+        <tr><td>6 build</td><td class="mn">pnpm build:all</td><td>小程序与后台构建失败</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>ESLint 契约规则（节选）</h3>
+  <div class="codebox">
+    <div class="bar">eslint.config.mjs</div>
+<pre><span class="k">export default</span> [{
+  rules: {
+    <span class="s">'no-restricted-syntax'</span>: [<span class="s">'error'</span>,
+      { selector: <span class="s">"Literal[value=/^#(?:[0-9a-fA-F]{3,8})$|^rgba?\\\\(/]"</span>,
+        message: <span class="s">'禁止裸色值，请使用 packages/tokens'</span> },
+      { selector: <span class="s">"Property[key.name='fontSize'] > Literal[value=/^\\\\d+px$/]"</span>,
+        message: <span class="s">'禁止魔法字号，请使用 token 字阶'</span> },
+      { selector: <span class="s">"CallExpression[callee.name='$queryRaw']"</span>,
+        message: <span class="s">'原生查询仅允许在 repository 层'</span> }
+    ],
+    <span class="s">'no-restricted-imports'</span>: [<span class="s">'error'</span>, {
+      patterns: [{ group: [<span class="s">'@prisma/client'</span>],
+        message: <span class="s">'仅 repository 层可直接使用 Prisma'</span> }]
+    }]
+  }
+}];</pre>
+  </div>
+
+  <h3>契约测试（节选）</h3>
+  <div class="codebox">
+    <div class="bar">apps/api/test/contract/order.spec.ts</div>
+<pre><span class="k">import</span> request <span class="k">from</span> <span class="s">'supertest'</span>;
+<span class="k">import</span> { OpenApiResponseValidator } <span class="k">from</span> <span class="s">'openapi-response-validator'</span>;
+<span class="k">import</span> spec <span class="k">from</span> <span class="s">'../../../../openapi.yaml'</span>;
+
+<span class="k">const</span> validator = <span class="k">new</span> OpenApiResponseValidator({
+  responses: spec.paths[<span class="s">'/orders'</span>].post.responses,
+  components: spec.components,
+});
+
+it(<span class="s">'POST /orders 必须返回契约字段'</span>, <span class="k">async</span> () =&gt; {
+  <span class="k">const</span> res = <span class="k">await</span> request(app.getHttpServer())
+    .post(<span class="s">'/api/orders'</span>).set(<span class="s">'Idempotency-Key'</span>, <span class="s">'k-001'</span>)
+    .send({ addressId: <span class="s">'addr_1024'</span>, items: [{ skuId: <span class="s">'sku_1001'</span>, quantity: 1 }] })
+    .expect(201);
+
+  <span class="k">const</span> errors = validator.validateResponse(201, res.body);
+  <span class="k">if</span> (errors) <span class="k">throw new</span> Error(JSON.stringify(errors));
+
+  expect(res.body.amount.payableCents).toBe(
+    res.body.amount.goodsCents - res.body.amount.memberDiscountCents
+    - res.body.amount.couponCents + res.body.amount.freightCents
+  );
+});</pre>
+  </div>
+
+  <h3>评审与归属</h3>
+  <div class="tw">
+    <table>
+      <thead><tr><th style="width:200px">文件</th><th>作用</th><th style="width:190px">谁必须审</th></tr></thead>
+      <tbody>
+        <tr><td class="mn">.github/pull_request_template.md</td><td>DoD 五项勾选 + 契约变更声明</td><td>所有人</td></tr>
+        <tr><td class="mn">.github/workflows/ci.yml</td><td>六阶段门禁</td><td>技术负责人</td></tr>
+        <tr><td class="mn">CODEOWNERS</td><td><code>packages/shared</code>、<code>openapi.yaml</code>、<code>packages/tokens</code>、<code>prisma/migrations</code> 强制指定审阅</td><td>技术负责人</td></tr>
+        <tr><td class="mn">eslint.config.mjs</td><td>R2/R4/R5 的静态拦截</td><td>技术负责人</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ============ 6 ============ -->
+<section id="s6">
+  <h2><span class="n">06</span>明确不做</h2>
+  <p class="sub">划清边界，避免契约膨胀成治理体系。</p>
+  <ul>
+    <li>不规定缩进、引号、命名大小写——交给 Prettier 与既有 ESLint 预设。</li>
+    <li>不做字段级权限配置——四个角色足够，权限写在接口守卫里。</li>
+    <li>不画架构图——技术方案已有，重复维护必然过期。</li>
+    <li>不写运维手册——上线前单独成文，避免混在工程契约里。</li>
+    <li>不设提交信息模板的强制校验——Conventional Commits 作为建议，不作为门禁。</li>
+  </ul>
+</section>
+
+<!-- ============ 7 ============ -->
+<section id="s7">
+  <h2><span class="n">07</span>落地清单</h2>
+  <p class="sub">文件已生成在 <code>docs/engineering/artifacts/</code>，按右列复制到仓库对应位置即可生效。</p>
+
+  <div class="files">
+    <div class="file"><span class="p">docs/engineering/工程契约.html</span><span class="d">本文档</span></div>
+    <div class="file"><span class="p">artifacts/pull_request_template.md</span><span class="d">→ .github/</span></div>
+    <div class="file"><span class="p">artifacts/github-actions-ci.yml</span><span class="d">→ .github/workflows/ci.yml</span></div>
+    <div class="file"><span class="p">artifacts/eslint.contract.mjs</span><span class="d">→ 合并进 eslint.config.mjs</span></div>
+    <div class="file"><span class="p">artifacts/contract-test.spec.ts</span><span class="d">→ apps/api/test/contract/</span></div>
+    <div class="file"><span class="p">artifacts/openapi.yaml</span><span class="d">→ 仓库根目录</span></div>
+  </div>
+
+  <div class="note">
+    <b>生效顺序：</b>M0 第一步就把 CI 与 ESLint 接上，再写第一行业务代码。契约晚于代码，等于默认允许例外。
+  </div>
+
+  <div class="warnbox">
+    <b>已知取舍：</b>契约测试需要 API 可启动（连测试库）。若暂时没有数据库环境，先只跑金额与状态机的单测门槛，契约测试在 M1 接库后补齐——但不要删除该阶段，只做临时注释并记录清理条件。
+  </div>
+</section>
+
+<footer>
+  山野商城 · 工程契约 v1.0 · 2026-11-06 · 与 PRD v0.2 / 技术方案 v1.0 / 设计规范 v1.2 同步生效
+</footer>
+</main>
+</div>
+
+<script>
+(function(){
+  var links = Array.prototype.slice.call(document.querySelectorAll('.rail nav a'));
+  var map = {};
+  links.forEach(function(a){
+    var el = document.getElementById(a.getAttribute('href').slice(1));
+    if(el) map[a.getAttribute('href').slice(1)] = a;
+  });
+  if(!('IntersectionObserver' in window)) return;
+  var obs = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if(e.isIntersecting){
+        links.forEach(function(a){ a.classList.remove('on'); });
+        if(map[e.target.id]) map[e.target.id].classList.add('on');
+      }
+    });
+  }, { rootMargin: '-8% 0px -76% 0px', threshold: 0 });
+  Object.keys(map).forEach(function(id){ obs.observe(document.getElementById(id)); });
+})();
+</script>
+</body>
+</html>
