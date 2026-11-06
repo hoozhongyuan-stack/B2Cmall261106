@@ -761,12 +761,14 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 后台订单列表（含各状态数量） */
+        /** 后台订单列表（含各状态数量，分页） */
         get: {
             parameters: {
                 query?: {
                     status?: string;
                     keyword?: string;
+                    page?: number;
+                    pageSize?: number;
                 };
                 header?: never;
                 path?: never;
@@ -1082,11 +1084,13 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 售后列表（含各状态数量） */
+        /** 售后列表（含各状态数量，分页） */
         get: {
             parameters: {
                 query?: {
                     status?: string;
+                    page?: number;
+                    pageSize?: number;
                 };
                 header?: never;
                 path?: never;
@@ -1820,12 +1824,14 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 客户列表：消费统计、等级与积分 */
+        /** 客户列表：消费统计、等级与积分（分页） */
         get: {
             parameters: {
                 query?: {
                     keyword?: string;
                     levelId?: string;
+                    page?: number;
+                    pageSize?: number;
                 };
                 header?: never;
                 path?: never;
@@ -2104,11 +2110,13 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 评价列表（含各状态数量） */
+        /** 评价列表（含各状态数量，分页） */
         get: {
             parameters: {
                 query?: {
                     status?: "PENDING" | "SHOWN" | "HIDDEN";
+                    page?: number;
+                    pageSize?: number;
                 };
                 header?: never;
                 path?: never;

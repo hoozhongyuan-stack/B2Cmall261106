@@ -11,6 +11,7 @@
     "build:api": "pnpm --filter @shanye/api build",
     "build:web": "pnpm --filter @shanye/admin build && pnpm --filter @shanye/miniapp build:h5",
     "codegen:api": "openapi-typescript openapi.yaml -o packages/api-types/src/schema.d.ts",
+    "db:demo-reset": "pnpm --filter @shanye/api db:demo-reset",
     "prepare:types": "pnpm --filter @shanye/shared build && pnpm --filter @shanye/api exec prisma generate && pnpm codegen:api",
     "verify": "pnpm prepare:types && pnpm lint && pnpm typecheck && pnpm test:coverage && pnpm build:api && pnpm test:contract && pnpm build:web"
   },

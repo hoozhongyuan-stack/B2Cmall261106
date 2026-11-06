@@ -9,6 +9,7 @@ import {
   Card,
   DataTable,
   PageHeader,
+  Pagination,
   Tabs,
   Tag,
   Toolbar,
@@ -38,6 +39,9 @@ interface OrderRow {
 interface OrderListResult {
   tabs: { status: string; count: number }[];
   items: OrderRow[];
+  total: number;
+  page: number;
+  pageSize: number;
 }
 
 const STATUS_ORDER: OrderStatus[] = [
@@ -76,8 +80,16 @@ export default function Orders() {
   const [status, setStatus] = useState(searchParams.get('status') ?? '');
   const [keyword, setKeyword] = useState('');
   const [appliedKeyword, setAppliedKeyword] = useState('');
-  const [data, setData] = useState<OrderListResult>({ tabs: [], items: [] });
+  const [data, setData] = useState<OrderListResult>({
+    tabs: [],
+    items: [],
+    total: 0,
+    page: 1,
+    pageSize: 20,
+  });
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 20;
 
   useEffect(() => {
     let alive = true;
@@ -85,7 +97,7 @@ export default function Orders() {
       setLoading(true);
       try {
         const result = await api<OrderListResult>('/admin/orders', {
-          query: { status, keyword: appliedKeyword },
+          query: { status, keyword: appliedKeyword, page, pageSize: PAGE_SIZE },
         });
         if (alive) setData(result);
       } catch (err) {
@@ -98,16 +110,18 @@ export default function Orders() {
     return () => {
       alive = false;
     };
-  }, [status, appliedKeyword]);
+  }, [status, appliedKeyword, page]);
 
   function changeStatus(next: string) {
     setStatus(next);
+    setPage(1);
     setSearchParams(next ? { status: next } : {});
   }
 
   function handleSearch(event: FormEvent) {
     event.preventDefault();
     setAppliedKeyword(keyword.trim());
+    setPage(1);
   }
 
   const countMap = new Map(data.tabs.map((tab) => [tab.status, tab.count]));
@@ -227,6 +241,12 @@ export default function Orders() {
           loading={loading}
           empty="当前筛选下暂无订单"
           onRowClick={(row) => navigate(`/orders/${row.id}`)}
+        />
+        <Pagination
+          page={page}
+          total={data.total ?? data.items.length}
+          pageSize={PAGE_SIZE}
+          onChange={setPage}
         />
       </Card>
     </>

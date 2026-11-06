@@ -10,6 +10,7 @@ import {
   Field,
   Modal,
   PageHeader,
+  Pagination,
   Tabs,
   Tag,
   type Column,
@@ -32,6 +33,9 @@ interface ReviewRow {
 interface ReviewResult {
   counts: { status: string; count: number }[];
   items: ReviewRow[];
+  total: number;
+  page: number;
+  pageSize: number;
 }
 
 const STATUS_LABEL: Record<string, string> = {
@@ -54,16 +58,26 @@ function errorText(err: unknown): string {
 export default function Reviews() {
   const canModerate = hasRole('SUPER', 'CS');
   const [status, setStatus] = useState('');
-  const [data, setData] = useState<ReviewResult>({ counts: [], items: [] });
+  const [data, setData] = useState<ReviewResult>({
+    counts: [],
+    items: [],
+    total: 0,
+    page: 1,
+    pageSize: 20,
+  });
   const [loading, setLoading] = useState(true);
   const [replyTarget, setReplyTarget] = useState<ReviewRow | null>(null);
   const [replyContent, setReplyContent] = useState('');
   const [saving, setSaving] = useState(false);
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 20;
 
   async function load() {
     setLoading(true);
     try {
-      const result = await api<ReviewResult>('/admin/reviews', { query: { status } });
+      const result = await api<ReviewResult>('/admin/reviews', {
+        query: { status, page, pageSize: PAGE_SIZE },
+      });
       setData(result);
     } catch (err) {
       toast(errorText(err), 'error');
@@ -74,7 +88,7 @@ export default function Reviews() {
 
   useEffect(() => {
     void load();
-  }, [status]);
+  }, [status, page]);
 
   async function moderate(row: ReviewRow, action: 'show' | 'hide') {
     try {
@@ -231,8 +245,21 @@ export default function Reviews() {
       <PageHeader title="评价管理" desc="先审后显：待审核评价通过后才会展示给买家" />
 
       <Card>
-        <Tabs items={tabs} value={status} onChange={setStatus} />
+        <Tabs
+          items={tabs}
+          value={status}
+          onChange={(next) => {
+            setStatus(next);
+            setPage(1);
+          }}
+        />
         <DataTable columns={columns} rows={data.items} loading={loading} empty="当前筛选下暂无评价" />
+        <Pagination
+          page={page}
+          total={data.total ?? data.items.length}
+          pageSize={PAGE_SIZE}
+          onChange={setPage}
+        />
       </Card>
 
       <Modal

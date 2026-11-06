@@ -11,6 +11,7 @@ import {
   Card,
   DataTable,
   PageHeader,
+  Pagination,
   Tabs,
   Tag,
   type Column,
@@ -30,6 +31,9 @@ interface AfterSaleItem {
 interface AfterSaleResult {
   tabs: { status: string; count: number }[];
   items: AfterSaleItem[];
+  total: number;
+  page: number;
+  pageSize: number;
 }
 
 const STATUS_ORDER: AfterSaleStatus[] = [
@@ -70,8 +74,16 @@ function errorText(err: unknown): string {
 export default function AfterSales() {
   const navigate = useNavigate();
   const [status, setStatus] = useState('');
-  const [data, setData] = useState<AfterSaleResult>({ tabs: [], items: [] });
+  const [data, setData] = useState<AfterSaleResult>({
+    tabs: [],
+    items: [],
+    total: 0,
+    page: 1,
+    pageSize: 20,
+  });
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 20;
 
   useEffect(() => {
     let alive = true;
@@ -79,7 +91,7 @@ export default function AfterSales() {
       setLoading(true);
       try {
         const result = await api<AfterSaleResult>('/admin/after-sales', {
-          query: { status },
+          query: { status, page, pageSize: PAGE_SIZE },
         });
         if (alive) setData(result);
       } catch (err) {
@@ -92,7 +104,7 @@ export default function AfterSales() {
     return () => {
       alive = false;
     };
-  }, [status]);
+  }, [status, page]);
 
   const countMap = new Map(data.tabs.map((tab) => [tab.status, tab.count]));
   const total = data.tabs.reduce((sum, tab) => sum + tab.count, 0);
@@ -163,13 +175,26 @@ export default function AfterSales() {
       <PageHeader title="售后管理" desc="审核仅退款 / 退货退款，确认收货后自动发起退款" />
 
       <Card>
-        <Tabs items={tabs} value={status} onChange={setStatus} />
+        <Tabs
+          items={tabs}
+          value={status}
+          onChange={(next) => {
+            setStatus(next);
+            setPage(1);
+          }}
+        />
         <DataTable
           columns={columns}
           rows={data.items}
           loading={loading}
           empty="当前筛选下暂无售后单"
           onRowClick={(row) => navigate(`/after-sales/${row.id}`)}
+        />
+        <Pagination
+          page={page}
+          total={data.total ?? data.items.length}
+          pageSize={PAGE_SIZE}
+          onChange={setPage}
         />
       </Card>
     </>

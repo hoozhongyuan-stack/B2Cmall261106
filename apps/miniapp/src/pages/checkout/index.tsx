@@ -225,15 +225,19 @@ export default function Page() {
           </Text>
         </View>
         <View className="checkout-row">
-          <Text className="small">运费</Text>
-          <Text className="muted small">
+          <View className="col">
+            <Text className="small">运费</Text>
+            <Text className="muted tiny">
+              {preview.amount.freightCents === 0
+                ? `已满 ${money(preview.freight.freeThresholdCents)} 免运费`
+                : `满 ${money(preview.freight.freeThresholdCents)} 免运费`}
+              {preview.freight.exceptionRegion ? '；当前地区按例外运费计算' : ''}
+            </Text>
+          </View>
+          <Text className="small">
             {preview.amount.freightCents === 0 ? '包邮' : money(preview.amount.freightCents)}
           </Text>
         </View>
-        <Text className="muted tiny">
-          满 {money(preview.freight.freeThresholdCents)} 包邮
-          {preview.freight.exceptionRegion ? '（当前地区按例外运费计算）' : ''}
-        </Text>
       </View>
 
       <View className="card">

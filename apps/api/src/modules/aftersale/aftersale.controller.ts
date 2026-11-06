@@ -97,14 +97,18 @@ export class AdminAfterSaleController {
   constructor(private readonly service: AfterSaleService) {}
 
   @Get()
-  @Roles('SUPER', 'CS', 'WMS')
-  @ApiOperation({ summary: '售后列表（含各状态数量）' })
-  list(@Query('status') status?: string) {
-    return this.service.listAdmin(status);
+  @Roles('SUPER', 'OPS', 'CS', 'WMS')
+  @ApiOperation({ summary: '售后列表（含各状态数量，分页）' })
+  list(
+    @Query('status') status?: string,
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
+  ) {
+    return this.service.listAdmin(status, Number(page) || 1, Number(pageSize) || 20);
   }
 
   @Get(':id')
-  @Roles('SUPER', 'CS', 'WMS')
+  @Roles('SUPER', 'OPS', 'CS', 'WMS')
   @ApiOperation({ summary: '售后详情' })
   detail(@Param('id') id: string) {
     return this.service.detailAdmin(id);

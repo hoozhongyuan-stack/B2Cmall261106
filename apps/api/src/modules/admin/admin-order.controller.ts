@@ -37,32 +37,44 @@ export class AdminOrderController {
 
   @Get()
   @Roles('SUPER', 'OPS', 'CS', 'WMS')
-  @ApiOperation({ summary: '订单列表：按状态筛选与关键词搜索' })
-  async list(@Query('status') status?: string, @Query('keyword') keyword?: string) {
-    const orders = await this.prisma.order.findMany({
-      where: {
-        ...(status ? { status: status as never } : {}),
-        ...(keyword
-          ? {
-              OR: [
-                { orderNo: { contains: keyword, mode: 'insensitive' } },
-                { user: { nickname: { contains: keyword, mode: 'insensitive' } } },
-              ],
-            }
-          : {}),
-      },
-      orderBy: { createdAt: 'desc' },
-      include: { items: true, user: true },
-      take: 50,
-    });
+  @ApiOperation({ summary: '订单列表：按状态筛选与关键词搜索，分页返回' })
+  async list(
+    @Query('status') status?: string,
+    @Query('keyword') keyword?: string,
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
+  ) {
+    const currentPage = Math.max(Number(page) || 1, 1);
+    const size = Math.min(Math.max(Number(pageSize) || 20, 1), 100);
+    const where = {
+      ...(status ? { status: status as never } : {}),
+      ...(keyword
+        ? {
+            OR: [
+              { orderNo: { contains: keyword, mode: 'insensitive' as const } },
+              { user: { nickname: { contains: keyword, mode: 'insensitive' as const } } },
+            ],
+          }
+        : {}),
+    };
 
-    const counts = await this.prisma.order.groupBy({
-      by: ['status'],
-      _count: { _all: true },
-    });
+    const [orders, total, counts] = await Promise.all([
+      this.prisma.order.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        include: { items: true, user: true },
+        skip: (currentPage - 1) * size,
+        take: size,
+      }),
+      this.prisma.order.count({ where }),
+      this.prisma.order.groupBy({ by: ['status'], _count: { _all: true } }),
+    ]);
 
     return {
       tabs: counts.map((c) => ({ status: c.status, count: c._count._all })),
+      total,
+      page: currentPage,
+      pageSize: size,
       items: orders.map((o) => ({
         id: o.id,
         orderNo: o.orderNo,

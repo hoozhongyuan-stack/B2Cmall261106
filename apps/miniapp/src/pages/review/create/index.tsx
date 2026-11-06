@@ -59,13 +59,13 @@ export default function Page() {
           anonymous,
         },
       });
-      await Taro.showToast({ title: '已提交，审核通过后展示', icon: 'none' });
+      await Taro.showToast({ title: '已提交，审核通过后展示', icon: 'success' });
+      // 保持提交中状态直到离开页面，避免重复点击
       setTimeout(() => {
         void Taro.navigateBack();
-      }, 800);
+      }, 600);
     } catch (err) {
       showError(err);
-    } finally {
       setSubmitting(false);
     }
   };

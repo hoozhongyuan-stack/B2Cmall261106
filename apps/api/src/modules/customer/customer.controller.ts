@@ -35,9 +35,19 @@ export class AdminCustomerController {
 
   @Get()
   @Roles('SUPER', 'OPS', 'CS')
-  @ApiOperation({ summary: '客户列表：消费统计与等级' })
-  list(@Query('keyword') keyword?: string, @Query('levelId') levelId?: string) {
-    return this.customers.list({ keyword, levelId });
+  @ApiOperation({ summary: '客户列表：消费统计与等级（分页）' })
+  list(
+    @Query('keyword') keyword?: string,
+    @Query('levelId') levelId?: string,
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
+  ) {
+    return this.customers.list({
+      keyword,
+      levelId,
+      page: Number(page) || 1,
+      pageSize: Number(pageSize) || 20,
+    });
   }
 
   @Get(':id')

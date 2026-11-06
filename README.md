@@ -42,6 +42,7 @@ pnpm --filter @shanye/miniapp dev:weapp          # 微信开发者工具导入 a
 | `pnpm test:coverage` | 单测 + packages/shared 覆盖率 90% 门槛 |
 | `pnpm test:contract` | 契约测试（需 API 可构建 + 数据库可写） |
 | `pnpm codegen:api` | 由 openapi.yaml 生成 `packages/api-types` |
+| `pnpm db:demo-reset` | 重置数据库并重新灌入演示数据（演示/录屏前执行，会清空契约测试留下的订单与评价） |
 | `pnpm build:api` | 构建 API |
 | `pnpm build:web` | 构建管理后台与小程序 H5 |
 | `pnpm verify` | 本地跑完 CI 全链路 |
