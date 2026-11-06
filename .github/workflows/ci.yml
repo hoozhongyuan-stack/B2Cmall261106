@@ -10,7 +10,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  NODE_VERSION: '20'
+  NODE_VERSION: '24'   # pnpm 11 依赖 node:sqlite，需 ≥22
   DATABASE_URL: postgresql://postgres:postgres@localhost:5432/shanye_test?schema=public
 
 jobs:
