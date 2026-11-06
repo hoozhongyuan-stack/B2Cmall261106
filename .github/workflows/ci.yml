@@ -60,14 +60,12 @@ jobs:
       - name: Prisma migrate
         run: pnpm --filter @shanye/api exec prisma migrate deploy
 
-      # 5) 契约测试：订单接口在 M1 落地后启用，脚本缺失时仅告警
+      # 5) 契约测试：启动构建产物，用真实 HTTP 校验响应与 openapi.yaml 一致
       - name: Contract tests
         run: |
-          if pnpm run | grep -q 'test:contract'; then
-            pnpm test:contract
-          else
-            echo "::warning::契约测试将在 M1（订单接口落地）启用，当前仅有金额与状态机单测"
-          fi
+          pnpm build:api
+          pnpm --filter @shanye/api db:seed
+          pnpm test:contract
 
       # 6) 构建：API 必须可产物
       - name: Build
