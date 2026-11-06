@@ -66,6 +66,12 @@ export class ReviewController {
   listMine(@CurrentUser() user: MiniappUser) {
     return this.reviews.listMine(user.sub);
   }
+
+  @Get('context/:orderItemId')
+  @ApiOperation({ summary: '评价页上下文：商品信息与是否已评价' })
+  context(@CurrentUser() user: MiniappUser, @Param('orderItemId') orderItemId: string) {
+    return this.reviews.context(user.sub, orderItemId);
+  }
 }
 
 /** 商品评价公开接口：无需登录，供商品详情页与评价列表页使用 */

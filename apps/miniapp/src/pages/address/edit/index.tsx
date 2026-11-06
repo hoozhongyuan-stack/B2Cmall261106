@@ -1,4 +1,4 @@
-import { Input, Text, View } from '@tarojs/components';
+import { Input, Picker, Text, View } from '@tarojs/components';
 import Taro, { useRouter } from '@tarojs/taro';
 import { useEffect, useState } from 'react';
 
@@ -6,6 +6,9 @@ import { api, showError } from '../../../api/client';
 import { Loading } from '../../../components/common';
 
 import './index.css';
+
+// 微信原生 region 选择器自带行政区数据，零配置；H5 预览无内置数据，降级为文本输入
+const IS_WEAPP = process.env.TARO_ENV === 'weapp';
 
 interface Address {
   id: string;
@@ -112,12 +115,29 @@ export default function Page() {
         </View>
         <View className="field">
           <Text className="field-label">所在地区</Text>
-          <Input
-            className="input"
-            value={region}
-            placeholder="如：云南省昆明市五华区"
-            onInput={(e) => setRegion(e.detail.value)}
-          />
+          {IS_WEAPP ? (
+            <Picker
+              mode="region"
+              value={region ? region.split(' ') : []}
+              onChange={(e) => {
+                const [province, city, district] = e.detail.value as string[];
+                setRegion([province, city, district].filter(Boolean).join(' '));
+              }}
+            >
+              <View className="input ae-region">
+                <Text className={region ? '' : 'muted'}>
+                  {region || '请选择省 / 市 / 区'}
+                </Text>
+              </View>
+            </Picker>
+          ) : (
+            <Input
+              className="input"
+              value={region}
+              placeholder="省 / 市 / 区，如：云南省 昆明市 五华区"
+              onInput={(e) => setRegion(e.detail.value)}
+            />
+          )}
         </View>
         <View className="field ae-last-field">
           <Text className="field-label">详细地址</Text>

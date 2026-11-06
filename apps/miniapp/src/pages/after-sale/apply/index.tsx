@@ -15,7 +15,6 @@ export default function Page() {
   const [reason, setReason] = useState(REASONS[0]);
   const [customReason, setCustomReason] = useState('');
   const [description, setDescription] = useState('');
-  const [evidenceKey, setEvidenceKey] = useState('');
   const [refundYuan, setRefundYuan] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
@@ -45,7 +44,6 @@ export default function Page() {
           reason: finalReason,
           description: description.trim() || undefined,
           ...(amount !== undefined ? { refundCents: amount } : {}),
-          ...(evidenceKey.trim() ? { evidence: [evidenceKey.trim()] } : {}),
         },
       });
       await Taro.showToast({ title: '已提交', icon: 'success' });
@@ -115,15 +113,6 @@ export default function Page() {
             maxlength={200}
             placeholder="补充说明有助于更快处理"
             onInput={(e) => setDescription(e.detail.value)}
-          />
-        </View>
-        <View className="field">
-          <Text className="field-label">凭证图片 Key（选填，本期不支持上传）</Text>
-          <Input
-            className="input"
-            value={evidenceKey}
-            placeholder="留空即可"
-            onInput={(e) => setEvidenceKey(e.detail.value)}
           />
         </View>
         <View className="field">

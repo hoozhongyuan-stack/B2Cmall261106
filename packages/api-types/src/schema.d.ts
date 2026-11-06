@@ -1986,6 +1986,47 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/reviews/context/{orderItemId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 评价页上下文：订单商品信息与是否已评价 */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    orderItemId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: components["schemas"]["ReviewContext"];
+                        };
+                    };
+                };
+                404: components["responses"]["NotFound"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/reviews/mine": {
         parameters: {
             query?: never;
@@ -3630,6 +3671,16 @@ export interface components {
             balanceAfter?: number;
             /** Format: date-time */
             createdAt?: string;
+        };
+        ReviewContext: {
+            id: string;
+            title: string;
+            specText?: string;
+            imageKey?: string | null;
+            priceCents?: number;
+            quantity?: number;
+            reviewed: boolean;
+            orderStatus?: string;
         };
         Review: {
             id: string;
