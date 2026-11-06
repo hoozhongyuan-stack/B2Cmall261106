@@ -1,0 +1,67 @@
+.ship-tracking {
+  display: block;
+  margin: 12px 0 8px;
+  font-size: 36px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.ship-pending {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.ship-pending-text {
+  flex: 1;
+}
+
+.ship-title {
+  margin: 0 0 20px;
+}
+
+.ship-timeline {
+  display: flex;
+  flex-direction: column;
+}
+
+.ship-node {
+  display: flex;
+  gap: 20px;
+}
+
+.ship-dot-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 24px;
+  flex: 0 0 24px;
+}
+
+.ship-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--line-2);
+  margin-top: 10px;
+}
+
+.ship-dot--on {
+  background: var(--brand);
+  box-shadow: 0 0 0 6px var(--brand-soft);
+}
+
+.ship-line {
+  flex: 1;
+  width: 2px;
+  background: var(--line);
+  margin: 6px 0;
+}
+
+.ship-node-body {
+  padding-bottom: 32px;
+}
+
+.ship-node-title {
+  font-weight: 600;
+}

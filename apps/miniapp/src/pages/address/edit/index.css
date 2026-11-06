@@ -1,0 +1,32 @@
+.ae-last-field {
+  margin-bottom: 0;
+}
+
+.ae-switch {
+  width: 88px;
+  height: 52px;
+  border-radius: 999px;
+  background: var(--line-2);
+  padding: 4px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  transition: background 200ms var(--ease);
+}
+
+.ae-switch--on {
+  background: var(--brand);
+  justify-content: flex-end;
+}
+
+.ae-switch-knob {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: 0 2px 6px rgba(22, 24, 26, 0.2);
+}
+
+.btn--disabled {
+  opacity: 0.45;
+}

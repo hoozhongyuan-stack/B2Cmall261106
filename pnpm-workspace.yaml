@@ -2,10 +2,16 @@ packages:
   - 'apps/*'
   - 'packages/*'
 
-# pnpm 11：允许执行安装脚本的依赖（Prisma 引擎与 esbuild 需要生成二进制）
+# pnpm 11：允许执行安装脚本的依赖（Prisma 引擎、esbuild 与 Taro 原生绑定需要生成二进制）
 allowBuilds:
   '@prisma/client': true
   '@prisma/engines': true
   prisma: true
   esbuild: true
   '@scarf/scarf': false
+  '@parcel/watcher': true
+  '@swc/core': true
+  '@tarojs/binding': true
+  '@tarojs/cli': true
+  core-js: false
+  core-js-pure: false

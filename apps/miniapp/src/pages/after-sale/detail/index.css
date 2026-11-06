@@ -1,0 +1,75 @@
+.asd-status {
+  font-size: 38px;
+  font-weight: 700;
+  color: var(--brand);
+}
+
+.asd-steps {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-top: 28px;
+}
+
+.asd-step {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  color: var(--ink-3);
+}
+
+.asd-step-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--line-2);
+}
+
+.asd-step--done {
+  color: var(--ink-2);
+}
+
+.asd-step--done .asd-step-dot {
+  background: var(--brand);
+}
+
+.asd-step--on {
+  color: var(--brand);
+  font-weight: 600;
+}
+
+.asd-step-text {
+  font-size: 20px;
+  text-align: center;
+}
+
+.asd-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.asd-strong {
+  font-weight: 600;
+}
+
+.asd-row {
+  padding: 10px 0;
+}
+
+.asd-desc {
+  display: block;
+  margin-top: 8px;
+  color: var(--ink-2);
+}
+
+.asd-title {
+  margin: 0 0 16px;
+}
+
+.asd-submit {
+  margin-top: 24px;
+}

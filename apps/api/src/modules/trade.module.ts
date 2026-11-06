@@ -16,6 +16,8 @@ import { AdminOrderOpsController, ShipmentController } from './order/shipment.co
 import { JwtAuthGuard, RolesGuard } from '../common/auth.guards';
 import { UserJwtGuard } from '../common/user-auth.guard';
 import { GrowthModule } from './growth.module';
+import { AddressController } from './address/address.controller';
+import { AddressService } from './address/address.service';
 
 @Module({
   imports: [
@@ -39,6 +41,7 @@ import { GrowthModule } from './growth.module';
     AdminAfterSaleController,
     ShipmentController,
     AdminOrderOpsController,
+    AddressController,
   ],
   providers: [
     CartService,
@@ -46,6 +49,7 @@ import { GrowthModule } from './growth.module';
     PaymentService,
     AfterSaleService,
     OrderTimeoutService,
+    AddressService,
     UserJwtGuard,
     JwtAuthGuard,
     RolesGuard,

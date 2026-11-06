@@ -886,6 +886,618 @@ paths:
       responses:
         '200': { description: OK }
 
+  /addresses:
+    get:
+      tags: [addresses]
+      summary: 我的收货地址（默认地址排最前）
+      security: [{ userToken: [] }]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      items:
+                        type: array
+                        items: { $ref: '#/components/schemas/Address' }
+    post:
+      tags: [addresses]
+      summary: 新增收货地址（首条自动设为默认，最多 20 条）
+      security: [{ userToken: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AddressInput' }
+      responses:
+        '201':
+          description: 创建成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/Address' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+
+  /addresses/{id}:
+    patch:
+      tags: [addresses]
+      summary: 修改收货地址
+      security: [{ userToken: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AddressInput' }
+      responses:
+        '200': { description: OK }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [addresses]
+      summary: 删除收货地址（删除默认地址后自动补位）
+      security: [{ userToken: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { description: OK }
+
+  /addresses/{id}/default:
+    post:
+      tags: [addresses]
+      summary: 设为默认地址（同用户其余地址自动取消默认）
+      security: [{ userToken: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { description: OK }
+
+  /admin/products:
+    get:
+      tags: [admin-products]
+      summary: 商品列表（含库存合计与 SKU 数）
+      security: [{ adminToken: [] }]
+      parameters:
+        - { name: keyword, in: query, schema: { type: string } }
+        - { name: status, in: query, schema: { type: string, enum: [ON_SALE, OFF_SHELF, SOLD_OUT] } }
+        - { name: categoryId, in: query, schema: { type: string } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      items:
+                        type: array
+                        items: { $ref: '#/components/schemas/AdminProduct' }
+    post:
+      tags: [admin-products]
+      summary: 新建商品（至少 1 个 SKU，价格区间自动计算）
+      security: [{ adminToken: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AdminProductInput' }
+      responses:
+        '201':
+          description: 创建成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/AdminProductDetail' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+
+  /admin/products/{id}:
+    get:
+      tags: [admin-products]
+      summary: 商品详情（含 SKU 与标签）
+      security: [{ adminToken: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/AdminProductDetail' }
+    patch:
+      tags: [admin-products]
+      summary: 修改商品基础信息或上下架状态
+      security: [{ adminToken: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                title: { type: string }
+                subtitle: { type: string }
+                categoryId: { type: string }
+                mainImageKey: { type: string }
+                detail: { type: string }
+                status: { type: string, enum: [ON_SALE, OFF_SHELF] }
+                sort: { type: integer }
+      responses:
+        '200': { description: OK }
+    delete:
+      tags: [admin-products]
+      summary: 删除商品（已产生订单的商品只能下架）
+      security: [{ adminToken: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { description: OK }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /admin/products/{id}/skus/{skuId}:
+    patch:
+      tags: [admin-products]
+      summary: 修改 SKU 价格 / 库存 / 状态（改价后重算商品价格区间）
+      security: [{ adminToken: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+        - { name: skuId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                priceCents: { type: integer, minimum: 1 }
+                originCents: { type: integer, nullable: true }
+                stock: { type: integer, minimum: 0 }
+                status: { type: string, enum: [ON_SALE, OFF_SHELF, SOLD_OUT] }
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/BadRequest' }
+
+  /admin/products/{id}/tags:
+    patch:
+      tags: [admin-products]
+      summary: 设置商品标签（标签名称全局唯一，被其它商品占用返回 409）
+      security: [{ adminToken: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [tagIds]
+              properties:
+                tagIds: { type: array, items: { type: string } }
+      responses:
+        '200': { description: OK }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /admin/categories:
+    get:
+      tags: [admin-taxonomy]
+      summary: 分类树（两级，含商品数）
+      security: [{ adminToken: [] }]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/AdminCategory' }
+    post:
+      tags: [admin-taxonomy]
+      summary: 新建分类（最多两级）
+      security: [{ adminToken: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [name]
+              properties:
+                name: { type: string }
+                parentId: { type: string, nullable: true }
+                sort: { type: integer }
+      responses:
+        '201': { description: 创建成功 }
+        '400': { $ref: '#/components/responses/BadRequest' }
+
+  /admin/categories/{id}:
+    patch:
+      tags: [admin-taxonomy]
+      summary: 修改分类
+      security: [{ adminToken: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                name: { type: string }
+                parentId: { type: string, nullable: true }
+                sort: { type: integer }
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/BadRequest' }
+    delete:
+      tags: [admin-taxonomy]
+      summary: 删除分类（有子分类或商品时拒绝）
+      security: [{ adminToken: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { description: OK }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /admin/tags:
+    get:
+      tags: [admin-taxonomy]
+      summary: 标签列表（含所属商品）
+      security: [{ adminToken: [] }]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/AdminTag' }
+    post:
+      tags: [admin-taxonomy]
+      summary: 新建标签
+      security: [{ adminToken: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [name]
+              properties:
+                name: { type: string }
+      responses:
+        '201': { description: 创建成功 }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /admin/tags/{id}:
+    patch:
+      tags: [admin-taxonomy]
+      summary: 重命名标签
+      security: [{ adminToken: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [name]
+              properties:
+                name: { type: string }
+      responses:
+        '200': { description: OK }
+    delete:
+      tags: [admin-taxonomy]
+      summary: 删除标签
+      security: [{ adminToken: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { description: OK }
+
+  /admin/shop:
+    get:
+      tags: [admin-shop]
+      summary: 店铺设置（含运费地区例外）
+      security: [{ adminToken: [] }]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/ShopSettings' }
+    patch:
+      tags: [admin-shop]
+      summary: 修改店铺信息 / 运费模板 / 交易设置
+      security: [{ adminToken: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                shopName: { type: string }
+                intro: { type: string }
+                servicePhone: { type: string }
+                logoKey: { type: string }
+                freeThresholdCents: { type: integer, minimum: 0 }
+                flatFreightCents: { type: integer, minimum: 0 }
+                payTimeoutMinutes: { type: integer, minimum: 0 }
+                afterSaleDays: { type: integer, minimum: 0 }
+                autoConfirmDays: { type: integer, minimum: 0 }
+                miniappAppId: { type: string }
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/BadRequest' }
+
+  /admin/shop/regions:
+    post:
+      tags: [admin-shop]
+      summary: 新增运费地区例外（优先于满额包邮）
+      security: [{ adminToken: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [regionName, freightCents]
+              properties:
+                regionName: { type: string }
+                freightCents: { type: integer, minimum: 0 }
+      responses:
+        '201': { description: 创建成功 }
+
+  /admin/shop/regions/{id}:
+    delete:
+      tags: [admin-shop]
+      summary: 删除运费地区例外
+      security: [{ adminToken: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { description: OK }
+
+  /admin/assets:
+    get:
+      tags: [admin-assets]
+      summary: 素材库列表
+      security: [{ adminToken: [] }]
+      parameters:
+        - { name: group, in: query, schema: { type: string } }
+        - { name: keyword, in: query, schema: { type: string } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      items:
+                        type: array
+                        items: { $ref: '#/components/schemas/Asset' }
+    post:
+      tags: [admin-assets]
+      summary: 登记素材（key 全局唯一）
+      security: [{ adminToken: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [key, url]
+              properties:
+                key: { type: string }
+                url: { type: string }
+                size: { type: integer }
+                mimeType: { type: string }
+                group: { type: string }
+      responses:
+        '201': { description: 创建成功 }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /admin/assets/{id}:
+    delete:
+      tags: [admin-assets]
+      summary: 删除素材（被引用时拒绝）
+      security: [{ adminToken: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { description: OK }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /admin/accounts:
+    get:
+      tags: [admin-accounts]
+      summary: 子账号列表（不含密码）
+      security: [{ adminToken: [] }]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      items:
+                        type: array
+                        items: { $ref: '#/components/schemas/AdminAccount' }
+    post:
+      tags: [admin-accounts]
+      summary: 新建子账号（仅超管）
+      security: [{ adminToken: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [account, displayName, role, password]
+              properties:
+                account: { type: string }
+                displayName: { type: string }
+                role: { type: string, enum: [SUPER, OPS, CS, WMS] }
+                password: { type: string, minLength: 8 }
+      responses:
+        '201': { description: 创建成功 }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /admin/accounts/{id}:
+    patch:
+      tags: [admin-accounts]
+      summary: 修改子账号显示名或角色（不能降级最后一个超管）
+      security: [{ adminToken: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                displayName: { type: string }
+                role: { type: string, enum: [SUPER, OPS, CS, WMS] }
+      responses:
+        '200': { description: OK }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /admin/accounts/{id}/status:
+    post:
+      tags: [admin-accounts]
+      summary: 启用 / 停用子账号（不能停用自己或最后一个超管）
+      security: [{ adminToken: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [status]
+              properties:
+                status: { type: string, enum: [ACTIVE, DISABLED] }
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /admin/accounts/{id}/reset-password:
+    post:
+      tags: [admin-accounts]
+      summary: 重置密码（同时清零失败次数与锁定）
+      security: [{ adminToken: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [password]
+              properties:
+                password: { type: string, minLength: 8 }
+      responses:
+        '200': { description: OK }
+
+  /admin/logs:
+    get:
+      tags: [admin-logs]
+      summary: 操作日志（按操作人 / 模块 / 关键词 / 时间分页）
+      security: [{ adminToken: [] }]
+      parameters:
+        - { name: actorId, in: query, schema: { type: string } }
+        - { name: targetType, in: query, schema: { type: string } }
+        - { name: keyword, in: query, schema: { type: string } }
+        - { name: from, in: query, schema: { type: string, format: date-time } }
+        - { name: to, in: query, schema: { type: string, format: date-time } }
+        - { name: page, in: query, schema: { type: integer, minimum: 1 } }
+        - { name: pageSize, in: query, schema: { type: integer, minimum: 1, maximum: 100 } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      items:
+                        type: array
+                        items: { $ref: '#/components/schemas/OperationLog' }
+                      total: { type: integer }
+                      page: { type: integer }
+                      pageSize: { type: integer }
+
+  /admin/dashboard:
+    get:
+      tags: [admin-dashboard]
+      summary: 数据概览：今日指标、待办、7 日趋势、热销商品
+      security: [{ adminToken: [] }]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/Dashboard' }
+
 components:
   securitySchemes:
     userToken:
@@ -922,6 +1534,7 @@ components:
       properties:
         shopName: { type: string }
         intro: { type: string }
+        servicePhone: { type: string, nullable: true }
         freeThresholdCents: { type: integer }
         flatFreightCents: { type: integer }
         afterSaleDays: { type: integer }
@@ -1182,6 +1795,219 @@ components:
         status: { type: string, enum: [PENDING, SHOWN, HIDDEN] }
         reply: { type: string, nullable: true }
         createdAt: { type: string, format: date-time }
+
+    Address:
+      type: object
+      required: [id, receiver, phone, region, detail, isDefault]
+      properties:
+        id: { type: string }
+        receiver: { type: string }
+        phone: { type: string }
+        region: { type: string }
+        detail: { type: string }
+        isDefault: { type: boolean }
+
+    AddressInput:
+      type: object
+      additionalProperties: false
+      required: [receiver, phone, region, detail]
+      properties:
+        receiver: { type: string }
+        phone: { type: string, description: 11 位手机号 }
+        region: { type: string }
+        detail: { type: string }
+        isDefault: { type: boolean }
+
+    AdminProduct:
+      type: object
+      properties:
+        id: { type: string }
+        title: { type: string }
+        status: { type: string, enum: [ON_SALE, OFF_SHELF, SOLD_OUT] }
+        categoryName: { type: string }
+        mainImageKey: { type: string, nullable: true }
+        priceMinCents: { type: integer }
+        priceMaxCents: { type: integer }
+        soldCount: { type: integer }
+        stock: { type: integer, description: 所有 SKU 库存合计 }
+        skuCount: { type: integer }
+        createdAt: { type: string, format: date-time }
+
+    AdminSku:
+      type: object
+      properties:
+        id: { type: string }
+        code: { type: string }
+        specJson: { type: object, additionalProperties: { type: string } }
+        priceCents: { type: integer }
+        originCents: { type: integer, nullable: true }
+        stock: { type: integer }
+        status: { type: string, enum: [ON_SALE, OFF_SHELF, SOLD_OUT] }
+
+    AdminProductDetail:
+      type: object
+      required: [id, title, skus]
+      properties:
+        id: { type: string }
+        title: { type: string }
+        subtitle: { type: string, nullable: true }
+        categoryId: { type: string }
+        mainImageKey: { type: string, nullable: true }
+        detail: { type: string, nullable: true }
+        status: { type: string, enum: [ON_SALE, OFF_SHELF, SOLD_OUT] }
+        sort: { type: integer }
+        priceMinCents: { type: integer }
+        priceMaxCents: { type: integer }
+        soldCount: { type: integer }
+        skus:
+          type: array
+          items: { $ref: '#/components/schemas/AdminSku' }
+        tags:
+          type: array
+          items: { $ref: '#/components/schemas/AdminTag' }
+
+    AdminProductInput:
+      type: object
+      additionalProperties: false
+      required: [title, categoryId, skus]
+      properties:
+        title: { type: string }
+        subtitle: { type: string }
+        categoryId: { type: string }
+        mainImageKey: { type: string }
+        detail: { type: string }
+        status: { type: string, enum: [ON_SALE, OFF_SHELF] }
+        sort: { type: integer }
+        skus:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            additionalProperties: false
+            required: [specJson, priceCents, stock]
+            properties:
+              code: { type: string, description: 缺省自动生成 }
+              specJson: { type: object, additionalProperties: { type: string } }
+              priceCents: { type: integer, minimum: 1 }
+              originCents: { type: integer, minimum: 0 }
+              stock: { type: integer, minimum: 0 }
+              status: { type: string, enum: [ON_SALE, OFF_SHELF, SOLD_OUT] }
+
+    AdminCategory:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        parentId: { type: string, nullable: true }
+        sort: { type: integer }
+        productCount: { type: integer }
+        children:
+          type: array
+          items: { $ref: '#/components/schemas/AdminCategory' }
+
+    AdminTag:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        productId: { type: string, nullable: true }
+        productTitle: { type: string, nullable: true }
+
+    ShopSettings:
+      type: object
+      properties:
+        shopName: { type: string }
+        intro: { type: string, nullable: true }
+        servicePhone: { type: string, nullable: true }
+        logoKey: { type: string, nullable: true }
+        freeThresholdCents: { type: integer }
+        flatFreightCents: { type: integer }
+        payTimeoutMinutes: { type: integer }
+        afterSaleDays: { type: integer }
+        autoConfirmDays: { type: integer }
+        miniappAppId: { type: string, nullable: true }
+        regions:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string }
+              regionName: { type: string }
+              freightCents: { type: integer }
+
+    Asset:
+      type: object
+      properties:
+        id: { type: string }
+        key: { type: string }
+        url: { type: string }
+        size: { type: integer }
+        mimeType: { type: string, nullable: true }
+        group: { type: string }
+        refCount: { type: integer }
+        createdAt: { type: string, format: date-time }
+
+    AdminAccount:
+      type: object
+      properties:
+        id: { type: string }
+        account: { type: string }
+        displayName: { type: string }
+        role: { type: string, enum: [SUPER, OPS, CS, WMS] }
+        status: { type: string, enum: [ACTIVE, DISABLED] }
+        failCount: { type: integer }
+        lockedUntil: { type: string, format: date-time, nullable: true }
+        lastLoginAt: { type: string, format: date-time, nullable: true }
+        createdAt: { type: string, format: date-time }
+
+    OperationLog:
+      type: object
+      properties:
+        id: { type: string }
+        actorId: { type: string }
+        actorName: { type: string }
+        action: { type: string }
+        targetType: { type: string }
+        targetId: { type: string }
+        beforeJson: { nullable: true }
+        afterJson: { nullable: true }
+        ip: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time }
+
+    Dashboard:
+      type: object
+      required: [today, pending, trend, topProducts]
+      properties:
+        today:
+          type: object
+          properties:
+            paidOrderCount: { type: integer }
+            paidAmountCents: { type: integer }
+            refundedCents: { type: integer }
+            newCustomerCount: { type: integer }
+        pending:
+          type: object
+          properties:
+            toShipCount: { type: integer }
+            afterSaleCount: { type: integer }
+            pendingReviewCount: { type: integer }
+        trend:
+          type: array
+          items:
+            type: object
+            properties:
+              date: { type: string, example: '2026-11-06' }
+              orderCount: { type: integer }
+              paidAmountCents: { type: integer }
+        topProducts:
+          type: array
+          items:
+            type: object
+            properties:
+              productId: { type: string }
+              title: { type: string }
+              quantity: { type: integer }
+              amountCents: { type: integer }
 
     Error:
       type: object

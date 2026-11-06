@@ -1,0 +1,53 @@
+.coupon-sub-tabs {
+  padding-top: 0;
+}
+
+.coupon-card {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 24px;
+}
+
+.coupon-card--off {
+  opacity: 0.55;
+}
+
+.coupon-face {
+  width: 180px;
+  flex: 0 0 180px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 0;
+  border-radius: 16px;
+  background: var(--brand-soft);
+  color: var(--brand);
+}
+
+.coupon-value {
+  font-size: 40px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.coupon-threshold {
+  font-size: 20px;
+}
+
+.coupon-body {
+  gap: 6px;
+}
+
+.coupon-name {
+  font-weight: 600;
+}
+
+.coupon-claim {
+  flex: 0 0 auto;
+}
+
+.coupon-status {
+  flex: 0 0 auto;
+}

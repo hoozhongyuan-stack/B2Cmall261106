@@ -1,0 +1,53 @@
+.pay-result {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 120px;
+}
+
+.pay-mark {
+  width: 160px;
+  height: 160px;
+  border-radius: 50%;
+  background: var(--brand);
+  color: var(--surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 24px 48px -24px rgba(226, 35, 26, 0.5);
+}
+
+.pay-mark--fail {
+  background: var(--warn);
+  box-shadow: none;
+}
+
+.pay-mark-icon {
+  font-size: 84px;
+  line-height: 1;
+  font-weight: 700;
+}
+
+.pay-title {
+  margin-top: 40px;
+  font-size: 40px;
+  font-weight: 600;
+}
+
+.pay-hint {
+  margin-top: 12px;
+  text-align: center;
+  padding: 0 48px;
+}
+
+.pay-actions {
+  width: 100%;
+  margin-top: 80px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.pay-home {
+  margin-top: 0;
+}

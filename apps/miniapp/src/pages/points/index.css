@@ -1,0 +1,41 @@
+.points-hero {
+  border-radius: 24px;
+  padding: 40px 32px;
+  margin-bottom: 8px;
+}
+
+.points-label {
+  display: block;
+  font-size: 24px;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.points-balance {
+  display: block;
+  font-size: 72px;
+  font-weight: 700;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+
+.points-note {
+  display: block;
+  font-size: 22px;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.points-right {
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.points-delta {
+  font-size: 32px;
+  font-weight: 600;
+  color: var(--danger);
+  font-variant-numeric: tabular-nums;
+}
+
+.points-delta--up {
+  color: var(--ok);
+}

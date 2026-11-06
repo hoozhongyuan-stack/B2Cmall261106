@@ -1,0 +1,47 @@
+.orders-page {
+  padding-top: 8px;
+}
+
+.order-head {
+  padding-bottom: 4px;
+}
+
+.order-status {
+  color: var(--brand);
+  font-size: 26px;
+  font-weight: 600;
+}
+
+.order-date {
+  display: block;
+  margin-bottom: 16px;
+}
+
+.order-items {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.order-item {
+  display: flex;
+  gap: 20px;
+}
+
+.order-total {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.order-actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.order-btn {
+  flex: 0 0 auto;
+}

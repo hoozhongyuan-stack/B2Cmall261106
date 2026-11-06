@@ -1,0 +1,27 @@
+.search-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.search-btn {
+  flex: 0 0 140px;
+  height: 88px;
+  padding: 0;
+}
+
+.search-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.search-result-head {
+  padding: 8px 0 16px;
+}
+
+.search-more {
+  text-align: center;
+  padding: 24px 0;
+}

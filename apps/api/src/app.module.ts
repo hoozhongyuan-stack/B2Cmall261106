@@ -1,11 +1,15 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { APP_INTERCEPTOR } from '@nestjs/core';
 
 import { AuthModule } from './modules/auth/auth.module';
 import { CatalogController } from './modules/catalog/catalog.controller';
 import { ProductDetailController } from './modules/catalog/product-detail.controller';
 import { TradeModule } from './modules/trade.module';
+import { CatalogAdminModule } from './modules/catalog-admin.module';
+import { AdminOpsModule } from './modules/admin/admin-ops.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { AdminAuditInterceptor } from './common/admin-audit.interceptor';
 
 @Module({
   imports: [
@@ -14,7 +18,10 @@ import { PrismaModule } from './prisma/prisma.module';
     PrismaModule,
     AuthModule,
     TradeModule,
+    CatalogAdminModule,
+    AdminOpsModule,
   ],
   controllers: [CatalogController, ProductDetailController],
+  providers: [{ provide: APP_INTERCEPTOR, useClass: AdminAuditInterceptor }],
 })
 export class AppModule {}

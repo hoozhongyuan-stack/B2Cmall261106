@@ -1,0 +1,81 @@
+import { lazy, Suspense, type ReactNode } from 'react';
+import { Navigate, Route, Routes } from 'react-router-dom';
+
+import { isLoggedIn } from './auth';
+import { Layout } from './components/Layout';
+import { Login } from './pages/Login';
+
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Products = lazy(() => import('./pages/Products'));
+const ProductEdit = lazy(() => import('./pages/ProductEdit'));
+const ProductStock = lazy(() => import('./pages/ProductStock'));
+const Categories = lazy(() => import('./pages/Categories'));
+const Tags = lazy(() => import('./pages/Tags'));
+const Orders = lazy(() => import('./pages/Orders'));
+const OrderDetail = lazy(() => import('./pages/OrderDetail'));
+const AfterSales = lazy(() => import('./pages/AfterSales'));
+const AfterSaleDetail = lazy(() => import('./pages/AfterSaleDetail'));
+const Reviews = lazy(() => import('./pages/Reviews'));
+const Customers = lazy(() => import('./pages/Customers'));
+const CustomerDetail = lazy(() => import('./pages/CustomerDetail'));
+const Levels = lazy(() => import('./pages/Levels'));
+const PointsRules = lazy(() => import('./pages/PointsRules'));
+const Coupons = lazy(() => import('./pages/Coupons'));
+const CouponNew = lazy(() => import('./pages/CouponNew'));
+const CouponClaims = lazy(() => import('./pages/CouponClaims'));
+const ShopSettings = lazy(() => import('./pages/ShopSettings'));
+const Freight = lazy(() => import('./pages/Freight'));
+const PaymentSettings = lazy(() => import('./pages/PaymentSettings'));
+const Assets = lazy(() => import('./pages/Assets'));
+const Accounts = lazy(() => import('./pages/Accounts'));
+const Logs = lazy(() => import('./pages/Logs'));
+
+function Guard({ children }: { children: ReactNode }) {
+  if (!isLoggedIn()) return <Navigate to="/login" replace />;
+  return <>{children}</>;
+}
+
+export function App() {
+  return (
+    <Suspense fallback={<div className="table-loading">加载中…</div>}>
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route
+          path="/"
+          element={
+            <Guard>
+              <Layout />
+            </Guard>
+          }
+        >
+          <Route index element={<Dashboard />} />
+          <Route path="products" element={<Products />} />
+          <Route path="products/new" element={<ProductEdit />} />
+          <Route path="products/:id/edit" element={<ProductEdit />} />
+          <Route path="products/:id/stock" element={<ProductStock />} />
+          <Route path="categories" element={<Categories />} />
+          <Route path="tags" element={<Tags />} />
+          <Route path="orders" element={<Orders />} />
+          <Route path="orders/:id" element={<OrderDetail />} />
+          <Route path="after-sales" element={<AfterSales />} />
+          <Route path="after-sales/:id" element={<AfterSaleDetail />} />
+          <Route path="reviews" element={<Reviews />} />
+          <Route path="customers" element={<Customers />} />
+          <Route path="customers/:id" element={<CustomerDetail />} />
+          <Route path="levels" element={<Levels />} />
+          <Route path="points-rules" element={<PointsRules />} />
+          <Route path="coupons" element={<Coupons />} />
+          <Route path="coupons/new" element={<CouponNew />} />
+          <Route path="coupons/:id/claims" element={<CouponClaims />} />
+          <Route path="settings/shop" element={<ShopSettings />} />
+          <Route path="settings/freight" element={<Freight />} />
+          <Route path="settings/payment" element={<PaymentSettings />} />
+          <Route path="assets" element={<Assets />} />
+          <Route path="accounts" element={<Accounts />} />
+          <Route path="logs" element={<Logs />} />
+        </Route>
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </Suspense>
+  );
+}
