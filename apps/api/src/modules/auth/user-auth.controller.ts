@@ -4,6 +4,7 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { IsString, Length } from 'class-validator';
 
 import { PrismaService } from '../../prisma/prisma.module';
+import { RateLimit } from '../../common/rate-limit.guard';
 
 class WechatLoginDto {
   /** 小程序 wx.login 返回的 code；开发阶段允许 mock_ 前缀直接换取 openid */
@@ -22,6 +23,7 @@ export class UserAuthController {
 
   @Post('wechat-login')
   @HttpCode(200)
+  @RateLimit({ limit: 30, windowMs: 60_000 })
   @ApiOperation({ summary: '小程序登录：code 换 openid 并签发 token' })
   async wechatLogin(@Body() dto: WechatLoginDto) {
     const openid = await this.resolveOpenid(dto.code);

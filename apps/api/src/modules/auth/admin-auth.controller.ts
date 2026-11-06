@@ -4,6 +4,7 @@ import { IsString, Length } from 'class-validator';
 
 import { AdminAuthService } from './admin-auth.service';
 import { CurrentUser, JwtAuthGuard, Roles, RolesGuard, type AuthUser } from '../../common/auth.guards';
+import { RateLimit } from '../../common/rate-limit.guard';
 
 class LoginDto {
   @IsString()
@@ -22,6 +23,7 @@ export class AdminAuthController {
 
   @Post('login')
   @HttpCode(200)
+  @RateLimit({ limit: 10, windowMs: 60_000 })
   @ApiOperation({ summary: '商家账号登录' })
   async login(@Body() dto: LoginDto) {
     return this.auth.login(dto.account, dto.password);

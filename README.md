@@ -26,6 +26,9 @@ cp apps/api/.env.example apps/api/.env
 pnpm --filter @shanye/api exec prisma migrate deploy
 pnpm --filter @shanye/api db:seed
 
+# 契约测试使用独立库（可选但推荐）：先建库，再在 .env 配 TEST_DATABASE_URL
+createdb -h 127.0.0.1 -p 5433 -U postgres shanye_test
+
 pnpm --filter @shanye/api dev                    # API: http://127.0.0.1:3000/api/docs
 pnpm --filter @shanye/admin dev                  # 后台: http://127.0.0.1:5173（代理 /api）
 pnpm --filter @shanye/miniapp dev:h5             # 小程序 H5 预览
@@ -40,9 +43,11 @@ pnpm --filter @shanye/miniapp dev:weapp          # 微信开发者工具导入 a
 | `pnpm typecheck` | 全仓类型检查 |
 | `pnpm test` | 单测 |
 | `pnpm test:coverage` | 单测 + packages/shared 覆盖率 90% 门槛 |
-| `pnpm test:contract` | 契约测试（需 API 可构建 + 数据库可写） |
+| `pnpm test:contract` | 契约测试（需 API 可构建 + 数据库可写；配置 `TEST_DATABASE_URL` 时自动重建独立测试库） |
+| `pnpm test:e2e` | Playwright 主链路 E2E（自动拉起 API / 后台 / H5，复用本机 Chrome） |
 | `pnpm codegen:api` | 由 openapi.yaml 生成 `packages/api-types` |
 | `pnpm db:demo-reset` | 重置数据库并重新灌入演示数据（演示/录屏前执行，会清空契约测试留下的订单与评价） |
+| `pnpm db:backup` | 逻辑备份到 `backups/`（gzip，保留 7 天，可用 `RETENTION_DAYS` 覆盖） |
 | `pnpm build:api` | 构建 API |
 | `pnpm build:web` | 构建管理后台与小程序 H5 |
 | `pnpm verify` | 本地跑完 CI 全链路 |
@@ -83,4 +88,5 @@ CI（`.github/workflows/ci.yml`）在每次 push 与 PR 上运行 9 个检查：
 - **M2 完成**：售后申请与审核（仅退款 / 退货退款 / 拒绝恢复）、退款执行（幂等、累计不超实付、整单退含运费、未发货回滚库存）、超时关单定时任务（每分钟，释放预占）、物流详情节点。契约测试 15 条。
 - **M3 完成**：优惠券（后台建券 / 指定或全量发放 / 小程序领取 / 下单核销 / 取消与整单退款退券 / 超时关单退券）、会员等级（按累计消费自动升降级、折扣作用于商品金额）、积分（支付发放、退款扣回、后台手动调整，均记流水且余额不为负）、客户列表与详情、评价（仅已完成订单可评、先审后显、商家回复）、确认收货。契约测试新增 8 条，共 23 条。
 - **M4 完成**：补齐地址簿、商品/分类/标签、店铺设置/运费/素材、子账号、操作日志（写操作自动审计）、数据概览接口；`openapi-typescript` 接入类型生成；管理后台 24 页（React + Vite）与小程序 21 页（Taro 4）全部接通真实接口；CI 增加两端构建。契约测试共 33 条。
+- **工程质量加固完成**：契约测试独立测试库、Playwright 主链路 E2E、客户端错误上报（`POST /api/telemetry/client-error` + 5xx/慢请求结构化日志 + `x-request-id` 响应头）、登录与上报接口限流、生产环境 `JWT_SECRET` 强度校验、数据库备份脚本。
 - **下一步**：真机联调、订阅消息、图片素材接入 CDN、弱网与空数据回归。
