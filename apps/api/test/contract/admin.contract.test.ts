@@ -372,6 +372,48 @@ describe('集成配置契约', () => {
   });
 });
 
+describe('小程序发布契约', () => {
+  it('环境检查与发布记录可读', async () => {
+    const ready = await api('/admin/miniapp/readiness', {}, superToken);
+    expect(ready.status).toBe(200);
+    expect(ready.body.data.uploadKey).toHaveProperty('configured');
+    expect(typeof ready.body.data.suggestedVersion).toBe('string');
+
+    const list = await api('/admin/miniapp/releases', {}, superToken);
+    expect(list.status).toBe(200);
+    expect(Array.isArray(list.body.data.items)).toBe(true);
+  });
+
+  it('版本号非法、未配置上传密钥、非超管创建都被拒绝', async () => {
+    const badVersion = await api(
+      '/admin/miniapp/releases',
+      { method: 'POST', body: JSON.stringify({ version: 'v1', description: '测试' }) },
+      superToken,
+    );
+    expect(badVersion.status).toBe(400);
+
+    // 未上传代码上传密钥时直接 400，不会触发构建
+    const noKey = await api(
+      '/admin/miniapp/releases',
+      { method: 'POST', body: JSON.stringify({ version: '1.0.1', description: '测试' }) },
+      superToken,
+    );
+    expect(noKey.status).toBe(400);
+
+    const ops = await api(
+      '/admin/auth/login',
+      { method: 'POST', body: JSON.stringify({ account: 'ops@shanye.com', password: 'ops12345' }) },
+      '',
+    );
+    const forbidden = await api(
+      '/admin/miniapp/releases',
+      { method: 'POST', body: JSON.stringify({ version: '1.0.1', description: '测试' }) },
+      ops.body.data.token as string,
+    );
+    expect(forbidden.status).toBe(403);
+  });
+});
+
 describe('数据概览契约', () => {
   it('返回今日指标、待办、7 日趋势与热销商品', async () => {
     const res = await api('/admin/dashboard', {}, superToken);

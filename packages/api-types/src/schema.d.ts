@@ -3596,7 +3596,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    field: "wechatPayApiV3Key" | "wechatPayPrivateKey";
+                    field: "miniappUploadKey" | "wechatPayApiV3Key" | "wechatPayPrivateKey";
                 };
                 cookie?: never;
             };
@@ -3625,7 +3625,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    field: "wechatPayApiV3Key" | "wechatPayPrivateKey";
+                    field: "miniappUploadKey" | "wechatPayApiV3Key" | "wechatPayPrivateKey";
                 };
                 cookie?: never;
             };
@@ -3641,6 +3641,225 @@ export interface paths {
                 400: components["responses"]["BadRequest"];
             };
         };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/miniapp/readiness": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 发布环境检查（AppID / 上传密钥 / API 地址 / 建议版本号） */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: components["schemas"]["MiniappReadiness"];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/miniapp/releases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 发布记录（最近 20 条） */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: {
+                                items?: components["schemas"]["MiniappRelease"][];
+                            };
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** 构建并上传开发版（异步，约 1-2 分钟） */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @example 1.0.1 */
+                        version: string;
+                        description: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description 已开始构建 */
+                202: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                400: components["responses"]["BadRequest"];
+                409: components["responses"]["Conflict"];
+                429: components["responses"]["TooManyRequests"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/miniapp/releases/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 发布记录详情（含构建日志） */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                404: components["responses"]["NotFound"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/miniapp/releases/{id}/qrcode": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 体验版二维码（base64 data URL） */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                404: components["responses"]["NotFound"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/miniapp/releases/{id}/released": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 标记为已发布（审核与发布在微信后台完成） */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                400: components["responses"]["BadRequest"];
+                404: components["responses"]["NotFound"];
+            };
+        };
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -4023,6 +4242,7 @@ export interface components {
             miniappAppSecret?: {
                 configured: boolean;
             };
+            miniappUploadKey?: components["schemas"]["SecretMeta"];
             /** @enum {string} */
             paymentProvider?: "mock" | "wechat";
             wechatPayMchId?: string | null;
@@ -4039,6 +4259,31 @@ export interface components {
             businessDomain?: string | null;
             /** Format: date-time */
             updatedAt?: string;
+        };
+        MiniappRelease: {
+            id?: string;
+            version?: string;
+            description?: string;
+            /** @enum {string} */
+            status?: "BUILDING" | "UPLOADED" | "FAILED" | "RELEASED";
+            statusText?: string;
+            size?: number;
+            hasQrCode?: boolean;
+            operatorName?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        MiniappReadiness: {
+            appId?: string;
+            uploadKey?: {
+                configured: boolean;
+            };
+            apiBaseUrl?: string;
+            buildAvailable?: boolean;
+            latestRelease?: components["schemas"]["MiniappRelease"];
+            suggestedVersion?: string;
         };
         AdminAccount: {
             id?: string;

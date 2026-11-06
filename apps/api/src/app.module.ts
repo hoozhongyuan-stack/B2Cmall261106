@@ -13,6 +13,7 @@ import { AdminAuditInterceptor } from './common/admin-audit.interceptor';
 import { RateLimitGuard } from './common/rate-limit.guard';
 import { TelemetryModule } from './modules/telemetry/telemetry.module';
 import { IntegrationModule } from './modules/integration/integration.module';
+import { MiniappReleaseModule } from './modules/miniapp-release/miniapp-release.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { IntegrationModule } from './modules/integration/integration.module';
     AdminOpsModule,
     TelemetryModule,
     IntegrationModule,
+    MiniappReleaseModule,
   ],
   controllers: [CatalogController, ProductDetailController],
   providers: [

@@ -6,7 +6,14 @@ import tseslint from 'typescript-eslint';
  */
 export default tseslint.config(
   {
-    ignores: ['**/dist/**', '**/node_modules/**', 'docs/**', 'coverage/**', '**/prisma/migrations/**'],
+    ignores: [
+      '**/dist/**',
+      '**/dist-weapp/**',
+      '**/node_modules/**',
+      'docs/**',
+      'coverage/**',
+      '**/prisma/migrations/**',
+    ],
   },
   ...tseslint.configs.recommended,
   {

@@ -13,6 +13,7 @@ interface SecretMeta {
 interface IntegrationDetail {
   miniappAppId: string | null;
   miniappAppSecret: { configured: boolean };
+  miniappUploadKey: SecretMeta;
   paymentProvider: 'mock' | 'wechat';
   wechatPayMchId: string | null;
   wechatPayCertSerial: string | null;
@@ -25,9 +26,10 @@ interface IntegrationDetail {
   updatedAt: string;
 }
 
-type SecretField = 'wechatPayApiV3Key' | 'wechatPayPrivateKey';
+type SecretField = 'miniappUploadKey' | 'wechatPayApiV3Key' | 'wechatPayPrivateKey';
 
 const SECRET_ACCEPT: Record<SecretField, string> = {
+  miniappUploadKey: '.key,.pem',
   wechatPayApiV3Key: '.txt,.key,.secret',
   wechatPayPrivateKey: '.pem,.key,.p12,.pfx',
 };
@@ -243,7 +245,11 @@ export default function IntegrationSettings() {
 
   function secretMeta(field: SecretField): SecretMeta {
     const meta =
-      field === 'wechatPayApiV3Key' ? detail?.wechatPayApiV3Key : detail?.wechatPayPrivateKey;
+      field === 'miniappUploadKey'
+        ? detail?.miniappUploadKey
+        : field === 'wechatPayApiV3Key'
+          ? detail?.wechatPayApiV3Key
+          : detail?.wechatPayPrivateKey;
     return meta ?? { configured: false, fileName: null };
   }
 
@@ -320,6 +326,16 @@ export default function IntegrationSettings() {
               保存后小程序登录切换为真实 jscode2session；密钥不回显，留空表示保持原值
             </span>
           </div>
+          <SecretRow
+            field="miniappUploadKey"
+            label="代码上传密钥"
+            hint="微信公众平台 → 开发管理 → 小程序代码上传 → 下载密钥；上传前需把服务器 IP 加入该密钥的 IP 白名单"
+            meta={secretMeta('miniappUploadKey')}
+            disabled={!canWrite}
+            uploading={uploading === 'miniappUploadKey'}
+            onUpload={(file) => void handleUpload('miniappUploadKey', file)}
+            onRemove={() => void handleRemoveSecret('miniappUploadKey', '代码上传密钥')}
+          />
         </Card>
 
         <Card title="微信支付">

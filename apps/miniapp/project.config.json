@@ -1,5 +1,5 @@
 {
-  "miniprogramRoot": "dist/",
+  "miniprogramRoot": "dist-weapp/",
   "projectname": "shanye-miniapp",
   "description": "山野商城 · 微信小程序",
   "appid": "wx04619aa796c2188f",
@@ -12,7 +12,7 @@
   },
   "compileType": "miniprogram",
   "libVersion": "3.6.0",
-  "srcMiniprogramRoot": "dist/",
+  "srcMiniprogramRoot": "dist-weapp/",
   "packOptions": {
     "ignore": [],
     "include": []

@@ -16,6 +16,7 @@ tags:
   - name: payments
   - name: admin-orders
   - name: admin-integration
+  - name: admin-miniapp
   - name: telemetry
 
 paths:
@@ -1599,7 +1600,7 @@ paths:
       summary: 上传密钥或证书文件（base64，≤200KB）
       security: [{ adminToken: [] }]
       parameters:
-        - { name: field, in: path, required: true, schema: { type: string, enum: [wechatPayApiV3Key, wechatPayPrivateKey] } }
+        - { name: field, in: path, required: true, schema: { type: string, enum: [miniappUploadKey, wechatPayApiV3Key, wechatPayPrivateKey] } }
       requestBody:
         required: true
         content:
@@ -1619,10 +1620,99 @@ paths:
       summary: 删除已上传的密钥或证书
       security: [{ adminToken: [] }]
       parameters:
-        - { name: field, in: path, required: true, schema: { type: string, enum: [wechatPayApiV3Key, wechatPayPrivateKey] } }
+        - { name: field, in: path, required: true, schema: { type: string, enum: [miniappUploadKey, wechatPayApiV3Key, wechatPayPrivateKey] } }
       responses:
         '200': { description: OK }
         '400': { $ref: '#/components/responses/BadRequest' }
+
+  /admin/miniapp/readiness:
+    get:
+      tags: [admin-miniapp]
+      summary: 发布环境检查（AppID / 上传密钥 / API 地址 / 建议版本号）
+      security: [{ adminToken: [] }]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/MiniappReadiness' }
+
+  /admin/miniapp/releases:
+    get:
+      tags: [admin-miniapp]
+      summary: 发布记录（最近 20 条）
+      security: [{ adminToken: [] }]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      items:
+                        type: array
+                        items: { $ref: '#/components/schemas/MiniappRelease' }
+    post:
+      tags: [admin-miniapp]
+      summary: 构建并上传开发版（异步，约 1-2 分钟）
+      security: [{ adminToken: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [version, description]
+              properties:
+                version: { type: string, maxLength: 20, example: 1.0.1 }
+                description: { type: string, maxLength: 200 }
+      responses:
+        '202': { description: 已开始构建 }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /admin/miniapp/releases/{id}:
+    get:
+      tags: [admin-miniapp]
+      summary: 发布记录详情（含构建日志）
+      security: [{ adminToken: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { description: OK }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /admin/miniapp/releases/{id}/qrcode:
+    get:
+      tags: [admin-miniapp]
+      summary: 体验版二维码（base64 data URL）
+      security: [{ adminToken: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { description: OK }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /admin/miniapp/releases/{id}/released:
+    post:
+      tags: [admin-miniapp]
+      summary: 标记为已发布（审核与发布在微信后台完成）
+      security: [{ adminToken: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
 
 components:
   securitySchemes:
@@ -2106,6 +2196,7 @@ components:
           required: [configured]
           properties:
             configured: { type: boolean }
+        miniappUploadKey: { $ref: '#/components/schemas/SecretMeta' }
         paymentProvider: { type: string, enum: [mock, wechat] }
         wechatPayMchId: { type: string, nullable: true }
         wechatPayCertSerial: { type: string, nullable: true }
@@ -2121,6 +2212,34 @@ components:
         apiBaseUrl: { type: string, nullable: true }
         businessDomain: { type: string, nullable: true }
         updatedAt: { type: string, format: date-time }
+
+    MiniappRelease:
+      type: object
+      properties:
+        id: { type: string }
+        version: { type: string }
+        description: { type: string }
+        status: { type: string, enum: [BUILDING, UPLOADED, FAILED, RELEASED] }
+        statusText: { type: string }
+        size: { type: integer }
+        hasQrCode: { type: boolean }
+        operatorName: { type: string }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    MiniappReadiness:
+      type: object
+      properties:
+        appId: { type: string }
+        uploadKey:
+          type: object
+          required: [configured]
+          properties:
+            configured: { type: boolean }
+        apiBaseUrl: { type: string }
+        buildAvailable: { type: boolean }
+        latestRelease: { $ref: '#/components/schemas/MiniappRelease', nullable: true }
+        suggestedVersion: { type: string }
 
     AdminAccount:
       type: object
