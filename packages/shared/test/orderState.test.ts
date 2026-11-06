@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   buyerActions,
   can,
+  isBeforeShipment,
   canAfterSale,
   nextAfterSaleStatus,
   nextStatus,
@@ -34,6 +35,18 @@ describe('订单状态机', () => {
     );
   });
 
+  it('部分退款完成，订单回到申请前状态而不是已退款', () => {
+    expect(
+      nextStatus('REFUNDING', 'refund_partial_success', { previousStatus: 'COMPLETED' }),
+    ).toBe('COMPLETED');
+    expect(can('REFUNDING', 'refund_partial_success')).toBe(true);
+  });
+
+  it('全额退款完成，订单进入已退款且不可再退', () => {
+    expect(nextStatus('REFUNDING', 'refund_success')).toBe('REFUNDED');
+    expect(can('REFUNDED', 'refund_apply')).toBe(false);
+  });
+
   it('已关闭订单不能发货：抛错而不是静默', () => {
     expect(can('CLOSED', 'ship')).toBe(false);
     expect(() => nextStatus('CLOSED', 'ship')).toThrow(/非法状态迁移/);
@@ -47,6 +60,12 @@ describe('订单状态机', () => {
     expect(buyerActions('PENDING_PAYMENT')).toEqual(['pay_success', 'cancel']);
     expect(buyerActions('SHIPPED')).toEqual(['confirm', 'refund_apply']);
     expect(buyerActions('CLOSED')).toEqual([]);
+  });
+
+  it('未发货判定只对已支付成立', () => {
+    expect(isBeforeShipment('PAID')).toBe(true);
+    expect(isBeforeShipment('SHIPPED')).toBe(false);
+    expect(isBeforeShipment('CLOSED')).toBe(false);
   });
 
   it('七种状态都有中文文案', () => {

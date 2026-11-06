@@ -9,6 +9,10 @@ import { OrderService } from './order/order.service';
 import { PaymentController, OrderPayController } from './payment/payment.controller';
 import { PaymentService } from './payment/payment.service';
 import { AdminOrderController } from './admin/admin-order.controller';
+import { AfterSaleController, AdminAfterSaleController } from './aftersale/aftersale.controller';
+import { AfterSaleService } from './aftersale/aftersale.service';
+import { OrderTimeoutService } from './order/order-timeout.service';
+import { AdminOrderOpsController, ShipmentController } from './order/shipment.controller';
 import { JwtAuthGuard, RolesGuard } from '../common/auth.guards';
 import { UserJwtGuard } from '../common/user-auth.guard';
 
@@ -29,8 +33,21 @@ import { UserJwtGuard } from '../common/user-auth.guard';
     OrderPayController,
     PaymentController,
     AdminOrderController,
+    AfterSaleController,
+    AdminAfterSaleController,
+    ShipmentController,
+    AdminOrderOpsController,
   ],
-  providers: [CartService, OrderService, PaymentService, UserJwtGuard, JwtAuthGuard, RolesGuard],
+  providers: [
+    CartService,
+    OrderService,
+    PaymentService,
+    AfterSaleService,
+    OrderTimeoutService,
+    UserJwtGuard,
+    JwtAuthGuard,
+    RolesGuard,
+  ],
   exports: [OrderService],
 })
 export class TradeModule {}

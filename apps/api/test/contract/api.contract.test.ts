@@ -1,12 +1,11 @@
 /**
  * 契约测试（工程契约 R2）
- * 方式：启动构建产物 dist/main.js，用真实 HTTP 请求校验
+ * 方式：由 global-setup 启动构建产物，用真实 HTTP 请求校验
  *      —— 只依赖对外行为，不依赖内部 DI，且顺带验证打包产物可用。
  * 运行：pnpm test:contract
  * 前置：DATABASE_URL 可写（迁移与种子已执行）、已 pnpm build:api
  */
-import { spawn, type ChildProcess } from 'node:child_process';
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 
@@ -32,38 +31,10 @@ const orderValidator = new OpenApiResponseValidator({
   components: spec.components as never,
 });
 
-let child: ChildProcess | null = null;
 let prisma: PrismaClient | null = null;
 let token = '';
 let addressId = '';
 let skuId = '';
-
-function env(): NodeJS.ProcessEnv {
-  const envPath = join(ROOT, 'apps/api/.env');
-  const parsed: Record<string, string> = { ...process.env } as Record<string, string>;
-  if (existsSync(envPath)) {
-    for (const line of readFileSync(envPath, 'utf8').split('\n')) {
-      const m = line.match(/^\s*([A-Z_]+)\s*=\s*"?([^"]*)"?\s*$/);
-      if (m) parsed[m[1]] = m[2];
-    }
-  }
-  parsed.PORT = String(PORT);
-  return parsed;
-}
-
-async function waitForHealth(timeoutMs = 25_000): Promise<void> {
-  const deadline = Date.now() + timeoutMs;
-  while (Date.now() < deadline) {
-    try {
-      const res = await fetch(`${BASE}/health`);
-      if (res.ok) return;
-    } catch {
-      /* 服务尚未就绪 */
-    }
-    await new Promise((r) => setTimeout(r, 300));
-  }
-  throw new Error('API 未在规定时间内就绪');
-}
 
 async function api(path: string, init: RequestInit = {}) {
   const res = await fetch(`${BASE}${path}`, {
@@ -79,13 +50,7 @@ async function api(path: string, init: RequestInit = {}) {
 }
 
 beforeAll(async () => {
-  const envVars = env();
-  child = spawn('node', ['dist/main.js'], {
-    cwd: join(ROOT, 'apps/api'),
-    env: envVars,
-    stdio: 'ignore',
-  });
-  await waitForHealth();
+  const envVars: NodeJS.ProcessEnv = { DATABASE_URL: process.env.DATABASE_URL ?? '' };
 
   // 测试夹具：直接读库取地址与 SKU（测试层允许使用 Prisma）
   prisma = new PrismaClient({ datasources: { db: { url: envVars.DATABASE_URL } } });
@@ -108,8 +73,6 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  child?.kill('SIGTERM');
-  child = null;
   await prisma?.$disconnect();
   prisma = null;
 });

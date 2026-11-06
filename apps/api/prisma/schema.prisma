@@ -200,6 +200,8 @@ model OrderItem {
   priceCents  Int
   quantity    Int
   subtotalCents Int
+  /** 分摊后的行实付（不含运费）：退款上限与默认退款额以它为准 */
+  paidCents   Int @default(0)
   refundedCents Int @default(0)
 
   order Order @relation(fields: [orderId], references: [id])
@@ -254,15 +256,45 @@ model AfterSale {
   status         AfterSaleStatus @default(APPLIED)
   rejectReason   String?
   buyerTrackingNo String?
+  /** 申请前的订单状态，部分退款后用于恢复 */
+  previousOrderStatus OrderStatus?
   finishedAt     DateTime?       @db.Timestamptz(3)
   createdAt      DateTime        @default(now()) @db.Timestamptz(3)
   updatedAt      DateTime        @updatedAt @db.Timestamptz(3)
 
   order     Order     @relation(fields: [orderId], references: [id])
   orderItem OrderItem @relation(fields: [orderItemId], references: [id])
+  refund    Refund?
 
   @@index([status, createdAt])
   @@index([userId])
+}
+
+enum RefundStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
+model Refund {
+  id            String       @id @default(cuid())
+  refundNo      String       @unique
+  afterSaleId   String       @unique
+  orderId       String
+  amountCents   Int
+  status        RefundStatus @default(PENDING)
+  provider      String       @default("mock")
+  /** 渠道退款单号：幂等依据 */
+  transactionId String?      @unique
+  failReason    String?
+  rawResponse   Json?
+  createdAt     DateTime     @default(now()) @db.Timestamptz(3)
+  refundedAt    DateTime?    @db.Timestamptz(3)
+
+  afterSale AfterSale @relation(fields: [afterSaleId], references: [id])
+
+  @@index([orderId])
+  @@index([status])
 }
 
 model Coupon {

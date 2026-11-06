@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  allocateDiscount,
+  allocateLinePaidCents,
   assertAmountSelfConsistent,
   calculateOrderAmount,
   formatCents,
@@ -140,6 +142,40 @@ describe('金额工具', () => {
     expect(formatCents(0)).toBe('¥0.00');
   });
 
+  it('优惠按占比分摊，合计精确等于总优惠（余数给最后一行）', () => {
+    const alloc = allocateDiscount(1000, [3333, 3333, 3334]);
+    expect(alloc.reduce((a, b) => a + b, 0)).toBe(1000);
+    expect(alloc).toEqual([333, 333, 334]);
+  });
+
+  it('无优惠时分摊全为 0', () => {
+    expect(allocateDiscount(0, [100, 200])).toEqual([0, 0]);
+    expect(allocateDiscount(500, [])).toEqual([]);
+    expect(allocateDiscount(500, [0, 0])).toEqual([0, 0]);
+  });
+
+  it('行实付 = 原价 - 会员折扣 - 券，且各行合计等于商品实付', () => {
+    const lines = [
+      { priceCents: 5900, quantity: 1 },
+      { priceCents: 1000, quantity: 2 },
+    ];
+    const paid = allocateLinePaidCents({ lines, memberDiscountCents: 158, couponCents: 300 });
+    expect(paid.reduce((a, b) => a + b, 0)).toBe(7900 - 158 - 300);
+    expect(paid[0]).toBeGreaterThan(paid[1]);
+  });
+
+  it('会员折扣订单：行实付低于原价，退款上限不能按原价算', () => {
+    const [paid] = allocateLinePaidCents({
+      lines: [{ priceCents: 5900, quantity: 1 }],
+      memberDiscountCents: 118,
+      couponCents: 0,
+    });
+    expect(paid).toBe(5782);
+    expect(paid).toBeLessThan(5900);
+  });
+});
+
+describe('金额自检', () => {
   it('伪造快照会被自检拦下', () => {
     expect(() =>
       assertAmountSelfConsistent({
