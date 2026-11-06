@@ -2,6 +2,8 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
 export default defineConfig({
+  // 部署到子路径时用 ADMIN_BASE=/admin/ 构建，本地开发保持根路径
+  base: process.env.ADMIN_BASE ?? '/',
   plugins: [react()],
   server: {
     host: '127.0.0.1',
