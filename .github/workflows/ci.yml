@@ -75,6 +75,10 @@ jobs:
       - name: Build
         run: pnpm build:api
 
+      # 6.1) 前端产物：管理后台（Vite）与小程序（Taro H5）都必须可构建
+      - name: Build web
+        run: pnpm build:web
+
       # 7) TODO 扫描：只拦新增，不追溯历史
       - name: TODO guard
         run: |

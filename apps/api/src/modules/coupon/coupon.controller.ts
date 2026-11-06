@@ -107,7 +107,7 @@ export class AdminCouponController {
   constructor(private readonly coupons: CouponService) {}
 
   @Get()
-  @Roles('SUPER', 'OPS')
+  @Roles('SUPER', 'OPS', 'CS')
   @ApiOperation({ summary: '优惠券列表（含领取数）' })
   list() {
     return this.coupons.listAdmin();

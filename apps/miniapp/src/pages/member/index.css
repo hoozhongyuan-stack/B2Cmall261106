@@ -1,0 +1,58 @@
+.member-hero {
+  padding: 48px 32px 40px;
+}
+
+.member-name {
+  display: block;
+  font-size: 48px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.member-discount {
+  display: block;
+  margin-top: 8px;
+  font-size: 24px;
+  color: rgba(255, 255, 255, 0.86);
+}
+
+.member-progress {
+  margin-top: 32px;
+}
+
+.member-progress-bar {
+  height: 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.24);
+  overflow: hidden;
+}
+
+.member-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--surface);
+}
+
+.member-progress-meta {
+  margin-top: 12px;
+}
+
+.member-progress-meta .muted {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.member-next {
+  display: block;
+  margin-top: 16px;
+  font-size: 24px;
+}
+
+.member-body {
+  padding: 24px 32px 60px;
+}
+
+.member-note {
+  display: block;
+  text-align: center;
+  margin-top: 8px;
+}

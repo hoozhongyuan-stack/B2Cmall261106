@@ -22,6 +22,7 @@ export class CatalogController {
     return {
       shopName: config?.shopName ?? '山野',
       intro: config?.intro ?? '',
+      servicePhone: config?.servicePhone ?? null,
       freeThresholdCents: config?.freeThresholdCents ?? 9900,
       flatFreightCents: config?.flatFreightCents ?? 1000,
       afterSaleDays: config?.afterSaleDays ?? 7,

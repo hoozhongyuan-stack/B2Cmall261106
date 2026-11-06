@@ -1,0 +1,52 @@
+.review-title {
+  margin: 0 0 16px;
+}
+
+.review-stars {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.review-star {
+  font-size: 56px;
+  line-height: 1;
+  color: var(--line-2);
+}
+
+.review-star--on {
+  color: var(--gold);
+}
+
+.review-score {
+  margin-left: 8px;
+}
+
+.review-switch {
+  width: 88px;
+  height: 52px;
+  border-radius: 999px;
+  background: var(--line-2);
+  padding: 4px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  transition: background 200ms var(--ease);
+}
+
+.review-switch--on {
+  background: var(--brand);
+  justify-content: flex-end;
+}
+
+.review-switch-knob {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: 0 2px 6px rgba(22, 24, 26, 0.2);
+}
+
+.btn--disabled {
+  opacity: 0.45;
+}

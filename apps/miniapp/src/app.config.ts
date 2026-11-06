@@ -1,0 +1,45 @@
+import { tokens } from '@shanye/tokens';
+
+export default defineAppConfig({
+  pages: [
+    'pages/home/index',
+    'pages/category/index',
+    'pages/search/index',
+    'pages/product/index',
+    'pages/cart/index',
+    'pages/checkout/index',
+    'pages/pay-result/index',
+    'pages/orders/index',
+    'pages/order-detail/index',
+    'pages/shipment/index',
+    'pages/after-sale/apply/index',
+    'pages/after-sale/list/index',
+    'pages/after-sale/detail/index',
+    'pages/review/create/index',
+    'pages/review/mine/index',
+    'pages/mine/index',
+    'pages/member/index',
+    'pages/points/index',
+    'pages/coupon/index',
+    'pages/address/list/index',
+    'pages/address/edit/index',
+  ],
+  window: {
+    backgroundTextStyle: 'light',
+    navigationBarBackgroundColor: tokens.color.surface,
+    navigationBarTitleText: '山野',
+    navigationBarTextStyle: 'black',
+    backgroundColor: tokens.color.surface,
+  },
+  tabBar: {
+    color: tokens.color.ink3,
+    selectedColor: tokens.color.brand,
+    backgroundColor: tokens.color.surface,
+    list: [
+      { pagePath: 'pages/home/index', text: '首页' },
+      { pagePath: 'pages/category/index', text: '分类' },
+      { pagePath: 'pages/cart/index', text: '购物车' },
+      { pagePath: 'pages/mine/index', text: '我的' },
+    ],
+  },
+});

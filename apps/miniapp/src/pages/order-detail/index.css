@@ -1,0 +1,68 @@
+.od-head {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.od-status {
+  font-size: 40px;
+  font-weight: 700;
+  color: var(--brand);
+}
+
+.od-shipment {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.od-section {
+  margin: 0 0 12px;
+}
+
+.od-address {
+  display: block;
+  margin-top: 8px;
+}
+
+.od-item {
+  display: flex;
+  gap: 20px;
+  padding: 12px 0;
+  position: relative;
+}
+
+.od-item + .od-item {
+  border-top: 1px solid var(--line);
+}
+
+.od-after-sale {
+  position: absolute;
+  right: 0;
+  bottom: 12px;
+}
+
+.od-amount {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.od-payable {
+  margin-top: 8px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.od-blank {
+  height: 24px;
+}
+
+.od-remark {
+  display: block;
+  margin-top: 8px;
+}
+
+.od-info + .od-info {
+  margin-top: 8px;
+}

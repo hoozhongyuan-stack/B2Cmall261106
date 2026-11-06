@@ -36,7 +36,7 @@ export class AdminOrderController {
   constructor(private readonly prisma: PrismaService) {}
 
   @Get()
-  @Roles('SUPER', 'CS', 'WMS')
+  @Roles('SUPER', 'OPS', 'CS', 'WMS')
   @ApiOperation({ summary: '订单列表：按状态筛选与关键词搜索' })
   async list(@Query('status') status?: string, @Query('keyword') keyword?: string) {
     const orders = await this.prisma.order.findMany({
@@ -79,7 +79,7 @@ export class AdminOrderController {
   }
 
   @Get(':id')
-  @Roles('SUPER', 'CS', 'WMS')
+  @Roles('SUPER', 'OPS', 'CS', 'WMS')
   @ApiOperation({ summary: '订单详情（后台视图）' })
   async detail(@Param('id') id: string) {
     const order = await this.prisma.order.findUnique({

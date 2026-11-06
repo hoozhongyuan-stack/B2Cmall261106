@@ -1,0 +1,30 @@
+.al-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.al-person {
+  gap: 16px;
+}
+
+.al-name {
+  font-size: 32px;
+  font-weight: 600;
+}
+
+.al-detail {
+  display: block;
+}
+
+.al-actions {
+  justify-content: flex-end;
+  gap: 32px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+  margin-top: 4px;
+}
+
+.al-action {
+  padding: 4px 0;
+}
