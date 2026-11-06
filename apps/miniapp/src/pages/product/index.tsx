@@ -1,6 +1,6 @@
 import { Text, View } from '@tarojs/components';
-import Taro, { useRouter } from '@tarojs/taro';
-import { useEffect, useState } from 'react';
+import Taro, { useDidShow, useRouter } from '@tarojs/taro';
+import { useEffect, useRef, useState } from 'react';
 
 import { api, showError } from '../../api/client';
 import { Empty, Loading, Price, ProductThumb } from '../../components/common';
@@ -54,17 +54,37 @@ function stars(rating: number): string {
 export default function Page() {
   const router = useRouter();
   const id = router.params.id ?? '';
-  const { data: product, loading } = useRequest(() => api<ProductDetail>(`/products/${id}`), [id]);
-  const { data: reviewData } = useRequest(() => api<ReviewList>(`/products/${id}/reviews`), [id]);
+  const {
+    data: product,
+    loading,
+    reload: reloadProduct,
+  } = useRequest(() => api<ProductDetail>(`/products/${id}`), [id]);
+  const { data: reviewData, reload: reloadReviews } = useRequest(
+    () => api<ReviewList>(`/products/${id}/reviews`),
+    [id],
+  );
   const [skuId, setSkuId] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [submitting, setSubmitting] = useState(false);
+  const firstShow = useRef(true);
+  const initialized = useRef(false);
+
+  // 从评价/售后等页面返回时刷新库存与评价数（首次进入由 useRequest 负责）
+  useDidShow(() => {
+    if (firstShow.current) {
+      firstShow.current = false;
+      return;
+    }
+    void reloadProduct();
+    void reloadReviews();
+  });
 
   useEffect(() => {
-    if (!product) return;
+    if (!product || initialized.current) return;
     const first = product.skus.find((sku) => sku.available > 0) ?? product.skus[0];
     setSkuId(first?.id ?? '');
     setQuantity(1);
+    initialized.current = true;
   }, [product]);
 
   if (loading && !product) return <Loading />;

@@ -51,6 +51,26 @@ export class ReviewService {
     });
   }
 
+  /** 评价页上下文：归属校验 + 商品信息 + 是否已评价，避免用户在空白页误评 */
+  async context(userId: string, orderItemId: string) {
+    const item = await this.prisma.orderItem.findFirst({
+      where: { id: orderItemId, order: { userId } },
+      include: { order: { select: { status: true } }, review: { select: { id: true } } },
+    });
+    if (!item) throw new NotFoundException('订单商品不存在');
+
+    return {
+      id: item.id,
+      title: item.title,
+      specText: item.specText,
+      imageKey: item.imageKey,
+      priceCents: item.priceCents,
+      quantity: item.quantity,
+      reviewed: Boolean(item.review),
+      orderStatus: item.order.status,
+    };
+  }
+
   /** 我的评价：含审核状态与商家回复 */
   async listMine(userId: string) {
     const reviews = await this.prisma.review.findMany({

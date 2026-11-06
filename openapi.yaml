@@ -816,6 +816,24 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
 
+  /reviews/context/{orderItemId}:
+    get:
+      tags: [reviews]
+      summary: 评价页上下文：订单商品信息与是否已评价
+      security: [{ userToken: [] }]
+      parameters:
+        - { name: orderItemId, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/ReviewContext' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
   /reviews/mine:
     get:
       tags: [reviews]
@@ -1782,6 +1800,19 @@ components:
         orderId: { type: string, nullable: true }
         balanceAfter: { type: integer }
         createdAt: { type: string, format: date-time }
+
+    ReviewContext:
+      type: object
+      required: [id, title, reviewed]
+      properties:
+        id: { type: string }
+        title: { type: string }
+        specText: { type: string }
+        imageKey: { type: string, nullable: true }
+        priceCents: { type: integer }
+        quantity: { type: integer }
+        reviewed: { type: boolean }
+        orderStatus: { type: string }
 
     Review:
       type: object

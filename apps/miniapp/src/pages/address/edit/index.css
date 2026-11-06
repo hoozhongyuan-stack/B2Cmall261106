@@ -30,3 +30,9 @@
 .btn--disabled {
   opacity: 0.45;
 }
+
+/* 地区选择器触发器：外观与输入框一致 */
+.ae-region {
+  display: flex;
+  align-items: center;
+}

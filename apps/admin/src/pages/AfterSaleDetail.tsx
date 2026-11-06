@@ -121,6 +121,12 @@ export default function AfterSaleDetail() {
       toast('拒绝时必须填写理由', 'error');
       return;
     }
+    // 资金操作必须二次确认：点击即退款，不可撤销
+    if (action !== 'reject') {
+      const label = action === 'approve_only_refund' ? '同意仅退款' : '同意退货';
+      const amount = money(data?.refundCents ?? 0);
+      if (!window.confirm(`确定${label}吗？将立即向买家退款 ${amount}，操作不可撤销。`)) return;
+    }
     setWorking(action);
     try {
       await api(`/admin/after-sales/${id}/moderate`, {
@@ -139,6 +145,13 @@ export default function AfterSaleDetail() {
 
   async function receive() {
     if (!id) return;
+    if (
+      !window.confirm(
+        `确认已收到退货并退款 ${money(data?.refundCents ?? 0)} 吗？操作不可撤销。`,
+      )
+    ) {
+      return;
+    }
     setWorking('receive');
     try {
       await api(`/admin/after-sales/${id}/receive`, { method: 'POST' });
