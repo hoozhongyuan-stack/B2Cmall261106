@@ -12,7 +12,7 @@ interface SecretMeta {
 
 interface IntegrationDetail {
   miniappAppId: string | null;
-  miniappAppSecret: SecretMeta;
+  miniappAppSecret: { configured: boolean };
   paymentProvider: 'mock' | 'wechat';
   wechatPayMchId: string | null;
   wechatPayCertSerial: string | null;
@@ -25,10 +25,9 @@ interface IntegrationDetail {
   updatedAt: string;
 }
 
-type SecretField = 'miniappAppSecret' | 'wechatPayApiV3Key' | 'wechatPayPrivateKey';
+type SecretField = 'wechatPayApiV3Key' | 'wechatPayPrivateKey';
 
 const SECRET_ACCEPT: Record<SecretField, string> = {
-  miniappAppSecret: '.txt,.key,.secret',
   wechatPayApiV3Key: '.txt,.key,.secret',
   wechatPayPrivateKey: '.pem,.key,.p12,.pfx',
 };
@@ -102,6 +101,7 @@ export default function IntegrationSettings() {
 
   const [form, setForm] = useState({
     miniappAppId: '',
+    miniappAppSecret: '',
     paymentProvider: 'mock' as 'mock' | 'wechat',
     wechatPayMchId: '',
     wechatPayCertSerial: '',
@@ -120,6 +120,8 @@ export default function IntegrationSettings() {
       setDetail(result);
       setForm({
         miniappAppId: result.miniappAppId ?? '',
+        // 密钥不回显，输入框始终从空开始
+        miniappAppSecret: '',
         paymentProvider: result.paymentProvider,
         wechatPayMchId: result.wechatPayMchId ?? '',
         wechatPayCertSerial: result.wechatPayCertSerial ?? '',
@@ -166,6 +168,10 @@ export default function IntegrationSettings() {
         method: 'PATCH',
         body: {
           miniappAppId: form.miniappAppId.trim(),
+          // 留空表示不修改已保存的 AppSecret
+          ...(form.miniappAppSecret.trim()
+            ? { miniappAppSecret: form.miniappAppSecret.trim() }
+            : {}),
           paymentProvider: form.paymentProvider,
           wechatPayMchId: form.wechatPayMchId.trim(),
           wechatPayCertSerial: form.wechatPayCertSerial.trim(),
@@ -221,13 +227,23 @@ export default function IntegrationSettings() {
     }
   }
 
+  async function clearAppSecret() {
+    if (!window.confirm('确定清除已保存的 AppSecret 吗？清除后小程序登录会回到本地模拟。')) return;
+    try {
+      await api('/admin/integration', {
+        method: 'PATCH',
+        body: { miniappAppSecret: '' },
+      });
+      toast('已清除');
+      await load();
+    } catch (err) {
+      toast(errorText(err), 'error');
+    }
+  }
+
   function secretMeta(field: SecretField): SecretMeta {
     const meta =
-      field === 'miniappAppSecret'
-        ? detail?.miniappAppSecret
-        : field === 'wechatPayApiV3Key'
-          ? detail?.wechatPayApiV3Key
-          : detail?.wechatPayPrivateKey;
+      field === 'wechatPayApiV3Key' ? detail?.wechatPayApiV3Key : detail?.wechatPayPrivateKey;
     return meta ?? { configured: false, fileName: null };
   }
 
@@ -265,16 +281,45 @@ export default function IntegrationSettings() {
               />
             </Field>
           </div>
-          <SecretRow
-            field="miniappAppSecret"
-            label="小程序 AppSecret"
-            hint="上传包含 AppSecret 的 .txt 文件；上传后登录将切换为真实 jscode2session"
-            meta={secretMeta('miniappAppSecret')}
-            disabled={!canWrite}
-            uploading={uploading === 'miniappAppSecret'}
-            onUpload={(file) => void handleUpload('miniappAppSecret', file)}
-            onRemove={() => void handleRemoveSecret('miniappAppSecret', '小程序 AppSecret')}
-          />
+          <div className="field">
+            <span className="field-label">
+              小程序 AppSecret{' '}
+              {detail?.miniappAppSecret.configured ? (
+                <Tag tone="ok">已配置</Tag>
+              ) : (
+                <Tag tone="warn">未配置</Tag>
+              )}
+            </span>
+            <div className="row" style={{ gap: 12, flexWrap: 'wrap' }}>
+              <input
+                className="input"
+                type="password"
+                autoComplete="new-password"
+                value={form.miniappAppSecret}
+                disabled={!canWrite}
+                placeholder={
+                  detail?.miniappAppSecret.configured
+                    ? '已配置，留空表示不修改'
+                    : '请输入 32 位 AppSecret'
+                }
+                onChange={(e) => setField('miniappAppSecret', e.target.value)}
+              />
+              {detail?.miniappAppSecret.configured && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  disabled={!canWrite}
+                  onClick={() => void clearAppSecret()}
+                >
+                  清除
+                </Button>
+              )}
+            </div>
+            <span className="field-hint">
+              保存后小程序登录切换为真实 jscode2session；密钥不回显，留空表示保持原值
+            </span>
+          </div>
         </Card>
 
         <Card title="微信支付">

@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 
 const ADMIN_URL = 'http://127.0.0.1:5173';
 
-test('集成配置：读取参数、上传密钥、删除密钥', async ({ page }) => {
+test('集成配置：填写 AppSecret 保存并清除', async ({ page }) => {
   await page.goto(`${ADMIN_URL}/login`);
   await page.getByRole('button', { name: '登录' }).click();
   await expect(page).toHaveURL(`${ADMIN_URL}/`);
@@ -11,18 +11,16 @@ test('集成配置：读取参数、上传密钥、删除密钥', async ({ page 
   await expect(page.getByRole('heading', { name: '集成配置' })).toBeVisible();
   await expect(page.getByLabel('小程序 AppID')).toHaveValue(/^wx/);
 
-  // 上传 AppSecret（虚拟文件，不落真实密钥）
-  const fileInput = page.locator('input[type="file"]').first();
-  await fileInput.setInputFiles({
-    name: 'e2e-appsecret.txt',
-    mimeType: 'text/plain',
-    // AppSecret 必须是 32 位字母数字
-    buffer: Buffer.from('e2eappsecret0123456789abcdefghij'),
-  });
-  await expect(page.getByText('e2e-appsecret.txt')).toBeVisible();
+  const secretField = page.locator('.field').filter({ hasText: '小程序 AppSecret' });
 
-  // 删除并确认，恢复为未配置
+  // 文本框录入 32 位 AppSecret（E2E 使用假值，保存后立即清除）
+  await secretField.locator('input[type="password"]').fill('e2eappsecret0123456789abcdefghij');
+  await page.getByRole('button', { name: '保存配置' }).click();
+  await expect(secretField.getByText('已配置')).toBeVisible();
+  await expect(secretField.locator('input[type="password"]')).toHaveValue('');
+
+  // 清除后恢复未配置
   page.once('dialog', (dialog) => void dialog.accept());
-  await page.getByRole('button', { name: '删除' }).first().click();
-  await expect(page.getByText('e2e-appsecret.txt')).toBeHidden();
+  await secretField.getByRole('button', { name: '清除' }).click();
+  await expect(secretField.getByText('未配置')).toBeVisible();
 });

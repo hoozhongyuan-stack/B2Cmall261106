@@ -3551,6 +3551,8 @@ export interface paths {
                 content: {
                     "application/json": {
                         miniappAppId?: string;
+                        /** @description 32 位字母数字；空字符串表示清除 */
+                        miniappAppSecret?: string;
                         /** @enum {string} */
                         paymentProvider?: "mock" | "wechat";
                         wechatPayMchId?: string;
@@ -3594,7 +3596,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    field: "miniappAppSecret" | "wechatPayApiV3Key" | "wechatPayPrivateKey";
+                    field: "wechatPayApiV3Key" | "wechatPayPrivateKey";
                 };
                 cookie?: never;
             };
@@ -3623,7 +3625,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    field: "miniappAppSecret" | "wechatPayApiV3Key" | "wechatPayPrivateKey";
+                    field: "wechatPayApiV3Key" | "wechatPayPrivateKey";
                 };
                 cookie?: never;
             };
@@ -4018,7 +4020,9 @@ export interface components {
         };
         IntegrationConfig: {
             miniappAppId?: string | null;
-            miniappAppSecret?: components["schemas"]["SecretMeta"];
+            miniappAppSecret?: {
+                configured: boolean;
+            };
             /** @enum {string} */
             paymentProvider?: "mock" | "wechat";
             wechatPayMchId?: string | null;

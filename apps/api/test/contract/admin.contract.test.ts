@@ -273,18 +273,20 @@ describe('子账号与操作日志契约', () => {
 });
 
 describe('集成配置契约', () => {
-  it('读取 / 修改 / 上传密钥 / 删除密钥，接口不回显文件内容', async () => {
+  it('读取 / 修改 / 保存 AppSecret / 清除，接口不回显密钥', async () => {
     const before = await api('/admin/integration', {}, superToken);
     expect(before.status).toBe(200);
     expect(before.body.data.miniappAppSecret).toHaveProperty('configured');
     expect(before.body.data.subscribeTemplateIds).toHaveProperty('orderPaid');
 
+    const plain = 'Ab3'.repeat(10) + 'Zx';
     const patched = await api(
       '/admin/integration',
       {
         method: 'PATCH',
         body: JSON.stringify({
           miniappAppId: 'wx1234567890abcdef',
+          miniappAppSecret: plain,
           paymentProvider: 'mock',
           wechatPayMchId: '1900000001',
           wechatPayCertSerial: 'SERIAL-001',
@@ -298,41 +300,26 @@ describe('集成配置契约', () => {
     );
     expect(patched.status).toBe(200);
 
-    const plain = 'Ab3'.repeat(10) + 'Zx';
-    const uploaded = await api(
-      '/admin/integration/secrets/miniappAppSecret',
-      {
-        method: 'POST',
-        body: JSON.stringify({
-          fileName: 'appsecret.txt',
-          contentBase64: Buffer.from(plain).toString('base64'),
-        }),
-      },
-      superToken,
-    );
-    expect(uploaded.status).toBe(201);
-
-    const afterUpload = await api('/admin/integration', {}, superToken);
-    expect(afterUpload.body.data.miniappAppSecret.configured).toBe(true);
-    expect(afterUpload.body.data.miniappAppSecret.fileName).toBe('appsecret.txt');
-    expect(JSON.stringify(afterUpload.body.data)).not.toContain(plain);
+    const afterSave = await api('/admin/integration', {}, superToken);
+    expect(afterSave.body.data.miniappAppSecret.configured).toBe(true);
+    expect(JSON.stringify(afterSave.body.data)).not.toContain(plain);
 
     // 审计日志同样不能落密钥明文
     const logs = await api('/admin/logs?page=1&pageSize=20', {}, superToken);
     expect(JSON.stringify(logs.body.data.items)).not.toContain(plain);
 
-    const removed = await api(
-      '/admin/integration/secrets/miniappAppSecret',
-      { method: 'DELETE' },
+    const cleared = await api(
+      '/admin/integration',
+      { method: 'PATCH', body: JSON.stringify({ miniappAppSecret: '' }) },
       superToken,
     );
-    expect(removed.status).toBe(200);
+    expect(cleared.status).toBe(200);
 
-    const afterRemove = await api('/admin/integration', {}, superToken);
-    expect(afterRemove.body.data.miniappAppSecret.configured).toBe(false);
+    const afterClear = await api('/admin/integration', {}, superToken);
+    expect(afterClear.body.data.miniappAppSecret.configured).toBe(false);
   });
 
-  it('非法密钥类型或文件格式返回 400', async () => {
+  it('非法密钥类型、文件格式或 AppSecret 长度返回 400', async () => {
     const badField = await api(
       '/admin/integration/secrets/unknownField',
       {
@@ -353,19 +340,16 @@ describe('集成配置契约', () => {
     );
     expect(badExt.status).toBe(400);
 
-    // AppSecret 必须是 32 位字母数字，误传私钥文件应被拒绝
-    const badContent = await api(
-      '/admin/integration/secrets/miniappAppSecret',
+    // AppSecret 必须是 32 位字母数字，误填私钥内容应被拒绝
+    const badSecret = await api(
+      '/admin/integration',
       {
-        method: 'POST',
-        body: JSON.stringify({
-          fileName: 'private.wx.key',
-          contentBase64: Buffer.from('-----BEGIN PRIVATE KEY-----\nabc').toString('base64'),
-        }),
+        method: 'PATCH',
+        body: JSON.stringify({ miniappAppSecret: '-----BEGIN PRIVATE KEY-----' }),
       },
       superToken,
     );
-    expect(badContent.status).toBe(400);
+    expect(badSecret.status).toBe(400);
   });
 
   it('非超管不能修改集成配置', async () => {
