@@ -10,7 +10,7 @@ API_BASE_URL="${DEPLOY_API_BASE:-https://car.aition.art/api}"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 NODE_BIN="/home/ubuntu/.nvm/versions/node/v22.23.4/bin"
 
-echo "▸ 1/6 构建管理后台（子路径 /admin/）与小程序 H5（指向 $API_BASE_URL）"
+echo "▸ 1/6 构建管理后台（子路径 /admin/）与小程序 H5（指向 ${API_BASE_URL}）"
 (cd "$ROOT" && ADMIN_BASE=/admin/ pnpm --filter @shanye/admin build >/dev/null)
 (cd "$ROOT" && API_BASE="$API_BASE_URL" pnpm --filter @shanye/miniapp build:h5 >/dev/null)
 
