@@ -484,13 +484,12 @@ model Asset {
 }
 
 // 对外集成参数：小程序登录、微信支付、订阅消息、业务域名
-// 敏感内容只存服务端文件路径，接口不回传明文
+// AppSecret 直接存文本（接口不回传）；支付密钥/证书存服务端文件路径
 model IntegrationConfig {
   id                      String   @id @default("singleton")
   // 小程序登录
   miniappAppId            String?
-  miniappAppSecretFile    String?
-  miniappAppSecretName    String?
+  miniappAppSecret        String?
   // 支付渠道与微信支付参数
   paymentProvider         String   @default("mock")
   wechatPayMchId          String?

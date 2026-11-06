@@ -1576,6 +1576,7 @@ paths:
               additionalProperties: false
               properties:
                 miniappAppId: { type: string, maxLength: 64 }
+                miniappAppSecret: { type: string, maxLength: 64, description: '32 位字母数字；空字符串表示清除' }
                 paymentProvider: { type: string, enum: [mock, wechat] }
                 wechatPayMchId: { type: string, maxLength: 64 }
                 wechatPayCertSerial: { type: string, maxLength: 128 }
@@ -1598,7 +1599,7 @@ paths:
       summary: 上传密钥或证书文件（base64，≤200KB）
       security: [{ adminToken: [] }]
       parameters:
-        - { name: field, in: path, required: true, schema: { type: string, enum: [miniappAppSecret, wechatPayApiV3Key, wechatPayPrivateKey] } }
+        - { name: field, in: path, required: true, schema: { type: string, enum: [wechatPayApiV3Key, wechatPayPrivateKey] } }
       requestBody:
         required: true
         content:
@@ -1618,7 +1619,7 @@ paths:
       summary: 删除已上传的密钥或证书
       security: [{ adminToken: [] }]
       parameters:
-        - { name: field, in: path, required: true, schema: { type: string, enum: [miniappAppSecret, wechatPayApiV3Key, wechatPayPrivateKey] } }
+        - { name: field, in: path, required: true, schema: { type: string, enum: [wechatPayApiV3Key, wechatPayPrivateKey] } }
       responses:
         '200': { description: OK }
         '400': { $ref: '#/components/responses/BadRequest' }
@@ -2100,7 +2101,11 @@ components:
       type: object
       properties:
         miniappAppId: { type: string, nullable: true }
-        miniappAppSecret: { $ref: '#/components/schemas/SecretMeta' }
+        miniappAppSecret:
+          type: object
+          required: [configured]
+          properties:
+            configured: { type: boolean }
         paymentProvider: { type: string, enum: [mock, wechat] }
         wechatPayMchId: { type: string, nullable: true }
         wechatPayCertSerial: { type: string, nullable: true }

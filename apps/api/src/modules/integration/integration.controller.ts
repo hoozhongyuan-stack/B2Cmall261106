@@ -39,6 +39,12 @@ class UpdateIntegrationDto {
   @Length(0, 64)
   miniappAppId?: string;
 
+  /** 32 位字母数字；空字符串表示清除 */
+  @IsOptional()
+  @IsString()
+  @Length(0, 64)
+  miniappAppSecret?: string;
+
   @IsOptional()
   @IsIn(['mock', 'wechat'])
   paymentProvider?: 'mock' | 'wechat';

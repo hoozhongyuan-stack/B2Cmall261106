@@ -1,6 +1,6 @@
-import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { randomBytes } from 'node:crypto';
-import { mkdir, readFile, unlink, writeFile } from 'node:fs/promises';
+import { mkdir, unlink, writeFile } from 'node:fs/promises';
 import { dirname, extname, join, resolve } from 'node:path';
 
 import { PrismaService } from '../../prisma/prisma.module';
@@ -8,11 +8,8 @@ import { PrismaService } from '../../prisma/prisma.module';
 const CONFIG_ID = 'singleton';
 const MAX_SECRET_BYTES = 200 * 1024;
 
-export const SECRET_FIELDS = [
-  'miniappAppSecret',
-  'wechatPayApiV3Key',
-  'wechatPayPrivateKey',
-] as const;
+/** 需要以文件形式保存的密钥（AppSecret 改为后台文本录入，不再走文件） */
+export const SECRET_FIELDS = ['wechatPayApiV3Key', 'wechatPayPrivateKey'] as const;
 
 export type SecretField = (typeof SECRET_FIELDS)[number];
 
@@ -22,7 +19,6 @@ interface SecretSpec {
 }
 
 const SECRET_SPEC: Record<SecretField, SecretSpec> = {
-  miniappAppSecret: { label: '小程序 AppSecret', extensions: ['.txt', '.key', '.secret'] },
   wechatPayApiV3Key: { label: '微信支付 APIv3 密钥', extensions: ['.txt', '.key', '.secret'] },
   wechatPayPrivateKey: {
     label: '微信支付商户私钥',
@@ -37,6 +33,8 @@ export interface SecretMeta {
 
 export interface UpdateIntegrationInput {
   miniappAppId?: string;
+  /** 小程序 AppSecret（32 位字母数字）；空字符串表示清除 */
+  miniappAppSecret?: string;
   paymentProvider?: 'mock' | 'wechat';
   wechatPayMchId?: string;
   wechatPayCertSerial?: string;
@@ -52,8 +50,6 @@ export interface UpdateIntegrationInput {
 
 @Injectable()
 export class IntegrationService {
-  private readonly logger = new Logger(IntegrationService.name);
-
   constructor(private readonly prisma: PrismaService) {}
 
   /* ---------------- 读取 ---------------- */
@@ -64,7 +60,7 @@ export class IntegrationService {
 
     return {
       miniappAppId: config.miniappAppId,
-      miniappAppSecret: this.meta(config.miniappAppSecretFile, config.miniappAppSecretName),
+      miniappAppSecret: { configured: Boolean(config.miniappAppSecret) },
       paymentProvider: config.paymentProvider,
       wechatPayMchId: config.wechatPayMchId,
       wechatPayCertSerial: config.wechatPayCertSerial,
@@ -88,11 +84,10 @@ export class IntegrationService {
   /** 小程序登录用：AppID + AppSecret 明文（只在服务端使用） */
   async miniappCredentials(): Promise<{ appId: string; appSecret: string }> {
     const config = await this.ensureConfig();
-    const appId = config.miniappAppId ?? process.env.MINIAPP_APPID ?? '';
-    const appSecret = config.miniappAppSecretFile
-      ? await this.readSecretFile(config.miniappAppSecretFile)
-      : '';
-    return { appId, appSecret };
+    return {
+      appId: config.miniappAppId ?? process.env.MINIAPP_APPID ?? '',
+      appSecret: config.miniappAppSecret ?? process.env.MINIAPP_SECRET ?? '',
+    };
   }
 
   async paymentProvider(): Promise<'mock' | 'wechat'> {
@@ -108,6 +103,9 @@ export class IntegrationService {
     const data = {
       ...(input.miniappAppId !== undefined
         ? { miniappAppId: this.text(input.miniappAppId, 64) }
+        : {}),
+      ...(input.miniappAppSecret !== undefined
+        ? { miniappAppSecret: this.appSecret(input.miniappAppSecret) }
         : {}),
       ...(input.paymentProvider !== undefined
         ? { paymentProvider: this.provider(input.paymentProvider) }
@@ -159,8 +157,8 @@ export class IntegrationService {
     if (buffer.length > MAX_SECRET_BYTES) {
       throw new BadRequestException('文件不能超过 200KB');
     }
-    // 小程序 AppSecret 与 APIv3 密钥都是 32 位字母数字，避免误传私钥文件
-    if (field === 'miniappAppSecret' || field === 'wechatPayApiV3Key') {
+    // APIv3 密钥是 32 位字母数字，避免误传私钥文件
+    if (field === 'wechatPayApiV3Key') {
       if (!/^[A-Za-z0-9]{32}$/.test(buffer.toString('utf8').trim())) {
         throw new BadRequestException(
           `${spec.label}应为 32 位字母数字，请确认上传的不是密钥文件`,
@@ -209,15 +207,6 @@ export class IntegrationService {
     });
   }
 
-  private async readSecretFile(file: string): Promise<string> {
-    try {
-      return (await readFile(file, 'utf8')).trim();
-    } catch {
-      this.logger.warn(`密钥文件读取失败：${file}`);
-      return '';
-    }
-  }
-
   private async removeFile(file: string): Promise<void> {
     try {
       await unlink(file);
@@ -239,21 +228,16 @@ export class IntegrationService {
 
   private oldFile(
     config: {
-      miniappAppSecretFile: string | null;
       wechatPayApiV3KeyFile: string | null;
       wechatPayPrivateKeyFile: string | null;
     },
     field: SecretField,
   ): string | null {
-    if (field === 'miniappAppSecret') return config.miniappAppSecretFile;
     if (field === 'wechatPayApiV3Key') return config.wechatPayApiV3KeyFile;
     return config.wechatPayPrivateKeyFile;
   }
 
   private fileColumns(field: string, file: string, name: string) {
-    if (field === 'miniappAppSecret') {
-      return { miniappAppSecretFile: file, miniappAppSecretName: name };
-    }
     if (field === 'wechatPayApiV3Key') {
       return { wechatPayApiV3KeyFile: file, wechatPayApiV3KeyName: name };
     }
@@ -261,13 +245,20 @@ export class IntegrationService {
   }
 
   private clearColumns(field: string) {
-    if (field === 'miniappAppSecret') {
-      return { miniappAppSecretFile: null, miniappAppSecretName: null };
-    }
     if (field === 'wechatPayApiV3Key') {
       return { wechatPayApiV3KeyFile: null, wechatPayApiV3KeyName: null };
     }
     return { wechatPayPrivateKeyFile: null, wechatPayPrivateKeyName: null };
+  }
+
+  /** AppSecret 直接录入：空字符串表示清除，否则必须是 32 位字母数字 */
+  private appSecret(value: string): string | null {
+    const trimmed = (value ?? '').trim();
+    if (!trimmed) return null;
+    if (!/^[A-Za-z0-9]{32}$/.test(trimmed)) {
+      throw new BadRequestException('小程序 AppSecret 必须是 32 位字母数字');
+    }
+    return trimmed;
   }
 
   private text(value: string, max: number): string | null {
