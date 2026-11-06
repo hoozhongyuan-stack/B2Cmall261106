@@ -5,6 +5,7 @@ import { IsString, Length } from 'class-validator';
 
 import { PrismaService } from '../../prisma/prisma.module';
 import { RateLimit } from '../../common/rate-limit.guard';
+import { IntegrationService } from '../integration/integration.service';
 
 class WechatLoginDto {
   /** 小程序 wx.login 返回的 code；开发阶段允许 mock_ 前缀直接换取 openid */
@@ -19,6 +20,7 @@ export class UserAuthController {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwt: JwtService,
+    private readonly integration: IntegrationService,
   ) {}
 
   @Post('wechat-login')
@@ -41,15 +43,16 @@ export class UserAuthController {
   }
 
   /**
-   * 真实环境：调用微信 jscode2session（APPID + secret）换取 openid。
-   * 当前阶段无 secret，使用 code 派生稳定 openid，保证同一 code 可重复登录、便于联调。
+   * 真实环境：用后台配置的 AppID + AppSecret 调用 jscode2session 换取 openid。
+   * 未上传 AppSecret 时使用 code 派生稳定 openid，保证同一 code 可重复登录、便于联调。
    */
   private async resolveOpenid(code: string): Promise<string> {
-    const appId = process.env.MINIAPP_APPID ?? 'wx04619aa796c2188f';
-    if (process.env.MINIAPP_SECRET) {
+    const { appId, appSecret } = await this.integration.miniappCredentials();
+
+    if (appSecret) {
       const url =
         'https://api.weixin.qq.com/sns/jscode2session' +
-        `?appid=${appId}&secret=${process.env.MINIAPP_SECRET}` +
+        `?appid=${encodeURIComponent(appId)}&secret=${encodeURIComponent(appSecret)}` +
         `&js_code=${encodeURIComponent(code)}&grant_type=authorization_code`;
       const res = await fetch(url);
       const data = (await res.json()) as { openid?: string; errmsg?: string };

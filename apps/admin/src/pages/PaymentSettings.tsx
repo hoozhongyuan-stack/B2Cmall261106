@@ -1,4 +1,16 @@
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+
+import { api, ApiError } from '../api/client';
+import { toast } from '../components/toast';
 import { Card, KeyValue, PageHeader, Tag } from '../components/ui';
+
+interface IntegrationSummary {
+  paymentProvider: 'mock' | 'wechat';
+  wechatPayMchId: string | null;
+  wechatPayApiV3Key: { configured: boolean };
+  wechatPayPrivateKey: { configured: boolean };
+}
 
 const FLOW = [
   '新增 PaymentProvider 的微信支付实现，完成下单、签名与验签',
@@ -8,21 +20,62 @@ const FLOW = [
 ];
 
 export default function PaymentSettings() {
+  const [config, setConfig] = useState<IntegrationSummary | null>(null);
+
+  useEffect(() => {
+    api<IntegrationSummary>('/admin/integration')
+      .then(setConfig)
+      .catch((err) => toast(err instanceof ApiError ? err.message : '读取支付配置失败', 'error'));
+  }, []);
+
+  const wechat = config?.paymentProvider === 'wechat';
+
   return (
     <>
-      <PageHeader title="支付设置" desc="当前使用模拟支付，接入真实微信支付只需替换渠道实现" />
+      <PageHeader
+        title="支付设置"
+        desc="渠道与商户参数在「集成配置」中维护，这里展示当前运行状态"
+      />
 
-      <Card title="当前支付渠道">
+      <Card title="当前支付渠道" extra={<Link to="/settings/integration">去集成配置</Link>}>
         <KeyValue
           items={[
-            { label: '渠道标识', value: <span className="mono">provider = mock</span> },
             {
-              label: '运行模式',
+              label: '已配置渠道',
               value: (
                 <span className="row">
-                  <Tag tone="warn">模拟支付</Tag>
-                  <span className="small muted">无需真实商户号即可完成支付闭环</span>
+                  <span className="mono">provider = {config?.paymentProvider ?? '—'}</span>
+                  {config && (
+                    <Tag tone={wechat ? 'warn' : 'ok'}>{wechat ? '微信支付' : '模拟支付'}</Tag>
+                  )}
                 </span>
+              ),
+            },
+            {
+              label: '运行状态',
+              value: wechat ? (
+                <span className="small muted">
+                  微信支付实现尚未接入，下单支付会返回「渠道尚未接入」，请先切回 mock。
+                </span>
+              ) : (
+                <span className="small muted">无需真实商户号即可完成支付闭环</span>
+              ),
+            },
+            { label: '商户号', value: <span className="mono">{config?.wechatPayMchId ?? '未配置'}</span> },
+            {
+              label: 'APIv3 密钥',
+              value: config?.wechatPayApiV3Key.configured ? (
+                <Tag tone="ok">已上传</Tag>
+              ) : (
+                <Tag tone="warn">未配置</Tag>
+              ),
+            },
+            {
+              label: '商户私钥',
+              value: config?.wechatPayPrivateKey.configured ? (
+                <Tag tone="ok">已上传</Tag>
+              ) : (
+                <Tag tone="warn">未配置</Tag>
               ),
             },
             { label: '支付回调', value: <span className="mono">POST /api/payments/callback</span> },

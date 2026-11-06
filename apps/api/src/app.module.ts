@@ -12,6 +12,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { AdminAuditInterceptor } from './common/admin-audit.interceptor';
 import { RateLimitGuard } from './common/rate-limit.guard';
 import { TelemetryModule } from './modules/telemetry/telemetry.module';
+import { IntegrationModule } from './modules/integration/integration.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { TelemetryModule } from './modules/telemetry/telemetry.module';
     CatalogAdminModule,
     AdminOpsModule,
     TelemetryModule,
+    IntegrationModule,
   ],
   controllers: [CatalogController, ProductDetailController],
   providers: [

@@ -64,9 +64,11 @@ export class HttpExceptionFilter implements ExceptionFilter {
             ? 'FORBIDDEN'
             : status === 429
               ? 'RATE_LIMITED'
-              : status >= 500
-                ? 'INTERNAL_ERROR'
-                : 'BAD_REQUEST');
+              : status === 503
+                ? 'SERVICE_UNAVAILABLE'
+                : status >= 500
+                  ? 'INTERNAL_ERROR'
+                  : 'BAD_REQUEST');
 
       // 5xx 的 HttpException 同样需要留痕，否则线上只能看到一句「内部错误」
       if (status >= 500) {

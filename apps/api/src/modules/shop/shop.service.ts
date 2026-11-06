@@ -19,7 +19,6 @@ export interface UpdateShopInput {
   payTimeoutMinutes?: number;
   afterSaleDays?: number;
   autoConfirmDays?: number;
-  miniappAppId?: string;
 }
 
 export interface CreateRegionInput {
@@ -57,7 +56,6 @@ export class ShopService {
       payTimeoutMinutes: config.payTimeoutMinutes,
       afterSaleDays: config.afterSaleDays,
       autoConfirmDays: config.autoConfirmDays,
-      miniappAppId: config.miniappAppId,
       regions: regions.map((r) => ({
         id: r.id,
         regionName: r.regionName,
@@ -89,7 +87,6 @@ export class ShopService {
       ...(input.autoConfirmDays !== undefined
         ? { autoConfirmDays: this.nonNegativeInt(input.autoConfirmDays, '自动确认收货天数') }
         : {}),
-      ...(input.miniappAppId !== undefined ? { miniappAppId: input.miniappAppId } : {}),
     };
 
     await this.ensureConfig();

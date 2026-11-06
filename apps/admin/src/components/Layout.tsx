@@ -46,6 +46,7 @@ const MENU: { group: string; items: MenuItem[] }[] = [
     group: '设置',
     items: [
       { to: '/settings/shop', label: '店铺信息', roles: ['SUPER'] },
+      { to: '/settings/integration', label: '集成配置', roles: ['SUPER'] },
       { to: '/settings/freight', label: '运费模板', roles: ALL },
       { to: '/settings/payment', label: '支付设置', roles: ['SUPER'] },
       { to: '/assets', label: '素材库', roles: ['SUPER', 'OPS'] },

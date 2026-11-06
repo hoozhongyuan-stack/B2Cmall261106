@@ -15,7 +15,6 @@ interface ShopDetail {
   payTimeoutMinutes: number;
   afterSaleDays: number;
   autoConfirmDays: number;
-  miniappAppId: string | null;
   regions: { id: string; regionName: string; freightCents: number }[];
 }
 
@@ -23,7 +22,6 @@ interface ShopForm {
   shopName: string;
   intro: string;
   servicePhone: string;
-  miniappAppId: string;
   freeThresholdYuan: string;
   flatFreightYuan: string;
   payTimeoutMinutes: string;
@@ -35,7 +33,6 @@ const EMPTY_FORM: ShopForm = {
   shopName: '',
   intro: '',
   servicePhone: '',
-  miniappAppId: '',
   freeThresholdYuan: '0',
   flatFreightYuan: '0',
   payTimeoutMinutes: '15',
@@ -61,7 +58,6 @@ export default function ShopSettings() {
         shopName: result.shopName,
         intro: result.intro ?? '',
         servicePhone: result.servicePhone ?? '',
-        miniappAppId: result.miniappAppId ?? '',
         freeThresholdYuan: toYuan(result.freeThresholdCents),
         flatFreightYuan: toYuan(result.flatFreightCents),
         payTimeoutMinutes: String(result.payTimeoutMinutes),
@@ -114,7 +110,6 @@ export default function ShopSettings() {
           shopName: form.shopName.trim(),
           intro: form.intro,
           servicePhone: form.servicePhone.trim(),
-          miniappAppId: form.miniappAppId.trim(),
           freeThresholdCents: toCents(form.freeThresholdYuan),
           flatFreightCents: toCents(form.flatFreightYuan),
           payTimeoutMinutes: Number(form.payTimeoutMinutes),
@@ -166,14 +161,6 @@ export default function ShopSettings() {
                 value={form.servicePhone}
                 disabled={!canWrite}
                 onChange={(e) => setField('servicePhone', e.target.value)}
-              />
-            </Field>
-            <Field label="小程序 AppID">
-              <input
-                className="input"
-                value={form.miniappAppId}
-                disabled={!canWrite}
-                onChange={(e) => setField('miniappAppId', e.target.value)}
               />
             </Field>
             <Field label="店铺简介" wide>

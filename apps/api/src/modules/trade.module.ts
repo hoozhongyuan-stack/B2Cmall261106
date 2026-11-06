@@ -18,10 +18,12 @@ import { UserJwtGuard } from '../common/user-auth.guard';
 import { GrowthModule } from './growth.module';
 import { AddressController } from './address/address.controller';
 import { AddressService } from './address/address.service';
+import { IntegrationModule } from './integration/integration.module';
 
 @Module({
   imports: [
     GrowthModule,
+    IntegrationModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],

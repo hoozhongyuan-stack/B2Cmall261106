@@ -1,21 +1,39 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { randomBytes } from 'node:crypto';
 
 import { PrismaService } from '../../prisma/prisma.module';
 import { OrderService } from '../order/order.service';
+import { IntegrationService } from '../integration/integration.service';
 import { MockPaymentProvider, type PaymentProvider } from './payment.provider';
 
 @Injectable()
 export class PaymentService {
-  private readonly provider: PaymentProvider = new MockPaymentProvider();
-
   constructor(
     private readonly prisma: PrismaService,
     private readonly orders: OrderService,
+    private readonly integration: IntegrationService,
   ) {}
+
+  /**
+   * 按后台「集成配置」选择渠道。
+   * 微信支付实现尚未接入，选 wechat 时明确报错，避免静默走错渠道。
+   */
+  private async provider(): Promise<PaymentProvider> {
+    const name = await this.integration.paymentProvider();
+    if (name === 'wechat') {
+      throw new ServiceUnavailableException('微信支付渠道尚未接入，请在集成配置中切回模拟支付');
+    }
+    return new MockPaymentProvider();
+  }
 
   /** 发起支付：创建或复用待支付记录，返回渠道参数 */
   async pay(userId: string, orderId: string) {
+    const provider = await this.provider();
     const order = await this.prisma.order.findFirst({
       where: { id: orderId, userId },
       include: { payments: true },
@@ -33,7 +51,7 @@ export class PaymentService {
       payment = await this.prisma.payment.create({
         data: {
           orderId: order.id,
-          provider: this.provider.name,
+          provider: provider.name,
           outTradeNo: `${order.orderNo}${randomBytes(2).toString('hex').toUpperCase()}`,
           amountCents: order.payableCents,
           status: 'PENDING',
@@ -41,7 +59,7 @@ export class PaymentService {
       });
     }
 
-    const params = await this.provider.createPayment({
+    const params = await provider.createPayment({
       orderNo: order.orderNo,
       amountCents: payment.amountCents,
     });
@@ -59,7 +77,8 @@ export class PaymentService {
    * 幂等依据：payment.transactionId 唯一，重复处理直接返回成功。
    */
   async handleCallback(rawBody: string, headers: Record<string, string | undefined>) {
-    const result = await this.provider.verifyCallback(headers, rawBody);
+    const provider = await this.provider();
+    const result = await provider.verifyCallback(headers, rawBody);
 
     const payment = await this.prisma.payment.findUnique({
       where: { outTradeNo: result.outTradeNo },
