@@ -159,6 +159,14 @@ export class IntegrationService {
     if (buffer.length > MAX_SECRET_BYTES) {
       throw new BadRequestException('文件不能超过 200KB');
     }
+    // 小程序 AppSecret 与 APIv3 密钥都是 32 位字母数字，避免误传私钥文件
+    if (field === 'miniappAppSecret' || field === 'wechatPayApiV3Key') {
+      if (!/^[A-Za-z0-9]{32}$/.test(buffer.toString('utf8').trim())) {
+        throw new BadRequestException(
+          `${spec.label}应为 32 位字母数字，请确认上传的不是密钥文件`,
+        );
+      }
+    }
 
     const config = await this.ensureConfig();
     const oldFile = this.oldFile(config, field as SecretField);

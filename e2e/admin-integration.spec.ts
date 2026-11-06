@@ -16,7 +16,8 @@ test('集成配置：读取参数、上传密钥、删除密钥', async ({ page 
   await fileInput.setInputFiles({
     name: 'e2e-appsecret.txt',
     mimeType: 'text/plain',
-    buffer: Buffer.from('e2e-secret-value'),
+    // AppSecret 必须是 32 位字母数字
+    buffer: Buffer.from('e2eappsecret0123456789abcdefghij'),
   });
   await expect(page.getByText('e2e-appsecret.txt')).toBeVisible();
 
