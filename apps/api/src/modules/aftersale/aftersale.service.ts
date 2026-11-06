@@ -175,19 +175,28 @@ export class AfterSaleService {
 
   /* ---------------- 后台 ---------------- */
 
-  async listAdmin(status?: string) {
-    const list = await this.prisma.afterSale.findMany({
-      where: status ? { status: status as AfterSaleStatus } : {},
-      orderBy: [{ status: 'asc' }, { createdAt: 'desc' }],
-      include: { order: true, orderItem: true },
-      take: 50,
-    });
-    const counts = await this.prisma.afterSale.groupBy({
-      by: ['status'],
-      _count: { _all: true },
-    });
+  async listAdmin(status?: string, page = 1, pageSize = 20) {
+    const currentPage = Math.max(page, 1);
+    const size = Math.min(Math.max(pageSize, 1), 100);
+    const where = status ? { status: status as AfterSaleStatus } : {};
+
+    const [list, total, counts] = await Promise.all([
+      this.prisma.afterSale.findMany({
+        where,
+        orderBy: [{ status: 'asc' }, { createdAt: 'desc' }],
+        include: { order: true, orderItem: true },
+        skip: (currentPage - 1) * size,
+        take: size,
+      }),
+      this.prisma.afterSale.count({ where }),
+      this.prisma.afterSale.groupBy({ by: ['status'], _count: { _all: true } }),
+    ]);
+
     return {
       tabs: counts.map((c) => ({ status: c.status, count: c._count._all })),
+      total,
+      page: currentPage,
+      pageSize: size,
       items: list.map((a) => this.view(a)),
     };
   }

@@ -10,6 +10,7 @@
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
     "db:seed": "tsx prisma/seed.ts",
+    "db:demo-reset": "prisma migrate reset --force --skip-generate && pnpm db:seed",
     "db:studio": "prisma studio",
     "test:contract": "vitest run --config ../../vitest.contract.config.ts"
   },

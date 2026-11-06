@@ -8,6 +8,7 @@ import {
   Card,
   DataTable,
   PageHeader,
+  Pagination,
   Toolbar,
   type Column,
 } from '../components/ui';
@@ -37,16 +38,22 @@ export default function Customers() {
   const [appliedKeyword, setAppliedKeyword] = useState('');
   const [items, setItems] = useState<CustomerRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 20;
 
   useEffect(() => {
     let alive = true;
     async function load() {
       setLoading(true);
       try {
-        const result = await api<{ items: CustomerRow[] }>('/admin/customers', {
-          query: { keyword: appliedKeyword },
+        const result = await api<{ items: CustomerRow[]; total: number }>('/admin/customers', {
+          query: { keyword: appliedKeyword, page, pageSize: PAGE_SIZE },
         });
-        if (alive) setItems(result.items);
+        if (alive) {
+          setItems(result.items);
+          setTotal(result.total);
+        }
       } catch (err) {
         if (alive) toast(errorText(err), 'error');
       } finally {
@@ -57,11 +64,12 @@ export default function Customers() {
     return () => {
       alive = false;
     };
-  }, [appliedKeyword]);
+  }, [appliedKeyword, page]);
 
   function handleSearch(event: FormEvent) {
     event.preventDefault();
     setAppliedKeyword(keyword.trim());
+    setPage(1);
   }
 
   const columns: Column<CustomerRow>[] = [
@@ -165,6 +173,7 @@ export default function Customers() {
           empty="暂无客户"
           onRowClick={(row) => navigate(`/customers/${row.id}`)}
         />
+        <Pagination page={page} total={total} pageSize={PAGE_SIZE} onChange={setPage} />
       </Card>
     </>
   );

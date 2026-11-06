@@ -7,25 +7,33 @@ import { PrismaService } from '../../prisma/prisma.module';
 export class CustomerService {
   constructor(private readonly prisma: PrismaService) {}
 
-  /** 客户列表：订单数、实付、退款与最近下单时间一次性聚合 */
-  async list(input: { keyword?: string; levelId?: string }) {
-    const users = await this.prisma.user.findMany({
-      where: {
-        ...(input.levelId ? { levelId: input.levelId } : {}),
-        ...(input.keyword
-          ? {
-              OR: [
-                { nickname: { contains: input.keyword, mode: 'insensitive' as const } },
-                { phone: { contains: input.keyword } },
-                { openid: { contains: input.keyword } },
-              ],
-            }
-          : {}),
-      },
-      include: { level: true },
-      orderBy: { createdAt: 'desc' },
-      take: 100,
-    });
+  /** 客户列表：订单数、实付、退款与最近下单时间一次性聚合（分页） */
+  async list(input: { keyword?: string; levelId?: string; page?: number; pageSize?: number }) {
+    const currentPage = Math.max(input.page ?? 1, 1);
+    const size = Math.min(Math.max(input.pageSize ?? 20, 1), 100);
+    const where = {
+      ...(input.levelId ? { levelId: input.levelId } : {}),
+      ...(input.keyword
+        ? {
+            OR: [
+              { nickname: { contains: input.keyword, mode: 'insensitive' as const } },
+              { phone: { contains: input.keyword } },
+              { openid: { contains: input.keyword } },
+            ],
+          }
+        : {}),
+    };
+
+    const [users, total] = await Promise.all([
+      this.prisma.user.findMany({
+        where,
+        include: { level: true },
+        orderBy: { createdAt: 'desc' },
+        skip: (currentPage - 1) * size,
+        take: size,
+      }),
+      this.prisma.user.count({ where }),
+    ]);
 
     const stats = await this.prisma.order.groupBy({
       by: ['userId'],
@@ -37,6 +45,9 @@ export class CustomerService {
     const byUser = new Map(stats.map((s) => [s.userId, s]));
 
     return {
+      total,
+      page: currentPage,
+      pageSize: size,
       items: users.map((u) => {
         const stat = byUser.get(u.id);
         const paidCents = stat?._sum.payableCents ?? 0;

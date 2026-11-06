@@ -21,7 +21,11 @@ export default defineConfig({
     // 真机联调时改这里（或在 CI 用环境变量注入）
     API_BASE: JSON.stringify(process.env.API_BASE ?? 'http://127.0.0.1:3000/api'),
   },
-  copy: { patterns: [], options: {} },
+  copy: {
+    // 商品图等静态资源：Taro 默认不会拷贝 src/static，需显式声明
+    patterns: [{ from: 'src/static', to: 'dist/static' }],
+    options: {},
+  },
   framework: 'react',
   compiler: {
     type: 'webpack5',

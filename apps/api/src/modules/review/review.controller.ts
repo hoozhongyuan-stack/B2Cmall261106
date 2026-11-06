@@ -96,9 +96,13 @@ export class AdminReviewController {
 
   @Get()
   @Roles('SUPER', 'OPS', 'CS')
-  @ApiOperation({ summary: '评价列表（含各状态数量）' })
-  list(@Query('status') status?: string) {
-    return this.reviews.listAdmin(status);
+  @ApiOperation({ summary: '评价列表（含各状态数量，分页）' })
+  list(
+    @Query('status') status?: string,
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
+  ) {
+    return this.reviews.listAdmin(status, Number(page) || 1, Number(pageSize) || 20);
   }
 
   @Post(':id/moderate')

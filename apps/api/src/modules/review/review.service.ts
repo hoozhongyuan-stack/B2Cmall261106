@@ -140,20 +140,31 @@ export class ReviewService {
 
   /* ---------------- 后台 ---------------- */
 
-  async listAdmin(status?: string) {
-    const reviews = await this.prisma.review.findMany({
-      where: status ? { status: status as never } : {},
-      orderBy: { createdAt: 'desc' },
-      take: 100,
-      include: {
-        orderItem: { select: { title: true, specText: true, imageKey: true } },
-        order: { select: { orderNo: true, user: { select: { nickname: true, phone: true } } } },
-      },
-    });
-    const counts = await this.prisma.review.groupBy({ by: ['status'], _count: { _all: true } });
+  async listAdmin(status?: string, page = 1, pageSize = 20) {
+    const currentPage = Math.max(page, 1);
+    const size = Math.min(Math.max(pageSize, 1), 100);
+    const where = status ? { status: status as never } : {};
+
+    const [reviews, total, counts] = await Promise.all([
+      this.prisma.review.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: (currentPage - 1) * size,
+        take: size,
+        include: {
+          orderItem: { select: { title: true, specText: true, imageKey: true } },
+          order: { select: { orderNo: true, user: { select: { nickname: true, phone: true } } } },
+        },
+      }),
+      this.prisma.review.count({ where }),
+      this.prisma.review.groupBy({ by: ['status'], _count: { _all: true } }),
+    ]);
 
     return {
       counts: counts.map((c) => ({ status: c.status, count: c._count._all })),
+      total,
+      page: currentPage,
+      pageSize: size,
       items: reviews.map((r) => ({
         id: r.id,
         rating: r.rating,

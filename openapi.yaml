@@ -345,11 +345,13 @@ paths:
   /admin/orders:
     get:
       tags: [admin-orders]
-      summary: 后台订单列表（含各状态数量）
+      summary: 后台订单列表（含各状态数量，分页）
       security: [{ adminToken: [] }]
       parameters:
         - { name: status, in: query, schema: { type: string } }
         - { name: keyword, in: query, schema: { type: string } }
+        - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+        - { name: pageSize, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
       responses:
         '200': { description: OK }
         '403': { description: 角色无权限 }
@@ -479,10 +481,12 @@ paths:
   /admin/after-sales:
     get:
       tags: [admin-after-sales]
-      summary: 售后列表（含各状态数量）
+      summary: 售后列表（含各状态数量，分页）
       security: [{ adminToken: [] }]
       parameters:
         - { name: status, in: query, schema: { type: string } }
+        - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+        - { name: pageSize, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
       responses:
         '200': { description: OK }
         '403': { description: 角色无权限 }
@@ -747,11 +751,13 @@ paths:
   /admin/customers:
     get:
       tags: [admin-customers]
-      summary: 客户列表：消费统计、等级与积分
+      summary: 客户列表：消费统计、等级与积分（分页）
       security: [{ adminToken: [] }]
       parameters:
         - { name: keyword, in: query, schema: { type: string } }
         - { name: levelId, in: query, schema: { type: string } }
+        - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+        - { name: pageSize, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
       responses:
         '200': { description: OK }
 
@@ -854,12 +860,14 @@ paths:
   /admin/reviews:
     get:
       tags: [admin-reviews]
-      summary: 评价列表（含各状态数量）
+      summary: 评价列表（含各状态数量，分页）
       security: [{ adminToken: [] }]
       parameters:
         - name: status
           in: query
           schema: { type: string, enum: [PENDING, SHOWN, HIDDEN] }
+        - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+        - { name: pageSize, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
       responses:
         '200': { description: OK }
 
