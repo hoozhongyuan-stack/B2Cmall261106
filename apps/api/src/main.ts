@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { ValidationPipe, Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import type { NextFunction, Request, Response } from 'express';
 
@@ -8,12 +9,47 @@ import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/http-exception.filter';
 import { ResponseInterceptor } from './common/response.interceptor';
 
+/** 慢请求阈值：超过即打日志，便于定位性能退化 */
+const SLOW_REQUEST_MS = 1000;
+
+/**
+ * 生产环境强制校验密钥强度，避免默认 dev 密钥上生产。
+ * 出错直接退出进程，让部署流水线失败而不是带病上线。
+ */
+function assertProductionSecrets(config: ConfigService): void {
+  if (config.get<string>('NODE_ENV') !== 'production') return;
+
+  const secret = config.get<string>('JWT_SECRET')?.trim() ?? '';
+  const weak =
+    secret.length < 32 ||
+    secret.includes('change-me') ||
+    secret === 'dev-secret-change-me' ||
+    secret === 'dev-secret-change-me-in-production';
+
+  if (weak) {
+    throw new Error('生产环境必须配置长度 ≥32 且非默认值的 JWT_SECRET');
+  }
+}
+
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule, { bodyParser: true });
   app.setGlobalPrefix('api');
 
-  app.use((req: Request, _res: Response, next: NextFunction) => {
+  assertProductionSecrets(app.get(ConfigService));
+
+  app.use((req: Request, res: Response, next: NextFunction) => {
     req.requestId = (req.headers['x-request-id'] as string | undefined) ?? randomUUID();
+    res.setHeader('x-request-id', req.requestId);
+    const startedAt = Date.now();
+    res.on('finish', () => {
+      const duration = Date.now() - startedAt;
+      if (duration >= SLOW_REQUEST_MS) {
+        Logger.warn(
+          `慢请求 ${duration}ms requestId=${req.requestId} ${req.method} ${req.originalUrl} status=${res.statusCode}`,
+          'SlowRequest',
+        );
+      }
+    });
     next();
   });
 

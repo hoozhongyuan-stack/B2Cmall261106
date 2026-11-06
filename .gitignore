@@ -5,6 +5,9 @@ dist
 .env
 .env.local
 coverage
+backups
+test-results
+playwright-report
 apps/api/prisma/*.db
 .trae-html-share-packages
 .screenshots

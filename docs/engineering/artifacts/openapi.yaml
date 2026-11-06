@@ -15,6 +15,7 @@ tags:
   - name: orders
   - name: payments
   - name: admin-orders
+  - name: telemetry
 
 paths:
   /health:
@@ -1524,6 +1525,30 @@ paths:
                 properties:
                   data: { $ref: '#/components/schemas/Dashboard' }
 
+  /telemetry/client-error:
+    post:
+      tags: [telemetry]
+      summary: 客户端错误上报（无需登录，按来源/IP 限流）
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [source, message]
+              properties:
+                source: { type: string, enum: [admin, miniapp] }
+                message: { type: string, maxLength: 200 }
+                name: { type: string, maxLength: 200 }
+                stack: { type: string, maxLength: 4000 }
+                path: { type: string, maxLength: 500 }
+                userAgent: { type: string, maxLength: 300 }
+                requestId: { type: string, maxLength: 100 }
+      responses:
+        '204': { description: 已记录 }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
 components:
   securitySchemes:
     userToken:
@@ -1550,6 +1575,11 @@ components:
           schema: { $ref: '#/components/schemas/Error' }
     Conflict:
       description: 状态冲突或库存不足
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    TooManyRequests:
+      description: 触发限流（code=RATE_LIMITED）
       content:
         application/json:
           schema: { $ref: '#/components/schemas/Error' }

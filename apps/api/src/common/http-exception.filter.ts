@@ -44,18 +44,40 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
     if (exception instanceof HttpException) {
       const body = exception.getResponse();
+      const detail = typeof body === 'object' && body !== null
+        ? (body as { message?: unknown; code?: string })
+        : null;
+
       message =
         typeof body === 'string'
           ? body
-          : ((body as { message?: unknown }).message as string) || exception.message;
+          : (detail?.message as string) || exception.message;
       if (Array.isArray(message)) message = (message as string[]).join('；');
 
+      // 显式声明的业务码优先（如 RATE_LIMITED），其次按文案映射，最后按状态兜底
       code =
+        detail?.code ??
         (Object.entries(ERROR_CODE_MAP).find(([k]) => message.includes(k))?.[1]) ??
-        (status === 401 ? 'AUTH_UNAUTHORIZED' : status === 403 ? 'FORBIDDEN' : 'BAD_REQUEST');
+        (status === 401
+          ? 'AUTH_UNAUTHORIZED'
+          : status === 403
+            ? 'FORBIDDEN'
+            : status === 429
+              ? 'RATE_LIMITED'
+              : status >= 500
+                ? 'INTERNAL_ERROR'
+                : 'BAD_REQUEST');
+
+      // 5xx 的 HttpException 同样需要留痕，否则线上只能看到一句「内部错误」
+      if (status >= 500) {
+        this.logger.error(
+          `服务端异常 requestId=${req.requestId} ${req.method} ${req.originalUrl} status=${status} code=${code} message=${message}`,
+          exception.stack,
+        );
+      }
     } else {
       this.logger.error(
-        `未捕获异常 requestId=${req.requestId} ${req.method} ${req.url}`,
+        `未捕获异常 requestId=${req.requestId} ${req.method} ${req.originalUrl}`,
         exception instanceof Error ? exception.stack : String(exception),
       );
     }

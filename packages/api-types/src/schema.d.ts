@@ -3457,6 +3457,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/telemetry/client-error": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 客户端错误上报（无需登录，按来源/IP 限流） */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        source: "admin" | "miniapp";
+                        message: string;
+                        name?: string;
+                        stack?: string;
+                        path?: string;
+                        userAgent?: string;
+                        requestId?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description 已记录 */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                429: components["responses"]["TooManyRequests"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -3909,6 +3957,15 @@ export interface components {
         };
         /** @description 状态冲突或库存不足 */
         Conflict: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
+        /** @description 触发限流（code=RATE_LIMITED） */
+        TooManyRequests: {
             headers: {
                 [name: string]: unknown;
             };

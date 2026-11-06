@@ -44,6 +44,8 @@ export default defineConfig({
   h5: {
     publicPath: '/',
     staticDirectory: 'static',
+    // 固定端口，便于本地预览与 E2E 使用
+    devServer: { host: '127.0.0.1', port: 8080 },
     compile: {
       include: workspaceSources,
     },
