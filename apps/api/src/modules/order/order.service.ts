@@ -14,6 +14,8 @@ import {
 
 import { PrismaService, isUniqueViolation } from '../../prisma/prisma.module';
 import { generateOrderNo } from '../../common/password';
+import { CouponService } from '../coupon/coupon.service';
+import { LoyaltyService } from '../member/loyalty.service';
 
 export interface OrderLineInput {
   skuId: string;
@@ -35,7 +37,11 @@ interface LockedSku {
 
 @Injectable()
 export class OrderService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly coupons: CouponService,
+    private readonly loyalty: LoyaltyService,
+  ) {}
 
   /** 结算预览：不锁库存，只算钱与可用券 */
   async preview(
@@ -59,7 +65,9 @@ export class OrderService {
       freight,
     });
 
-    const availableCoupons = await this.listUsableCoupons(userId, amount.goodsCents);
+    // 券门槛按「商品金额 - 会员折扣」判断，与下单时口径保持一致
+    const afterMemberCents = Math.round(lines.goodsCents * rate);
+    const availableCoupons = await this.listUsableCoupons(userId, afterMemberCents);
 
     return {
       items: lines.view,
@@ -322,6 +330,30 @@ export class OrderService {
           data: { reserved: { decrement: item.quantity } },
         });
       }
+
+      // 取消未支付订单：已锁定的券在有效期内退回
+      await this.coupons.releaseForOrder(tx, orderId);
+    });
+
+    return this.view(orderId, userId);
+  }
+
+  /** 确认收货：待收货 → 已完成，之后才能评价 */
+  async confirm(userId: string, orderId: string) {
+    const order = await this.prisma.order.findFirst({ where: { id: orderId, userId } });
+    if (!order) throw new NotFoundException('订单不存在');
+
+    if (!can(order.status as never, 'confirm')) {
+      throw new ConflictException('当前订单状态不可确认收货');
+    }
+    const next = nextStatus(order.status as never, 'confirm');
+
+    await this.prisma.$transaction(async (tx) => {
+      const updated = await tx.order.updateMany({
+        where: { id: orderId, version: order.version, status: order.status },
+        data: { status: next as never, version: { increment: 1 }, completedAt: new Date() },
+      });
+      if (updated.count !== 1) throw new ConflictException('订单状态已变化，请刷新');
     });
 
     return this.view(orderId, userId);
@@ -365,6 +397,13 @@ export class OrderService {
       await tx.payment.updateMany({
         where: { orderId, status: 'PENDING' },
         data: { status: 'SUCCESS', transactionId, paidAt: new Date() },
+      });
+
+      // 支付成功：累计消费与积分入账，并按累计消费重算会员等级
+      await this.loyalty.grantForOrder(tx, {
+        userId: order.userId,
+        orderId,
+        payableCents: order.payableCents,
       });
     });
 

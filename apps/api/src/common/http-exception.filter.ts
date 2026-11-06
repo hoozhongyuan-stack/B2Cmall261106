@@ -19,6 +19,10 @@ const ERROR_CODE_MAP: Record<string, string> = {
   '已有售后单': 'AFTER_SALE_EXISTS',
   '售后期': 'AFTER_SALE_EXPIRED',
   '累计退款金额超过': 'REFUND_OVER_LIMIT',
+  '每人限领': 'COUPON_CLAIM_LIMIT',
+  '优惠券已领完': 'COUPON_SOLD_OUT',
+  '该商品已评价': 'REVIEW_EXISTS',
+  '仅已完成订单可评价': 'REVIEW_NOT_ALLOWED',
 };
 
 @Catch()

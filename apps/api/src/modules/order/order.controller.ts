@@ -100,4 +100,11 @@ export class OrderController {
   cancel(@CurrentUser() user: MiniappUser, @Param('id') id: string) {
     return this.orders.cancel(user.sub, id);
   }
+
+  @Post(':id/confirm')
+  @HttpCode(200)
+  @ApiOperation({ summary: '确认收货（待收货 → 已完成）' })
+  confirm(@CurrentUser() user: MiniappUser, @Param('id') id: string) {
+    return this.orders.confirm(user.sub, id);
+  }
 }
