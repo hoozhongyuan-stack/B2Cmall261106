@@ -442,7 +442,7 @@ export class OrderService {
         }
 
         return order.id;
-      }, { maxWait: 15_000, timeout: 20_000 });
+      }, { maxWait: 30_000, timeout: 45_000 });
 
       return this.view(orderId);
     } catch (err) {

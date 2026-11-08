@@ -60,7 +60,8 @@ export async function setup(): Promise<void> {
   child = spawn('node', ['dist/main.js'], {
     cwd: join(root, 'apps/api'),
     env,
-    stdio: 'ignore',
+    // CI 上把服务端日志带到作业日志，便于定位契约测试中的 5xx
+    stdio: process.env.CI ? 'inherit' : 'ignore',
   });
 
   const base = contractBaseUrl();
