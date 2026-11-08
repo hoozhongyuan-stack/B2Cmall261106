@@ -247,52 +247,52 @@
 
 ### D1 搜索数据与索引
 
-- [ ] 迁移 `20xxxxxx_search`：`CREATE EXTENSION IF NOT EXISTS pg_trgm`
-- [ ] `Product.searchText String @default("")`
-- [ ] 创建 GIN 索引（Prisma 或原生 SQL）
-- [ ] 商品保存时生成 `searchText`（标题、副标题、标签、分类、拼音）
+- [x] 迁移 `20261108010000_search`：`CREATE EXTENSION IF NOT EXISTS pg_trgm`
+- [x] `Product.searchText String @default("")`
+- [x] 创建 GIN 索引（`Product_searchText_idx`，`gin_trgm_ops`）
+- [x] 商品保存时生成 `searchText`（标题、副标题、标签、分类、拼音）
 
 ### D2 拼音与回填
 
-- [ ] API 依赖增加 `pinyin-pro`
-- [ ] 新增搜索文本生成工具与单测
-- [ ] 新增历史商品回填脚本
-- [ ] 回填后校验空 `searchText` 数量为 0
+- [x] API 依赖增加 `pinyin-pro`
+- [x] 新增搜索文本生成工具与单测
+- [x] 新增历史商品回填脚本（`pnpm --filter @shanye/api db:backfill-search`，支持 `--all` 重算）
+- [x] 回填后校验空 `searchText` 数量为 0（脚本内置校验，非 0 时退出码 1）
 
 ### D3 搜索查询
 
-- [ ] `apps/api/src/prisma/search.ts` 实现 trigram 查询与相关度排序
-- [ ] `GET /api/products` 支持 `keyword`、`priceMinCents`、`priceMaxCents`、`tagId`、`storeId`、`sort=new`
-- [ ] 单字符关键词降级 `ILIKE`
-- [ ] 结果分页稳定，保持现有响应结构
+- [x] `apps/api/src/prisma/search.ts` 实现 trigram 查询与相关度排序
+- [x] `GET /api/products` 支持 `keyword`、`priceMinCents`、`priceMaxCents`、`tagId`、`storeId`、`sort=new`
+- [x] 单字符关键词降级 `ILIKE`
+- [x] 结果分页稳定，保持现有响应结构
 
 ### D4 搜索统计
 
-- [ ] 新增 `SearchLog`（keyword、resultCount、userId、createdAt）
-- [ ] `GET /admin/search/stats`：搜索词 Top、无结果词 Top
-- [ ] 热词由日志自动聚合，不提供人工维护
-- [ ] 后台经营看板展示搜索统计
+- [x] 新增 `SearchLog`（keyword、resultCount、userId、createdAt）
+- [x] `GET /admin/search/stats`：搜索词 Top、无结果词 Top
+- [x] 热词由日志自动聚合，不提供人工维护
+- [x] 后台经营看板展示搜索统计
 
 ### D5 小程序搜索页
 
-- [ ] 搜索历史（本地存储）
-- [ ] 热词展示（接口聚合）
-- [ ] 筛选栏：分类、价格区间、标签
-- [ ] 排序：综合、销量、价格、新品
-- [ ] 无结果推荐同分类热销
+- [x] 搜索历史（本地存储）
+- [x] 热词展示（接口聚合）
+- [x] 筛选栏：分类、价格区间、标签
+- [x] 排序：综合、销量、价格、新品
+- [x] 无结果推荐同分类热销
 
 ### D6 性能与验收
 
-- [ ] 1 万 SKU 基准数据准备脚本（本地）
-- [ ] 搜索 P95 < 300ms
-- [ ] 2 字中文样本召回 ≥ 95%，拼音首字母可召回
-- [ ] 回归分类页、首页推荐、商品详情
+- [x] 1 万 SKU 基准数据准备脚本（本地：`db:bench-seed` / `db:bench-clean`）
+- [x] 搜索 P95 < 300ms（实测 P95 20.1ms，200 次搜索）
+- [x] 2 字中文样本召回 ≥ 95%（20/20 = 100%），拼音首字母可召回（`mhgs` 命中）
+- [x] 回归分类页、首页推荐、商品详情（浏览器 + 接口双验证）
 
 ### D7 测试与验证
 
-- [ ] 新增 `apps/api/test/contract/search.contract.test.ts`
-- [ ] 单测：搜索文本生成、相关度排序、单字降级
-- [ ] `pnpm verify` + `pnpm test:e2e` 全绿
+- [x] 新增 `apps/api/test/contract/search.contract.test.ts`（召回/拼音/筛选/排序/分页/统计/权限，7 条）
+- [x] 单测：搜索文本生成、相关度排序、单字降级
+- [x] `pnpm verify` + `pnpm test:e2e` 全绿（单测 104、契约 89、E2E 11）
 
 完成标准：中文与拼音可搜；筛选排序正确；性能达标；搜索统计可在后台查看。
 

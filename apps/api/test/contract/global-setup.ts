@@ -24,9 +24,20 @@ function readEnvFile(): Record<string, string> {
 function loadEnv(): NodeJS.ProcessEnv {
   const parsed = readEnvFile();
   // 优先使用独立测试库，避免契约测试把演示数据洗掉
-  if (parsed.TEST_DATABASE_URL) parsed.DATABASE_URL = parsed.TEST_DATABASE_URL;
+  if (parsed.TEST_DATABASE_URL) parsed.DATABASE_URL = withPoolParams(parsed.TEST_DATABASE_URL);
   parsed.PORT = String(process.env.CONTRACT_PORT ?? 3100);
   return parsed;
+}
+
+/**
+ * 并发契约用例（如 50 并发下单）会同时占用大量连接。
+ * 本地 TEST_DATABASE_URL 默认没有连接池参数，与 CI 对齐后避免偶发 P2024。
+ */
+function withPoolParams(url: string): string {
+  const parsed = new URL(url);
+  if (!parsed.searchParams.has('connection_limit')) parsed.searchParams.set('connection_limit', '60');
+  if (!parsed.searchParams.has('pool_timeout')) parsed.searchParams.set('pool_timeout', '120');
+  return parsed.toString();
 }
 
 function runSync(command: string, args: string[], cwd: string, env: NodeJS.ProcessEnv): void {

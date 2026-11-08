@@ -44,6 +44,19 @@ interface TopProduct {
   salesCents: number;
 }
 
+interface SearchKeyword {
+  id?: string;
+  keyword: string;
+  count: number;
+}
+
+interface SearchStats {
+  range: { days: number; since: string };
+  total: number;
+  topKeywords: SearchKeyword[];
+  noResultKeywords: SearchKeyword[];
+}
+
 function errorText(err: unknown): string {
   return err instanceof ApiError ? err.message : '加载失败';
 }
@@ -51,12 +64,18 @@ function errorText(err: unknown): string {
 export default function Analytics() {
   const [days, setDays] = useState('30');
   const [data, setData] = useState<Overview | null>(null);
+  const [search, setSearch] = useState<SearchStats | null>(null);
   const [loading, setLoading] = useState(true);
 
   async function load(range = days) {
     setLoading(true);
     try {
-      setData(await api<Overview>('/admin/analytics/overview', { query: { days: range } }));
+      const [overview, searchStats] = await Promise.all([
+        api<Overview>('/admin/analytics/overview', { query: { days: range } }),
+        api<SearchStats>('/admin/search/stats', { query: { days: range, limit: 10 } }),
+      ]);
+      setData(overview);
+      setSearch(searchStats);
     } catch (err) {
       toast(errorText(err), 'error');
     } finally {
@@ -79,11 +98,16 @@ export default function Analytics() {
     },
   ];
 
+  const keywordColumns: Column<SearchKeyword>[] = [
+    { key: 'keyword', title: '关键词', render: (row) => <span>{row.keyword}</span> },
+    { key: 'count', title: '次数', align: 'right', render: (row) => <span>{row.count}</span> },
+  ];
+
   return (
     <>
       <PageHeader
         title="经营看板"
-        desc="活动效果、会员贡献、复购与商品排行（按支付时间统计）"
+        desc="活动效果、会员贡献、复购、商品排行与搜索统计（成交按支付时间统计）"
         actions={
           <div className="row" style={{ gap: 8 }}>
             <select
@@ -192,6 +216,29 @@ export default function Analytics() {
           empty="暂无成交数据"
         />
       </Card>
+
+      <div className="grid grid-2" style={{ marginTop: 18 }}>
+        <Card title="搜索热词 TOP 10" extra={<span className="muted small">共 {search?.total ?? 0} 次搜索</span>}>
+          <DataTable
+            columns={keywordColumns}
+            rows={(search?.topKeywords ?? []).map(
+              (item, index): SearchKeyword => ({ ...item, id: `${item.keyword}-${index}` }),
+            )}
+            loading={loading}
+            empty="暂无搜索记录"
+          />
+        </Card>
+        <Card title="无结果词 TOP 10" extra={<span className="muted small">可用于补货或选品</span>}>
+          <DataTable
+            columns={keywordColumns}
+            rows={(search?.noResultKeywords ?? []).map(
+              (item, index): SearchKeyword => ({ ...item, id: `${item.keyword}-${index}` }),
+            )}
+            loading={loading}
+            empty="暂无无结果搜索"
+          />
+        </Card>
+      </div>
     </>
   );
 }

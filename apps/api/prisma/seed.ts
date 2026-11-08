@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 
 import { hashPassword } from '../src/common/password';
+import { buildProductSearchText } from '../src/common/search-text';
 
 const prisma = new PrismaClient();
 
@@ -151,6 +152,11 @@ async function main(): Promise<void> {
         title: p.title,
         subtitle: p.subtitle,
         categoryId: categories[p.category],
+        searchText: buildProductSearchText({
+          title: p.title,
+          subtitle: p.subtitle,
+          categoryName: p.category,
+        }),
         status: 'ON_SALE',
         mainImageKey: p.image,
         priceMinCents: p.price,

@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 
 import { PrismaService, isUniqueViolation } from '../../prisma/prisma.module';
+import { buildProductSearchText } from '../../common/search-text';
 import { AssetService } from '../assets/asset.service';
 
 const SKU_CODE_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -167,6 +168,11 @@ export class AdminProductService {
             title,
             subtitle: input.subtitle,
             categoryId: input.categoryId,
+            searchText: buildProductSearchText({
+              title,
+              subtitle: input.subtitle,
+              categoryName: category.name,
+            }),
             mainImageKey: gallery.mainImageKey,
             mainImageKeys: gallery.mainImageKeys,
             detailImageKeys,
@@ -205,11 +211,30 @@ export class AdminProductService {
         : null;
     const detailImageKeys = await this.resolveDetailImages(input.detailImageKeys);
 
+    let searchText: string | undefined;
+    if (title !== undefined || input.subtitle !== undefined || input.categoryId !== undefined) {
+      const category = await this.prisma.category.findUnique({
+        where: { id: input.categoryId ?? product.categoryId },
+        select: { name: true },
+      });
+      const tags = await this.prisma.productTag.findMany({
+        where: { productId: id },
+        select: { name: true },
+      });
+      searchText = buildProductSearchText({
+        title: title ?? product.title,
+        subtitle: input.subtitle !== undefined ? input.subtitle : product.subtitle,
+        categoryName: category?.name,
+        tags: tags.map((tag) => tag.name),
+      });
+    }
+
     return this.prisma.product.update({
       where: { id },
       data: {
         ...(title !== undefined ? { title } : {}),
         ...(input.subtitle !== undefined ? { subtitle: input.subtitle } : {}),
+        ...(searchText !== undefined ? { searchText } : {}),
         ...(input.categoryId !== undefined ? { categoryId: input.categoryId } : {}),
         ...(gallery
           ? { mainImageKey: gallery.mainImageKey, mainImageKeys: gallery.mainImageKeys }
@@ -296,6 +321,21 @@ export class AdminProductService {
       const assigned = await tx.productTag.findMany({
         where: { productId },
         orderBy: { name: 'asc' },
+      });
+      const category = await tx.category.findUnique({
+        where: { id: product.categoryId },
+        select: { name: true },
+      });
+      await tx.product.update({
+        where: { id: productId },
+        data: {
+          searchText: buildProductSearchText({
+            title: product.title,
+            subtitle: product.subtitle,
+            categoryName: category?.name,
+            tags: assigned.map((tag) => tag.name),
+          }),
+        },
       });
       return { items: assigned.map((t) => ({ id: t.id, name: t.name })) };
     });

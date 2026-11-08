@@ -29,11 +29,13 @@
   "devDependencies": {
     "@babel/core": "^7.24.0",
     "@babel/preset-react": "^7.24.1",
+    "@pmmmwh/react-refresh-webpack-plugin": "^0.5.17",
     "@tarojs/cli": "^4.0.0",
     "@tarojs/webpack5-runner": "^4.0.0",
     "@types/react": "^18.3.12",
     "@types/webpack-env": "^1.18.5",
     "babel-preset-taro": "^4.0.0",
+    "react-refresh": "^0.17.0",
     "typescript": "^5.9.3",
     "webpack": "5.91.0"
   }

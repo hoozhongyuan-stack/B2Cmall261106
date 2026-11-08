@@ -17,8 +17,39 @@
   gap: 16px;
 }
 
+.search-sorts {
+  margin-top: 8px;
+}
+
+.filter-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 8px 0 4px;
+}
+
+.filter-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.filter-label {
+  flex: 0 0 64px;
+  font-size: 22px;
+  line-height: 40px;
+  color: var(--ink-3);
+}
+
+.filter-options {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
 .search-result-head {
-  padding: 8px 0 16px;
+  padding: 12px 0 16px;
 }
 
 .search-more {

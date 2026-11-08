@@ -11,6 +11,7 @@ import { AdminOpsModule } from './modules/admin/admin-ops.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { AdminAuditInterceptor } from './common/admin-audit.interceptor';
 import { RateLimitGuard } from './common/rate-limit.guard';
+import { OptionalUserJwtGuard } from './common/user-auth.guard';
 import { TelemetryModule } from './modules/telemetry/telemetry.module';
 import { IntegrationModule } from './modules/integration/integration.module';
 import { MiniappReleaseModule } from './modules/miniapp-release/miniapp-release.module';
@@ -21,6 +22,7 @@ import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { StoreModule } from './modules/store/store.module';
 import { PickupModule } from './modules/pickup/pickup.module';
 import { DeliveryModule } from './modules/delivery/delivery.module';
+import { SearchModule } from './modules/search/search.module';
 
 @Module({
   imports: [
@@ -41,9 +43,11 @@ import { DeliveryModule } from './modules/delivery/delivery.module';
     StoreModule,
     PickupModule,
     DeliveryModule,
+    SearchModule,
   ],
   controllers: [CatalogController, ProductDetailController],
   providers: [
+    OptionalUserJwtGuard,
     { provide: APP_INTERCEPTOR, useClass: AdminAuditInterceptor },
     // 仅对标注了 @RateLimit 的接口生效
     { provide: APP_GUARD, useClass: RateLimitGuard },

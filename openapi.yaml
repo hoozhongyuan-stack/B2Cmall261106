@@ -118,6 +118,31 @@ paths:
       responses:
         '200': { description: OK }
 
+  /tags:
+    get:
+      tags: [catalog]
+      summary: 标签列表（仅包含在售商品）
+      responses:
+        '200': { description: OK }
+
+  /search/hot:
+    get:
+      tags: [search]
+      summary: 搜索热词（日志自动聚合，近 30 天）
+      parameters:
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 20, default: 10 } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { type: string }
+
   /products:
     get:
       tags: [catalog]
@@ -125,11 +150,16 @@ paths:
       parameters:
         - { name: categoryId, in: query, schema: { type: string } }
         - { name: keyword, in: query, schema: { type: string } }
-        - { name: sort, in: query, schema: { type: string, enum: [default, sales, price_asc, price_desc] } }
+        - { name: priceMinCents, in: query, schema: { type: integer, minimum: 0 } }
+        - { name: priceMaxCents, in: query, schema: { type: integer, minimum: 0 } }
+        - { name: tagId, in: query, schema: { type: string } }
+        - { name: storeId, in: query, schema: { type: string } }
+        - { name: sort, in: query, schema: { type: string, enum: [default, sales, price_asc, price_desc, new] } }
         - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
         - { name: pageSize, in: query, schema: { type: integer, minimum: 1, maximum: 50, default: 20 } }
       responses:
         '200': { description: OK }
+        '400': { $ref: '#/components/responses/BadRequest' }
 
   /products/{id}:
     get:
@@ -3171,6 +3201,39 @@ paths:
       responses:
         '200': { description: OK }
 
+  /admin/search/stats:
+    get:
+      tags: [admin-search]
+      summary: 搜索统计（热词 Top / 无结果词 Top，日志自动聚合）
+      security: [{ adminToken: [] }]
+      parameters:
+        - { name: days, in: query, schema: { type: integer, minimum: 1, maximum: 365, default: 30 } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 50, default: 10 } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    required: [range, total, topKeywords, noResultKeywords]
+                    properties:
+                      range:
+                        type: object
+                        properties:
+                          days: { type: integer }
+                          since: { type: string, format: date-time }
+                      total: { type: integer }
+                      topKeywords:
+                        type: array
+                        items: { $ref: '#/components/schemas/SearchKeywordStat' }
+                      noResultKeywords:
+                        type: array
+                        items: { $ref: '#/components/schemas/SearchKeywordStat' }
+
 components:
   securitySchemes:
     userToken:
@@ -3207,6 +3270,13 @@ components:
           schema: { $ref: '#/components/schemas/Error' }
 
   schemas:
+    SearchKeywordStat:
+      type: object
+      required: [keyword, count]
+      properties:
+        keyword: { type: string }
+        count: { type: integer }
+
     ShopConfig:
       type: object
       properties:

@@ -76,6 +76,8 @@ model Product {
   title           String
   subtitle        String?
   categoryId      String
+  /// 标题 + 副标题 + 分类 + 标签 + 拼音全拼/首字母（服务端生成）
+  searchText      String        @default("")
   status          ProductStatus @default(OFF_SHELF)
   /// 主图（首张，供列表/购物车/订单快照使用）
   mainImageKey    String?
@@ -97,6 +99,7 @@ model Product {
 
   @@index([categoryId, status])
   @@index([sort])
+  @@index([searchText(ops: raw("gin_trgm_ops"))], type: Gin)
 }
 
 model ProductTag {
@@ -104,6 +107,21 @@ model ProductTag {
   name      String   @unique
   productId String?
   product   Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+}
+
+// 搜索日志：热词与无结果词由日志自动聚合，不提供人工维护
+model SearchLog {
+  id          String   @id @default(cuid())
+  /// 归一化关键词：去首尾空格、转小写、最长 50 字
+  keyword     String
+  resultCount Int      @default(0)
+  /// 登录用户；匿名搜索为空
+  userId      String?
+  createdAt   DateTime @default(now()) @db.Timestamptz(3)
+
+  @@index([createdAt])
+  @@index([keyword, createdAt])
+  @@index([resultCount, createdAt])
 }
 
 model Category {

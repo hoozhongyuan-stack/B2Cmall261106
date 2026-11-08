@@ -1,12 +1,33 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { BadRequestException, Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import { PrismaService } from '../../prisma/prisma.module';
+import { ProductSort, searchProducts } from '../../prisma/search';
+import { SearchLogService } from '../search/search-log.service';
+import {
+  MiniappUser,
+  OptionalCurrentUser,
+  OptionalUserJwtGuard,
+} from '../../common/user-auth.guard';
+
+const PRODUCT_SORTS: ProductSort[] = ['default', 'sales', 'price_asc', 'price_desc', 'new'];
+
+function parseCents(value: string | undefined, label: string): number | undefined {
+  if (value === undefined || value === '') return undefined;
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed < 0) {
+    throw new BadRequestException(`${label}必须为非负整数（分）`);
+  }
+  return parsed;
+}
 
 @ApiTags('catalog')
 @Controller()
 export class CatalogController {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly searchLogs: SearchLogService,
+  ) {}
 
   @Get('health')
   @ApiOperation({ summary: '健康检查（含数据库连通性）' })
@@ -48,50 +69,64 @@ export class CatalogController {
     }));
   }
 
+  @Get('tags')
+  @ApiOperation({ summary: '标签列表（仅包含在售商品）' })
+  async tags() {
+    return this.prisma.productTag.findMany({
+      where: { product: { status: 'ON_SALE' } },
+      orderBy: { name: 'asc' },
+      select: { id: true, name: true },
+      take: 50,
+    });
+  }
+
   @Get('products')
-  @ApiOperation({ summary: '商品列表：分类 / 关键词 / 排序 / 分页' })
+  @UseGuards(OptionalUserJwtGuard)
+  @ApiOperation({ summary: '商品列表：分类 / 关键词 / 价格 / 标签 / 门店 / 排序 / 分页' })
   async products(
     @Query('categoryId') categoryId?: string,
     @Query('keyword') keyword?: string,
-    @Query('sort') sort: 'default' | 'sales' | 'price_asc' | 'price_desc' = 'default',
+    @Query('priceMinCents') priceMinCents?: string,
+    @Query('priceMaxCents') priceMaxCents?: string,
+    @Query('tagId') tagId?: string,
+    @Query('storeId') storeId?: string,
+    @Query('sort') sort = 'default',
     @Query('page') page = '1',
     @Query('pageSize') pageSize = '20',
+    @OptionalCurrentUser() user?: MiniappUser,
   ) {
-    const take = Math.min(Number(pageSize) || 20, 50);
-    const skip = (Math.max(Number(page) || 1, 1) - 1) * take;
-    const where = {
-      status: 'ON_SALE' as const,
-      ...(categoryId ? { categoryId } : {}),
-      ...(keyword ? { title: { contains: keyword, mode: 'insensitive' as const } } : {}),
-    };
-    const orderBy =
-      sort === 'sales'
-        ? { soldCount: 'desc' as const }
-        : sort === 'price_asc'
-          ? { priceMinCents: 'asc' as const }
-          : sort === 'price_desc'
-            ? { priceMinCents: 'desc' as const }
-            : { sort: 'asc' as const };
+    if (!PRODUCT_SORTS.includes(sort as ProductSort)) {
+      throw new BadRequestException('排序方式不合法');
+    }
+    const minPrice = parseCents(priceMinCents, '最低价');
+    const maxPrice = parseCents(priceMaxCents, '最高价');
+    if (minPrice !== undefined && maxPrice !== undefined && minPrice > maxPrice) {
+      throw new BadRequestException('最低价不能高于最高价');
+    }
 
-    const [items, total] = await this.prisma.$transaction([
-      this.prisma.product.findMany({ where, orderBy, skip, take }),
-      this.prisma.product.count({ where }),
-    ]);
+    const take = Math.min(Math.max(Number(pageSize) || 20, 1), 50);
+    const currentPage = Math.max(Number(page) || 1, 1);
+    const result = await searchProducts(this.prisma, {
+      keyword,
+      categoryId,
+      priceMinCents: minPrice,
+      priceMaxCents: maxPrice,
+      tagId,
+      storeId,
+      sort: sort as ProductSort,
+      page: currentPage,
+      pageSize: take,
+    });
+
+    if (keyword?.trim()) {
+      this.searchLogs.record({ keyword, resultCount: result.total, userId: user?.sub });
+    }
 
     return {
-      total,
-      page: Math.max(Number(page) || 1, 1),
+      total: result.total,
+      page: currentPage,
       pageSize: take,
-      items: items.map((p) => ({
-        id: p.id,
-        title: p.title,
-        subtitle: p.subtitle,
-        mainImageKey: p.mainImageKey,
-        priceMinCents: p.priceMinCents,
-        priceMaxCents: p.priceMaxCents,
-        soldCount: p.soldCount,
-        status: p.status,
-      })),
+      items: result.items,
     };
   }
 }
