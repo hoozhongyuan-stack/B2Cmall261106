@@ -12,7 +12,7 @@ concurrency:
 env:
   NODE_VERSION: '24'   # pnpm 11 依赖 node:sqlite，需 ≥22
   # 契约测试含 50 并发下单：提高连接池上限与等待时间，避免 CI 上 P2024 连接池超时
-  DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/shanye_test?schema=public&connection_limit=30&pool_timeout=60"
+  DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/shanye_test?schema=public&connection_limit=60&pool_timeout=120"
 
 jobs:
   verify:

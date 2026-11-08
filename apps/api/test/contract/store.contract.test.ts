@@ -406,7 +406,7 @@ describe('门店库存与订单来源', () => {
     expect(reasons.has('ORDER_RELEASE')).toBe(true);
     expect(reasons.has('ORDER_PAID')).toBe(true);
     expect(reasons.has('REFUND')).toBe(true);
-  }, 60_000);
+  }, 120_000);
 });
 
 describe('订单归属与后台筛选', () => {
