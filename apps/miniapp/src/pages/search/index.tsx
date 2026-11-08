@@ -1,6 +1,6 @@
 import { Input, Text, View } from '@tarojs/components';
-import Taro, { useReachBottom } from '@tarojs/taro';
-import { useRef, useState } from 'react';
+import Taro, { useReachBottom, useRouter } from '@tarojs/taro';
+import { useEffect, useRef, useState } from 'react';
 
 import { api, showError } from '../../api/client';
 import { Empty, Loading } from '../../components/common';
@@ -38,6 +38,7 @@ function readHistory(): string[] {
 }
 
 export default function Page() {
+  const router = useRouter();
   const [keyword, setKeyword] = useState('');
   const [history, setHistory] = useState<string[]>(readHistory);
   const [items, setItems] = useState<ProductItem[] | null>(null);
@@ -81,6 +82,12 @@ export default function Page() {
     remember(text);
     void load(text, 1);
   };
+
+  // 从首页运营位带关键词进入时直接搜索
+  useEffect(() => {
+    const initial = router.params.keyword;
+    if (initial) submit(decodeURIComponent(initial));
+  }, []);
 
   useReachBottom(() => {
     if (!searched || busy.current || !items || items.length >= total) return;

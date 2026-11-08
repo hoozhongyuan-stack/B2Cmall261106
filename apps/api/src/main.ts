@@ -1,6 +1,8 @@
 import { randomUUID } from 'node:crypto';
+import { mkdir } from 'node:fs/promises';
 import { ValidationPipe, Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import type { NestExpressApplication } from '@nestjs/platform-express';
 import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import type { NextFunction, Request, Response } from 'express';
@@ -8,6 +10,7 @@ import type { NextFunction, Request, Response } from 'express';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/http-exception.filter';
 import { ResponseInterceptor } from './common/response.interceptor';
+import { assetsDir } from './common/media';
 
 /** 慢请求阈值：超过即打日志，便于定位性能退化 */
 const SLOW_REQUEST_MS = 1000;
@@ -32,8 +35,20 @@ function assertProductionSecrets(config: ConfigService): void {
 }
 
 async function bootstrap(): Promise<void> {
-  const app = await NestFactory.create(AppModule, { bodyParser: true });
+  // rawBody：微信支付回调需要原始报文验签
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, { rawBody: true });
   app.setGlobalPrefix('api');
+
+  // 素材库图片：本机磁盘静态托管，Nginx /api/ 反代即可
+  const mediaDir = assetsDir();
+  await mkdir(mediaDir, { recursive: true });
+  app.useStaticAssets(mediaDir, {
+    prefix: '/api/media/assets/',
+    maxAge: '30d',
+    immutable: true,
+    index: false,
+    dotfiles: 'deny',
+  });
 
   assertProductionSecrets(app.get(ConfigService));
 

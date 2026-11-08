@@ -37,10 +37,32 @@ if ! pg_dump "$PG_URL" --no-owner --no-privileges | gzip > "$TMP"; then
   exit 1
 fi
 mv "$TMP" "$FILE"
+chmod 600 "$FILE"
 
 echo "已备份：${FILE}（$(du -h "$FILE" | cut -f1)）"
 
-# 清理超过保留期的备份，避免磁盘被撑满
-find "$BACKUP_DIR" -type f -name 'shanye-*.sql.gz' -mtime +"$RETENTION_DAYS" -print -delete
+# 素材图片同样落本机磁盘，纳入备份；目录不存在时跳过
+UPLOAD_DIR="${UPLOAD_DIR:-}"
+if [[ -z "$UPLOAD_DIR" && -f "$ROOT/apps/api/.env" ]]; then
+  UPLOAD_DIR="$(grep -E '^UPLOAD_DIR=' "$ROOT/apps/api/.env" | tail -n 1 | cut -d= -f2- | tr -d '"' | tr -d "'" || true)"
+fi
+UPLOAD_DIR="${UPLOAD_DIR:-$ROOT/apps/api/uploads}"
+[[ "$UPLOAD_DIR" = /* ]] || UPLOAD_DIR="$ROOT/$UPLOAD_DIR"
 
-echo "保留策略：$RETENTION_DAYS 天"
+if [[ -d "$UPLOAD_DIR/assets" ]]; then
+  UPLOAD_FILE="$BACKUP_DIR/shanye-uploads-$STAMP.tar.gz"
+  if ! tar -czf "$UPLOAD_FILE" -C "$UPLOAD_DIR" assets; then
+    rm -f "$UPLOAD_FILE"
+    echo "上传目录备份失败：$UPLOAD_DIR/assets" >&2
+    exit 1
+  fi
+  chmod 600 "$UPLOAD_FILE"
+  echo "已备份上传目录：${UPLOAD_FILE}（$(du -h "$UPLOAD_FILE" | cut -f1)）"
+else
+  echo "未找到上传目录：${UPLOAD_DIR}/assets（跳过图片备份）"
+fi
+
+# 清理超过保留期的备份，避免磁盘被撑满
+find "$BACKUP_DIR" -type f \( -name 'shanye-*.sql.gz' -o -name 'shanye-uploads-*.tar.gz' \) -mtime +"$RETENTION_DAYS" -print -delete
+
+echo "保留策略：$RETENTION_DAYS 天（数据库 + 上传目录）"

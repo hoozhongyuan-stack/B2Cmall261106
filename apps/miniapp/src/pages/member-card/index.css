@@ -1,0 +1,83 @@
+.mc-balance {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mc-balance-value {
+  font-size: 56px;
+  font-weight: 700;
+  color: var(--brand);
+}
+
+.mc-title {
+  margin: 0 0 8px;
+}
+
+.mc-hint {
+  display: block;
+  margin-top: 8px;
+}
+
+.mc-expire {
+  display: block;
+  margin-top: 6px;
+}
+
+.mc-card-name {
+  font-size: 30px;
+  font-weight: 600;
+}
+
+.mc-plan {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 0;
+  border-top: 1px solid var(--line);
+}
+
+.mc-plan:first-of-type {
+  border-top: none;
+}
+
+.mc-plan-right {
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.mc-recharge-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.mc-recharge {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 20px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: center;
+}
+
+.mc-recharge-amount {
+  font-size: 32px;
+  font-weight: 600;
+}
+
+.mc-ledger {
+  padding: 14px 0;
+  border-top: 1px solid var(--line);
+}
+
+.mc-ledger:first-of-type {
+  border-top: none;
+}
+
+.mc-ledger-right {
+  align-items: flex-end;
+  gap: 4px;
+}

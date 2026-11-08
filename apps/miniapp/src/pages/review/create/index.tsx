@@ -1,14 +1,15 @@
-import { Text, Textarea, View } from '@tarojs/components';
+import { Image, Text, Textarea, View } from '@tarojs/components';
 import Taro, { useRouter } from '@tarojs/taro';
 import { useEffect, useState } from 'react';
 
-import { api, showError } from '../../../api/client';
+import { api, ensureLogin, getToken, showError } from '../../../api/client';
 import { Loading, ProductThumb } from '../../../components/common';
 import { money } from '../../../utils/format';
 
 import './index.css';
 
 const STAR_VALUES = [1, 2, 3, 4, 5];
+const MAX_IMAGES = 9;
 
 interface ReviewContext {
   id: string;
@@ -28,6 +29,7 @@ export default function Page() {
   const [rating, setRating] = useState(5);
   const [content, setContent] = useState('');
   const [anonymous, setAnonymous] = useState(false);
+  const [images, setImages] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -43,6 +45,44 @@ export default function Page() {
     })();
   }, [orderItemId]);
 
+  const pickImages = async () => {
+    if (images.length >= MAX_IMAGES) return;
+    try {
+      const result = await Taro.chooseImage({
+        count: MAX_IMAGES - images.length,
+        sizeType: ['compressed'],
+        sourceType: ['album', 'camera'],
+      });
+      setImages((prev) => [...prev, ...result.tempFilePaths].slice(0, MAX_IMAGES));
+    } catch {
+      /* 用户取消选择 */
+    }
+  };
+
+  /** 上传到素材库并返回图片 key，评价只保存 key */
+  const uploadImages = async (paths: string[]): Promise<string[]> => {
+    await ensureLogin();
+    const token = getToken();
+    const keys: string[] = [];
+    for (const filePath of paths) {
+      const res = await Taro.uploadFile({
+        url: `${API_BASE}/reviews/images`,
+        filePath,
+        name: 'files',
+        header: token ? { authorization: `Bearer ${token}` } : {},
+      });
+      const body = JSON.parse(res.data) as {
+        data?: { items: { key: string }[] };
+        message?: string;
+      };
+      if (res.statusCode < 200 || res.statusCode >= 300 || !body.data) {
+        throw new Error(body.message || '图片上传失败');
+      }
+      keys.push(...body.data.items.map((item) => item.key));
+    }
+    return keys;
+  };
+
   const submit = async () => {
     if (!orderItemId) {
       await Taro.showToast({ title: '缺少订单商品信息', icon: 'none' });
@@ -50,12 +90,14 @@ export default function Page() {
     }
     setSubmitting(true);
     try {
+      const imageKeys = images.length ? await uploadImages(images) : [];
       await api('/reviews', {
         method: 'POST',
         body: {
           orderItemId,
           rating,
           content: content.trim() || undefined,
+          ...(imageKeys.length ? { images: imageKeys } : {}),
           anonymous,
         },
       });
@@ -120,6 +162,28 @@ export default function Page() {
           placeholder="说说商品口味、包装和配送体验吧"
           onInput={(e) => setContent(e.detail.value)}
         />
+      </View>
+
+      <View className="card">
+        <Text className="section-title review-title">晒图（选填，最多 {MAX_IMAGES} 张）</Text>
+        <View className="review-images">
+          {images.map((path, index) => (
+            <View key={`${path}-${index}`} className="review-image-wrap">
+              <Image className="review-image" src={path} mode="aspectFill" />
+              <Text
+                className="review-image-remove"
+                onClick={() => setImages((prev) => prev.filter((_, i) => i !== index))}
+              >
+                ×
+              </Text>
+            </View>
+          ))}
+          {images.length < MAX_IMAGES && (
+            <View className="review-image-add" onClick={() => void pickImages()}>
+              <Text>＋</Text>
+            </View>
+          )}
+        </View>
       </View>
 
       <View className="card row-between">

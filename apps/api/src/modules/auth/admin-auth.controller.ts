@@ -23,7 +23,7 @@ export class AdminAuthController {
 
   @Post('login')
   @HttpCode(200)
-  @RateLimit({ limit: 10, windowMs: 60_000 })
+  @RateLimit({ limit: 30, windowMs: 60_000 })
   @ApiOperation({ summary: '商家账号登录' })
   async login(@Body() dto: LoginDto) {
     return this.auth.login(dto.account, dto.password);
@@ -31,7 +31,7 @@ export class AdminAuthController {
 
   @Get('me')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('SUPER', 'OPS', 'CS', 'WMS')
+  @Roles('SUPER', 'OPS', 'CS', 'WMS', 'STORE')
   @ApiBearerAuth()
   @ApiOperation({ summary: '当前登录账号' })
   me(@CurrentUser() user: AuthUser) {

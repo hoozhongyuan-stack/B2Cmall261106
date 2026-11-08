@@ -14,6 +14,13 @@ import { RateLimitGuard } from './common/rate-limit.guard';
 import { TelemetryModule } from './modules/telemetry/telemetry.module';
 import { IntegrationModule } from './modules/integration/integration.module';
 import { MiniappReleaseModule } from './modules/miniapp-release/miniapp-release.module';
+import { OpsModule } from './modules/ops/ops.module';
+import { HomeModule } from './modules/home/home.module';
+import { ExpressModule } from './modules/express/express.module';
+import { AnalyticsModule } from './modules/analytics/analytics.module';
+import { StoreModule } from './modules/store/store.module';
+import { PickupModule } from './modules/pickup/pickup.module';
+import { DeliveryModule } from './modules/delivery/delivery.module';
 
 @Module({
   imports: [
@@ -27,6 +34,13 @@ import { MiniappReleaseModule } from './modules/miniapp-release/miniapp-release.
     TelemetryModule,
     IntegrationModule,
     MiniappReleaseModule,
+    OpsModule,
+    HomeModule,
+    ExpressModule,
+    AnalyticsModule,
+    StoreModule,
+    PickupModule,
+    DeliveryModule,
   ],
   controllers: [CatalogController, ProductDetailController],
   providers: [

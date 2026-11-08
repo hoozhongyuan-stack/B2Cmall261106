@@ -1,9 +1,14 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { randomBytes } from 'node:crypto';
-import { mkdir, unlink, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, unlink, writeFile } from 'node:fs/promises';
 import { dirname, extname, join, resolve } from 'node:path';
 
 import { PrismaService } from '../../prisma/prisma.module';
+import type { WechatPayConfig } from '../payment/wechat/wechat-pay.config';
 
 const CONFIG_ID = 'singleton';
 const MAX_SECRET_BYTES = 200 * 1024;
@@ -13,6 +18,7 @@ export const SECRET_FIELDS = [
   'miniappUploadKey',
   'wechatPayApiV3Key',
   'wechatPayPrivateKey',
+  'wechatPayPublicKey',
 ] as const;
 
 export type SecretField = (typeof SECRET_FIELDS)[number];
@@ -29,6 +35,10 @@ const SECRET_SPEC: Record<SecretField, SecretSpec> = {
     label: '微信支付商户私钥',
     extensions: ['.pem', '.key', '.p12', '.pfx'],
   },
+  wechatPayPublicKey: {
+    label: '微信支付公钥',
+    extensions: ['.pem', '.txt', '.key'],
+  },
 };
 
 export interface SecretMeta {
@@ -44,11 +54,19 @@ export interface UpdateIntegrationInput {
   wechatPayMchId?: string;
   wechatPayCertSerial?: string;
   wechatPayNotifyUrl?: string;
+  /** 微信支付公钥 ID（公钥模式必填，平台证书模式留空） */
+  wechatPayPublicKeyId?: string;
   subscribeTemplateIds?: {
     orderPaid?: string;
     orderShipped?: string;
     refundResult?: string;
+    pickupReady?: string;
+    pickupExpiring?: string;
+    deliveryAccepted?: string;
+    deliveryDone?: string;
   };
+  /** 模板字段映射：{ 场景: { 微信字段名: 变量名 } } */
+  subscribeTemplateFields?: Record<string, Record<string, string>>;
   apiBaseUrl?: string;
   businessDomain?: string;
 }
@@ -76,11 +94,24 @@ export class IntegrationService {
         config.wechatPayPrivateKeyFile,
         config.wechatPayPrivateKeyName,
       ),
+      wechatPayPublicKeyId: config.wechatPayPublicKeyId,
+      wechatPayPublicKey: this.meta(
+        config.wechatPayPublicKeyFile,
+        config.wechatPayPublicKeyName,
+      ),
       subscribeTemplateIds: {
         orderPaid: templates.orderPaid ?? '',
         orderShipped: templates.orderShipped ?? '',
         refundResult: templates.refundResult ?? '',
+        pickupReady: templates.pickupReady ?? '',
+        pickupExpiring: templates.pickupExpiring ?? '',
+        deliveryAccepted: templates.deliveryAccepted ?? '',
+        deliveryDone: templates.deliveryDone ?? '',
       },
+      subscribeTemplateFields: (config.subscribeTemplateFields ?? {}) as Record<
+        string,
+        Record<string, string>
+      >,
       apiBaseUrl: config.apiBaseUrl,
       businessDomain: config.businessDomain,
       updatedAt: config.updatedAt,
@@ -101,6 +132,35 @@ export class IntegrationService {
     return config.paymentProvider === 'wechat' ? 'wechat' : 'mock';
   }
 
+  /** 订阅消息运行参数：模板 ID 与字段映射（供通知服务使用） */
+  async subscribeTemplateConfig(): Promise<{
+    templates: {
+      orderPaid: string;
+      orderShipped: string;
+      refundResult: string;
+      pickupReady: string;
+      pickupExpiring: string;
+      deliveryAccepted: string;
+      deliveryDone: string;
+    };
+    fields: Record<string, Record<string, string>>;
+  }> {
+    const config = await this.ensureConfig();
+    const templates = (config.subscribeTemplateIds ?? {}) as Record<string, string>;
+    return {
+      templates: {
+        orderPaid: templates.orderPaid ?? '',
+        orderShipped: templates.orderShipped ?? '',
+        refundResult: templates.refundResult ?? '',
+        pickupReady: templates.pickupReady ?? '',
+        pickupExpiring: templates.pickupExpiring ?? '',
+        deliveryAccepted: templates.deliveryAccepted ?? '',
+        deliveryDone: templates.deliveryDone ?? '',
+      },
+      fields: (config.subscribeTemplateFields ?? {}) as Record<string, Record<string, string>>,
+    };
+  }
+
   /** 小程序发布用：AppID、代码上传密钥路径、API 地址 */
   async miniappPublishConfig(): Promise<{
     appId: string;
@@ -113,6 +173,78 @@ export class IntegrationService {
       uploadKeyPath: config.miniappUploadKeyFile,
       apiBaseUrl: config.apiBaseUrl ?? process.env.MINIAPP_API_BASE ?? '',
     };
+  }
+
+  /** 微信支付运行参数：读取服务端密钥文件，缺失时给出可操作的错误 */
+  async wechatPayConfig(): Promise<WechatPayConfig> {
+    const config = await this.ensureConfig();
+    const missing: string[] = [];
+
+    const appId = config.miniappAppId ?? process.env.MINIAPP_APPID ?? '';
+    if (!appId) missing.push('小程序 AppID');
+
+    const mchId = (config.wechatPayMchId ?? '').trim();
+    if (!mchId) missing.push('商户号');
+
+    const certSerial = (config.wechatPayCertSerial ?? '').trim();
+    if (!certSerial) missing.push('商户证书序列号');
+
+    const notifyUrl = (config.wechatPayNotifyUrl ?? '').trim();
+    if (!notifyUrl) missing.push('支付回调地址');
+
+    const apiV3Key = await this.readSecret(config.wechatPayApiV3KeyFile, 'APIv3 密钥', missing);
+    if (apiV3Key && !/^[A-Za-z0-9]{32}$/.test(apiV3Key)) {
+      missing.push('APIv3 密钥（应为 32 位字母数字）');
+    }
+
+    const privateKeyPem = await this.readSecret(
+      config.wechatPayPrivateKeyFile,
+      '商户私钥',
+      missing,
+    );
+    if (privateKeyPem && !privateKeyPem.includes('BEGIN')) {
+      missing.push('商户私钥（需 PEM 格式，p12/pfx 请先转换）');
+    }
+
+    const publicKeyId = config.wechatPayPublicKeyId?.trim() || undefined;
+    const publicKeyPem = config.wechatPayPublicKeyFile
+      ? await this.readSecret(config.wechatPayPublicKeyFile, '微信支付公钥', missing)
+      : undefined;
+    if (publicKeyId && !publicKeyPem) missing.push('微信支付公钥');
+
+    if (missing.length) {
+      throw new ServiceUnavailableException(
+        `微信支付未配置完整：${missing.join('、')}。请在后台「集成配置 → 微信支付」补齐`,
+      );
+    }
+
+    return {
+      appId,
+      mchId,
+      certSerial,
+      notifyUrl,
+      apiV3Key,
+      privateKeyPem,
+      publicKeyId,
+      publicKeyPem,
+    };
+  }
+
+  private async readSecret(
+    file: string | null,
+    label: string,
+    missing: string[],
+  ): Promise<string> {
+    if (!file) {
+      missing.push(label);
+      return '';
+    }
+    try {
+      return (await readFile(file, 'utf8')).trim();
+    } catch {
+      missing.push(`${label}（文件不可读）`);
+      return '';
+    }
   }
 
   /* ---------------- 写入 ---------------- */
@@ -139,14 +271,27 @@ export class IntegrationService {
       ...(input.wechatPayNotifyUrl !== undefined
         ? { wechatPayNotifyUrl: this.url(input.wechatPayNotifyUrl, '支付回调地址') }
         : {}),
+      ...(input.wechatPayPublicKeyId !== undefined
+        ? { wechatPayPublicKeyId: this.text(input.wechatPayPublicKeyId, 64) }
+        : {}),
       ...(input.subscribeTemplateIds !== undefined
         ? {
             subscribeTemplateIds: {
               orderPaid: this.text(input.subscribeTemplateIds.orderPaid ?? '', 64),
               orderShipped: this.text(input.subscribeTemplateIds.orderShipped ?? '', 64),
               refundResult: this.text(input.subscribeTemplateIds.refundResult ?? '', 64),
+              pickupReady: this.text(input.subscribeTemplateIds.pickupReady ?? '', 64),
+              pickupExpiring: this.text(input.subscribeTemplateIds.pickupExpiring ?? '', 64),
+              deliveryAccepted: this.text(
+                input.subscribeTemplateIds.deliveryAccepted ?? '',
+                64,
+              ),
+              deliveryDone: this.text(input.subscribeTemplateIds.deliveryDone ?? '', 64),
             },
           }
+        : {}),
+      ...(input.subscribeTemplateFields !== undefined
+        ? { subscribeTemplateFields: this.templateFields(input.subscribeTemplateFields) }
         : {}),
       ...(input.apiBaseUrl !== undefined
         ? { apiBaseUrl: this.url(input.apiBaseUrl, 'API 地址') }
@@ -183,6 +328,11 @@ export class IntegrationService {
         throw new BadRequestException(
           `${spec.label}应为 32 位字母数字，请确认上传的不是密钥文件`,
         );
+      }
+    }
+    if (field === 'wechatPayPublicKey') {
+      if (!buffer.toString('utf8').includes('BEGIN PUBLIC KEY')) {
+        throw new BadRequestException(`${spec.label}应为 PEM 格式（-----BEGIN PUBLIC KEY-----）`);
       }
     }
 
@@ -251,11 +401,13 @@ export class IntegrationService {
       miniappUploadKeyFile: string | null;
       wechatPayApiV3KeyFile: string | null;
       wechatPayPrivateKeyFile: string | null;
+      wechatPayPublicKeyFile: string | null;
     },
     field: SecretField,
   ): string | null {
     if (field === 'miniappUploadKey') return config.miniappUploadKeyFile;
     if (field === 'wechatPayApiV3Key') return config.wechatPayApiV3KeyFile;
+    if (field === 'wechatPayPublicKey') return config.wechatPayPublicKeyFile;
     return config.wechatPayPrivateKeyFile;
   }
 
@@ -266,6 +418,9 @@ export class IntegrationService {
     if (field === 'wechatPayApiV3Key') {
       return { wechatPayApiV3KeyFile: file, wechatPayApiV3KeyName: name };
     }
+    if (field === 'wechatPayPublicKey') {
+      return { wechatPayPublicKeyFile: file, wechatPayPublicKeyName: name };
+    }
     return { wechatPayPrivateKeyFile: file, wechatPayPrivateKeyName: name };
   }
 
@@ -275,6 +430,9 @@ export class IntegrationService {
     }
     if (field === 'wechatPayApiV3Key') {
       return { wechatPayApiV3KeyFile: null, wechatPayApiV3KeyName: null };
+    }
+    if (field === 'wechatPayPublicKey') {
+      return { wechatPayPublicKeyFile: null, wechatPayPublicKeyName: null };
     }
     return { wechatPayPrivateKeyFile: null, wechatPayPrivateKeyName: null };
   }
@@ -312,6 +470,32 @@ export class IntegrationService {
       throw new BadRequestException('业务域名只能包含字母、数字、点与连字符');
     }
     return text;
+  }
+
+  /** 校验模板字段映射：场景固定、字段名为微信模板键、值为变量名 */
+  private templateFields(
+    input: Record<string, Record<string, string>>,
+  ): Record<string, Record<string, string>> {
+    const scenes = ['orderPaid', 'orderShipped', 'refundResult'] as const;
+    const out: Record<string, Record<string, string>> = {};
+    for (const scene of scenes) {
+      const map = input[scene];
+      if (map === undefined) continue;
+      if (!map || typeof map !== 'object' || Array.isArray(map)) {
+        throw new BadRequestException(`${scene} 模板字段映射必须是对象`);
+      }
+      out[scene] = {};
+      for (const [key, value] of Object.entries(map)) {
+        if (!/^[A-Za-z0-9_]{1,32}$/.test(key)) {
+          throw new BadRequestException(`模板字段名不合法：${key}`);
+        }
+        if (typeof value !== 'string' || value.length > 64) {
+          throw new BadRequestException(`模板字段 ${key} 的变量名不合法`);
+        }
+        out[scene][key] = value.trim();
+      }
+    }
+    return out;
   }
 
   private provider(value: string): 'mock' | 'wechat' {

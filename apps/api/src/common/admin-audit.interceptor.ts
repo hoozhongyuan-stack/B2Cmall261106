@@ -28,6 +28,7 @@ const TARGET_TYPE_BY_SEGMENT: Record<string, string> = {
   accounts: 'AdminAccount',
   integration: 'Integration',
   miniapp: 'MiniappRelease',
+  stores: 'Store',
 };
 
 /** 敏感字段：密钥、密码、文件内容一律不落审计日志 */

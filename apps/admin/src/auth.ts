@@ -1,6 +1,6 @@
 import { clearToken, getToken, setToken } from './api/client';
 
-export type AdminRole = 'SUPER' | 'OPS' | 'CS' | 'WMS';
+export type AdminRole = 'SUPER' | 'OPS' | 'CS' | 'WMS' | 'STORE';
 
 export interface AdminSession {
   id: string;
@@ -47,4 +47,5 @@ export const ROLE_LABEL: Record<AdminRole, string> = {
   OPS: '商品运营',
   CS: '客服',
   WMS: '仓储',
+  STORE: '门店',
 };

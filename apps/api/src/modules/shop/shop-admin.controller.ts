@@ -7,7 +7,6 @@ import {
   Param,
   Patch,
   Post,
-  Query,
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
@@ -62,26 +61,6 @@ class CreateRegionDto {
   freightCents!: number;
 }
 
-class CreateAssetDto {
-  @IsString()
-  key!: string;
-
-  @IsString()
-  url!: string;
-
-  @IsOptional()
-  @IsInt()
-  size?: number;
-
-  @IsOptional()
-  @IsString()
-  mimeType?: string;
-
-  @IsOptional()
-  @IsString()
-  group?: string;
-}
-
 @ApiTags('admin-shop')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -116,35 +95,5 @@ export class AdminShopController {
   @ApiOperation({ summary: '删除偏远地区运费' })
   removeRegion(@Param('id') id: string) {
     return this.service.removeRegion(id);
-  }
-}
-
-@ApiTags('admin-assets')
-@ApiBearerAuth()
-@UseGuards(JwtAuthGuard, RolesGuard)
-@Controller('admin/assets')
-export class AdminAssetController {
-  constructor(private readonly service: ShopService) {}
-
-  @Get()
-  @Roles('SUPER', 'OPS', 'CS', 'WMS')
-  @ApiOperation({ summary: '素材列表' })
-  list(@Query('group') group?: string, @Query('keyword') keyword?: string) {
-    return this.service.listAssets({ group, keyword });
-  }
-
-  @Post()
-  @Roles('SUPER', 'OPS')
-  @ApiOperation({ summary: '登记素材' })
-  create(@Body() dto: CreateAssetDto) {
-    return this.service.createAsset(dto);
-  }
-
-  @Delete(':id')
-  @HttpCode(200)
-  @Roles('SUPER', 'OPS')
-  @ApiOperation({ summary: '删除素材（被引用时不可删）' })
-  remove(@Param('id') id: string) {
-    return this.service.removeAsset(id);
   }
 }

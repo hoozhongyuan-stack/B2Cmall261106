@@ -11,6 +11,20 @@ import { PaymentService } from './payment/payment.service';
 import { AdminOrderController } from './admin/admin-order.controller';
 import { AfterSaleController, AdminAfterSaleController } from './aftersale/aftersale.controller';
 import { AfterSaleService } from './aftersale/aftersale.service';
+import { AdminRefundController } from './aftersale/refund-admin.controller';
+import { RefundReconcileService } from './aftersale/refund-reconcile.service';
+import {
+  AdminCardPlanController,
+  AdminMemberCardController,
+  AdminRechargeOrderController,
+  AdminRechargePlanController,
+  AdminStoredValueController,
+  MemberCardController,
+  MemberCardPublicController,
+  OrderBalancePayController,
+  StoredValueController,
+} from './member/member-commerce.controller';
+import { MemberCommerceService } from './member/member-commerce.service';
 import { OrderTimeoutService } from './order/order-timeout.service';
 import { AdminOrderOpsController, ShipmentController } from './order/shipment.controller';
 import { JwtAuthGuard, RolesGuard } from '../common/auth.guards';
@@ -19,11 +33,19 @@ import { GrowthModule } from './growth.module';
 import { AddressController } from './address/address.controller';
 import { AddressService } from './address/address.service';
 import { IntegrationModule } from './integration/integration.module';
+import { NotificationModule } from './notification/notification.module';
+import { ExpressModule } from './express/express.module';
+import { PromotionModule } from './promotion/promotion.module';
+import { StoreModule } from './store/store.module';
 
 @Module({
   imports: [
     GrowthModule,
     IntegrationModule,
+    NotificationModule,
+    ExpressModule,
+    PromotionModule,
+    StoreModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -41,6 +63,16 @@ import { IntegrationModule } from './integration/integration.module';
     AdminOrderController,
     AfterSaleController,
     AdminAfterSaleController,
+    AdminRefundController,
+    MemberCardPublicController,
+    MemberCardController,
+    StoredValueController,
+    OrderBalancePayController,
+    AdminCardPlanController,
+    AdminMemberCardController,
+    AdminRechargePlanController,
+    AdminStoredValueController,
+    AdminRechargeOrderController,
     ShipmentController,
     AdminOrderOpsController,
     AddressController,
@@ -50,6 +82,8 @@ import { IntegrationModule } from './integration/integration.module';
     OrderService,
     PaymentService,
     AfterSaleService,
+    RefundReconcileService,
+    MemberCommerceService,
     OrderTimeoutService,
     AddressService,
     UserJwtGuard,

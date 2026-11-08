@@ -10,7 +10,7 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { Reflector } from '@nestjs/core';
 
-export type AdminRole = 'SUPER' | 'OPS' | 'CS' | 'WMS';
+export type AdminRole = 'SUPER' | 'OPS' | 'CS' | 'WMS' | 'STORE';
 
 export interface AuthUser {
   sub: string;

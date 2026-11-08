@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Headers,
@@ -7,6 +8,7 @@ import {
   Post,
   Req,
   UseGuards,
+  type RawBodyRequest,
 } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { IsString } from 'class-validator';
@@ -28,9 +30,13 @@ export class PaymentController {
   @Post('callback')
   @HttpCode(200)
   @ApiOperation({ summary: '支付回调（渠道 → 服务端，重复通知幂等）' })
-  async callback(@Req() req: Request, @Headers() headers: Record<string, string | undefined>) {
-    // 需要原始报文验签，故不使用 DTO
-    const raw = JSON.stringify(req.body ?? {});
+  async callback(
+    @Req() req: RawBodyRequest<Request>,
+    @Headers() headers: Record<string, string | undefined>,
+  ) {
+    // 微信支付验签依赖原始报文，不能使用重新序列化后的 body
+    const raw = req.rawBody?.toString('utf8');
+    if (!raw) throw new BadRequestException('缺少原始请求报文');
     return this.payments.handleCallback(raw, headers);
   }
 

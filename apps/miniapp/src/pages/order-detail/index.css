@@ -66,3 +66,33 @@
 .od-info + .od-info {
   margin-top: 8px;
 }
+
+.od-store-name {
+  display: block;
+  font-size: 32px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.od-pickup-body {
+  align-items: center;
+  gap: 16px;
+  padding: 16px 0 8px;
+}
+
+.od-pickup-verified {
+  gap: 8px;
+  padding: 12px 0;
+}
+
+.od-code {
+  font-size: 64px;
+  font-weight: 700;
+  letter-spacing: 12px;
+  color: var(--brand);
+  font-variant-numeric: tabular-nums;
+}
+
+.od-link {
+  color: var(--brand);
+}

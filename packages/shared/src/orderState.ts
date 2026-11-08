@@ -20,6 +20,9 @@ export const ORDER_ACTIONS = {
   cancel: 'cancel',
   ship: 'ship',
   confirm: 'confirm',
+  pickupVerify: 'pickup_verify',
+  acceptDelivery: 'accept_delivery',
+  deliverComplete: 'deliver_complete',
   refundApply: 'refund_apply',
   refundSuccess: 'refund_success',
   refundPartialSuccess: 'refund_partial_success',
@@ -36,10 +39,13 @@ const ORDER_TRANSITIONS: Record<OrderStatus, Partial<Record<OrderAction, OrderSt
   },
   PAID: {
     ship: 'SHIPPED',
+    pickup_verify: 'COMPLETED',
+    accept_delivery: 'SHIPPED',
     refund_apply: 'REFUNDING',
   },
   SHIPPED: {
     confirm: 'COMPLETED',
+    deliver_complete: 'COMPLETED',
     refund_apply: 'REFUNDING',
   },
   COMPLETED: {
@@ -100,14 +106,24 @@ export function isCompleted(status: OrderStatus): boolean {
   return status === 'COMPLETED';
 }
 
-/** 买家侧可执行的操作，用于按钮显隐（不替代服务端校验） */
-export function buyerActions(status: OrderStatus): OrderAction[] {
+/**
+ * 买家侧可执行的操作，用于按钮显隐（不替代服务端校验）。
+ * 自提订单由门店核销完成，买家不出现「确认收货」。
+ */
+export function buyerActions(
+  status: OrderStatus,
+  fulfillmentType: 'EXPRESS' | 'DELIVERY' | 'PICKUP' = 'EXPRESS',
+): OrderAction[] {
   switch (status) {
     case 'PENDING_PAYMENT':
       return ['pay_success', 'cancel'];
     case 'SHIPPED':
+      if (fulfillmentType === 'PICKUP') return [];
+      // 同城配送由门店送达完成，买家不出现「确认收货」
+      if (fulfillmentType === 'DELIVERY') return ['refund_apply'];
       return ['confirm', 'refund_apply'];
     case 'PAID':
+      return ['refund_apply'];
     case 'COMPLETED':
       return ['refund_apply'];
     default:

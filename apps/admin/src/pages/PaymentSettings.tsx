@@ -12,11 +12,12 @@ interface IntegrationSummary {
   wechatPayPrivateKey: { configured: boolean };
 }
 
-const FLOW = [
-  '新增 PaymentProvider 的微信支付实现，完成下单、签名与验签',
-  '新增 RefundProvider 的微信退款实现，退款单号沿用现有幂等逻辑',
-  '在支付模块注册新实现，订单与售后业务代码无需改动',
-  '配置商户号、证书与回调域名，并将回调地址指向 /api/payments/callback',
+const CHECKLIST = [
+  '商户号、证书序列号与小程序 AppID 属于同一商户主体',
+  '已上传 APIv3 密钥（32 位）与商户 API 私钥（PEM）',
+  '公钥模式需额外填写微信支付公钥 ID 并上传微信支付公钥',
+  '支付回调地址为 https://car.aition.art/api/payments/callback',
+  '小程序 request 合法域名已包含 https://car.aition.art',
 ];
 
 export default function PaymentSettings() {
@@ -55,7 +56,7 @@ export default function PaymentSettings() {
               label: '运行状态',
               value: wechat ? (
                 <span className="small muted">
-                  微信支付实现尚未接入，下单支付会返回「渠道尚未接入」，请先切回 mock。
+                  小程序下单后调起微信收银台，支付结果以回调验签通过为准。
                 </span>
               ) : (
                 <span className="small muted">无需真实商户号即可完成支付闭环</span>
@@ -101,12 +102,12 @@ export default function PaymentSettings() {
         />
       </Card>
 
-      <Card title="接入真实微信支付">
+      <Card title="微信支付配置检查">
         <p style={{ marginTop: 0 }} className="muted small">
-          代码已按渠道适配层拆分，业务层只依赖 PaymentProvider / RefundProvider 接口。
+          任一必填项缺失时，下单接口会返回「微信支付未配置完整」，并列出缺失项。
         </p>
         <ol style={{ margin: 0, paddingLeft: 20, lineHeight: 2 }}>
-          {FLOW.map((item) => (
+          {CHECKLIST.map((item) => (
             <li key={item}>{item}</li>
           ))}
         </ol>

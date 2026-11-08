@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 
 import { money } from '../api/client';
 
@@ -207,27 +208,32 @@ export function Modal({
   onClose,
   children,
   footer,
+  wide,
 }: {
   open: boolean;
   title: string;
   onClose: () => void;
   children: ReactNode;
   footer?: ReactNode;
+  wide?: boolean;
 }) {
   if (!open) return null;
-  return (
+
+  // 弹窗挂到 body：避免嵌套在页面表单 / label 内导致按钮误触发表单提交
+  return createPortal(
     <div className="modal-mask" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+      <div className={wide ? 'modal modal-lg' : 'modal'} onClick={(e) => e.stopPropagation()}>
         <header className="modal-hd">
           <h3>{title}</h3>
-          <button className="modal-x" onClick={onClose} aria-label="关闭">
+          <button type="button" className="modal-x" onClick={onClose} aria-label="关闭">
             ×
           </button>
         </header>
         <div className="modal-bd">{children}</div>
         {footer && <footer className="modal-ft">{footer}</footer>}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
@@ -245,6 +251,7 @@ export function Tabs<T extends string>({
       {items.map((item) => (
         <button
           key={item.value}
+          type="button"
           className={item.value === value ? 'tab on' : 'tab'}
           onClick={() => onChange(item.value)}
         >
@@ -271,13 +278,25 @@ export function Pagination({
   if (pages <= 1) return null;
   return (
     <div className="pagination">
-      <Button variant="ghost" size="sm" disabled={page <= 1} onClick={() => onChange(page - 1)}>
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        disabled={page <= 1}
+        onClick={() => onChange(page - 1)}
+      >
         上一页
       </Button>
       <span>
         {page} / {pages} 页，共 {total} 条
       </span>
-      <Button variant="ghost" size="sm" disabled={page >= pages} onClick={() => onChange(page + 1)}>
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        disabled={page >= pages}
+        onClick={() => onChange(page + 1)}
+      >
         下一页
       </Button>
     </div>

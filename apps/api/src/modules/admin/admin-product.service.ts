@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 
 import { PrismaService, isUniqueViolation } from '../../prisma/prisma.module';
+import { AssetService } from '../assets/asset.service';
 
 const SKU_CODE_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
 const PRODUCT_STATUSES = ['ON_SALE', 'OFF_SHELF', 'SOLD_OUT'];
@@ -25,6 +26,8 @@ export interface CreateProductInput {
   subtitle?: string;
   categoryId: string;
   mainImageKey?: string;
+  mainImageKeys?: string[];
+  detailImageKeys?: string[];
   detail?: string;
   status?: string;
   sort?: number;
@@ -36,6 +39,8 @@ export interface UpdateProductInput {
   subtitle?: string;
   categoryId?: string;
   mainImageKey?: string;
+  mainImageKeys?: string[];
+  detailImageKeys?: string[];
   detail?: string;
   status?: string;
   sort?: number;
@@ -58,7 +63,10 @@ function generateSkuCode(): string {
 
 @Injectable()
 export class AdminProductService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly assets: AssetService,
+  ) {}
 
   async listAdmin(query: { keyword?: string; status?: string; categoryId?: string }) {
     const status = this.parseStatus(query.status, PRODUCT_STATUSES, '商品状态不合法');
@@ -115,6 +123,8 @@ export class AdminProductService {
 
     const category = await this.prisma.category.findUnique({ where: { id: input.categoryId } });
     if (!category) throw new NotFoundException('分类不存在');
+    const gallery = await this.resolveGallery(input);
+    const detailImageKeys = (await this.resolveDetailImages(input.detailImageKeys)) ?? [];
 
     const codes = new Set<string>();
     const skus = input.skus.map((sku, index) => {
@@ -157,7 +167,9 @@ export class AdminProductService {
             title,
             subtitle: input.subtitle,
             categoryId: input.categoryId,
-            mainImageKey: input.mainImageKey,
+            mainImageKey: gallery.mainImageKey,
+            mainImageKeys: gallery.mainImageKeys,
+            detailImageKeys,
             detail: input.detail,
             status: status as never,
             sort: input.sort ?? 0,
@@ -187,6 +199,11 @@ export class AdminProductService {
       throw new BadRequestException('排序必须为整数');
     }
     const status = this.parseStatus(input.status, WRITABLE_PRODUCT_STATUSES, '商品状态不合法');
+    const gallery =
+      input.mainImageKeys !== undefined || input.mainImageKey !== undefined
+        ? await this.resolveGallery(input)
+        : null;
+    const detailImageKeys = await this.resolveDetailImages(input.detailImageKeys);
 
     return this.prisma.product.update({
       where: { id },
@@ -194,7 +211,10 @@ export class AdminProductService {
         ...(title !== undefined ? { title } : {}),
         ...(input.subtitle !== undefined ? { subtitle: input.subtitle } : {}),
         ...(input.categoryId !== undefined ? { categoryId: input.categoryId } : {}),
-        ...(input.mainImageKey !== undefined ? { mainImageKey: input.mainImageKey } : {}),
+        ...(gallery
+          ? { mainImageKey: gallery.mainImageKey, mainImageKeys: gallery.mainImageKeys }
+          : {}),
+        ...(detailImageKeys !== undefined ? { detailImageKeys } : {}),
         ...(input.detail !== undefined ? { detail: input.detail } : {}),
         ...(status !== undefined ? { status: status as never } : {}),
         ...(input.sort !== undefined ? { sort: input.sort } : {}),
@@ -302,6 +322,25 @@ export class AdminProductService {
     });
 
     return { deleted: true };
+  }
+
+  /** 主图：优先数组，兼容旧的单图字段；首张同步到 mainImageKey */
+  private async resolveGallery(input: {
+    mainImageKeys?: string[];
+    mainImageKey?: string;
+  }): Promise<{ mainImageKeys: string[]; mainImageKey: string | null }> {
+    const raw = input.mainImageKeys ?? (input.mainImageKey ? [input.mainImageKey] : []);
+    const keys = raw.map((key) => key.trim()).filter(Boolean);
+    await this.assets.assertReferences(keys);
+    return { mainImageKeys: keys, mainImageKey: keys[0] ?? null };
+  }
+
+  /** 详情图：保持顺序，逐张校验素材来源 */
+  private async resolveDetailImages(keys: string[] | undefined): Promise<string[] | undefined> {
+    if (keys === undefined) return undefined;
+    const cleaned = keys.map((key) => key.trim()).filter(Boolean);
+    await this.assets.assertReferences(cleaned);
+    return cleaned;
   }
 
   private parseStatus(

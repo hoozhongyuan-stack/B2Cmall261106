@@ -7,6 +7,7 @@ import {
 import { couponClaimState, type CouponClaimState } from '@shanye/shared';
 
 import { PrismaService, type TxClient } from '../../prisma/prisma.module';
+import { incrementCouponClaimed } from '../../prisma/queries';
 
 export interface CreateCouponInput {
   name: string;
@@ -269,9 +270,7 @@ export class CouponService {
     if (now < coupon.startAt) throw new ConflictException('优惠券还未开始发放');
     if (now > coupon.endAt) throw new ConflictException('优惠券已过期');
 
-    const updated = await tx.$executeRaw`
-      UPDATE "Coupon" SET "claimed" = "claimed" + 1
-      WHERE "id" = ${coupon.id} AND "claimed" < "total"`;
+    const updated = await incrementCouponClaimed(tx, coupon.id);
     if (updated !== 1) throw new ConflictException('优惠券已领完');
 
     const owned = await tx.couponClaim.count({ where: { couponId: coupon.id, userId } });

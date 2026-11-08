@@ -28,9 +28,15 @@ export function clearToken(): void {
 type Query = Record<string, string | number | boolean | undefined | null>;
 
 export interface RequestOptions {
-  method?: 'GET' | 'POST' | 'PATCH' | 'DELETE';
+  method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   body?: unknown;
   query?: Query;
+}
+
+function redirectToLogin(): void {
+  clearToken();
+  const loginPath = `${import.meta.env.BASE_URL}login`;
+  if (!window.location.pathname.startsWith(loginPath)) window.location.assign(loginPath);
 }
 
 /** 统一请求：注入 token、解包 { code, message, data }、401 回登录页 */
@@ -54,13 +60,35 @@ export async function api<T>(path: string, options: RequestOptions = {}): Promis
 
   const payload = (await res.json().catch(() => null)) as ApiEnvelope<T> | null;
 
-  if (res.status === 401) {
-    clearToken();
-    const loginPath = `${import.meta.env.BASE_URL}login`;
-    if (!window.location.pathname.startsWith(loginPath)) window.location.assign(loginPath);
-  }
+  if (res.status === 401) redirectToLogin();
   if (!res.ok) {
     throw new ApiError(payload?.code ?? 'HTTP_ERROR', payload?.message ?? '请求失败', res.status);
+  }
+  return (payload?.data ?? (null as T)) as T;
+}
+
+/** 文件上传：multipart/form-data，其余行为与 api 一致 */
+export async function apiUpload<T>(
+  path: string,
+  files: File[],
+  fields: Record<string, string> = {},
+): Promise<T> {
+  const form = new FormData();
+  for (const file of files) form.append('files', file);
+  for (const [key, value] of Object.entries(fields)) form.append(key, value);
+
+  const token = getToken();
+  const res = await fetch(`/api${path}`, {
+    method: 'POST',
+    headers: token ? { authorization: `Bearer ${token}` } : {},
+    body: form,
+  });
+
+  const payload = (await res.json().catch(() => null)) as ApiEnvelope<T> | null;
+
+  if (res.status === 401) redirectToLogin();
+  if (!res.ok) {
+    throw new ApiError(payload?.code ?? 'HTTP_ERROR', payload?.message ?? '上传失败', res.status);
   }
   return (payload?.data ?? (null as T)) as T;
 }

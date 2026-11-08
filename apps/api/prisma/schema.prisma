@@ -68,24 +68,30 @@ enum AdminRole {
   OPS
   CS
   WMS
+  STORE
 }
 
 model Product {
-  id           String        @id @default(cuid())
-  title        String
-  subtitle     String?
-  categoryId   String
-  status       ProductStatus @default(OFF_SHELF)
-  mainImageKey String?
-  detail       String?
-  priceMinCents Int          @default(0)
-  priceMaxCents Int          @default(0)
-  soldCount    Int           @default(0)
-  sort         Int           @default(0)
-  createdAt    DateTime      @default(now()) @db.Timestamptz(3)
-  updatedAt    DateTime      @updatedAt @db.Timestamptz(3)
+  id              String        @id @default(cuid())
+  title           String
+  subtitle        String?
+  categoryId      String
+  status          ProductStatus @default(OFF_SHELF)
+  /// 主图（首张，供列表/购物车/订单快照使用）
+  mainImageKey    String?
+  /// 主图轮播（有序）；mainImageKey 始终与首张保持一致
+  mainImageKeys   String[]      @default([])
+  /// 详情图片（有序，详情页按顺序上下排列）
+  detailImageKeys String[]      @default([])
+  detail          String?
+  priceMinCents   Int           @default(0)
+  priceMaxCents   Int           @default(0)
+  soldCount       Int           @default(0)
+  sort            Int           @default(0)
+  createdAt       DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime      @updatedAt @db.Timestamptz(3)
 
-  category Category  @relation(fields: [categoryId], references: [id])
+  category Category     @relation(fields: [categoryId], references: [id])
   skus     Sku[]
   tags     ProductTag[]
 
@@ -94,51 +100,53 @@ model Product {
 }
 
 model ProductTag {
-  id        String  @id @default(cuid())
-  name      String  @unique
+  id        String   @id @default(cuid())
+  name      String   @unique
   productId String?
   product   Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
 }
 
 model Category {
-  id        String   @id @default(cuid())
-  name      String
-  parentId  String?
-  sort      Int      @default(0)
-  parent    Category? @relation("CategoryTree", fields: [parentId], references: [id])
-  children  Category[] @relation("CategoryTree")
-  products  Product[]
+  id       String     @id @default(cuid())
+  name     String
+  parentId String?
+  sort     Int        @default(0)
+  parent   Category?  @relation("CategoryTree", fields: [parentId], references: [id])
+  children Category[] @relation("CategoryTree")
+  products Product[]
 
   @@index([parentId, sort])
 }
 
 model Sku {
-  id          String @id @default(cuid())
+  id          String        @id @default(cuid())
   productId   String
-  code        String @unique
+  code        String        @unique
   specJson    Json
   priceCents  Int
   originCents Int?
-  stock       Int    @default(0)
-  reserved    Int    @default(0)
+  stock       Int           @default(0)
+  reserved    Int           @default(0)
   status      ProductStatus @default(ON_SALE)
-  createdAt   DateTime @default(now()) @db.Timestamptz(3)
-  updatedAt   DateTime @updatedAt @db.Timestamptz(3)
+  createdAt   DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime      @updatedAt @db.Timestamptz(3)
 
-  product     Product     @relation(fields: [productId], references: [id])
-  cartItems   CartItem[]
-  orderItems  OrderItem[]
+  product    Product      @relation(fields: [productId], references: [id])
+  cartItems  CartItem[]
+  orderItems OrderItem[]
+  seckills   SeckillSku[]
+  storeSkus  StoreSku[]
 
   @@index([productId])
   @@index([status])
 }
 
 model CartItem {
-  id       String @id @default(cuid())
-  userId   String
-  skuId    String
-  quantity Int
-  checked  Boolean @default(true)
+  id        String   @id @default(cuid())
+  userId    String
+  skuId     String
+  quantity  Int
+  checked   Boolean  @default(true)
   createdAt DateTime @default(now()) @db.Timestamptz(3)
 
   user User @relation(fields: [userId], references: [id])
@@ -149,60 +157,86 @@ model CartItem {
 }
 
 model Order {
-  id                  String      @id @default(cuid())
-  orderNo             String      @unique
-  userId              String
-  status              OrderStatus @default(PENDING_PAYMENT)
-  version             Int         @default(0)
-  /** 客户端幂等键：同一用户重复提交返回同一订单 */
-  idempotencyKey      String?
+  id             String      @id @default(cuid())
+  orderNo        String      @unique
+  userId         String
+  status         OrderStatus @default(PENDING_PAYMENT)
+  version        Int         @default(0)
+  /**
+   * 客户端幂等键：同一用户重复提交返回同一订单
+   */
+  idempotencyKey String?
 
-  // 金额快照（整数分）：商品 → 会员折扣 → 优惠券 → 运费 → 应付
+  // 金额快照（整数分）：商品 → 会员折扣 → 优惠券 → 满减 → 运费 → 应付
   goodsCents          Int
-  memberDiscountCents Int         @default(0)
-  couponCents         Int         @default(0)
-  freightCents        Int         @default(0)
+  memberDiscountCents Int @default(0)
+  couponCents         Int @default(0)
+  fullReductionCents  Int @default(0)
+  freightCents        Int @default(0)
   payableCents        Int
-  refundedCents       Int         @default(0)
+  refundedCents       Int @default(0)
 
-  addressSnapshot     Json
-  remark              String?
-  adminRemark         String?
-  previousStatus      OrderStatus?
+  // 履约方式：EXPRESS（默认，兼容历史订单）| DELIVERY | PICKUP
+  fulfillmentType     String    @default("EXPRESS")
+  storeId             String?
+  /// 自提核销码（支付成功后生成，全局唯一）
+  pickupCode          String?   @unique
+  pickupAt            DateTime? @db.Timestamptz(3)
+  pickupCodeExpiresAt DateTime? @db.Timestamptz(3)
+  /// 同城配送时段，如 "10:00-12:00"；按门店+时段统计容量
+  deliverySlot        String?
 
-  payDeadlineAt       DateTime    @db.Timestamptz(3)
-  paidAt              DateTime?   @db.Timestamptz(3)
-  shippedAt           DateTime?   @db.Timestamptz(3)
-  completedAt         DateTime?   @db.Timestamptz(3)
-  closedAt            DateTime?   @db.Timestamptz(3)
-  createdAt           DateTime    @default(now()) @db.Timestamptz(3)
-  updatedAt           DateTime    @updatedAt @db.Timestamptz(3)
+  addressSnapshot Json
+  remark          String?
+  adminRemark     String?
+  previousStatus  OrderStatus?
 
-  user      User       @relation(fields: [userId], references: [id])
-  items     OrderItem[]
-  payments  Payment[]
-  shipment  Shipment?
-  afterSales AfterSale[]
-  reviews   Review[]
+  payDeadlineAt DateTime  @db.Timestamptz(3)
+  paidAt        DateTime? @db.Timestamptz(3)
+  shippedAt     DateTime? @db.Timestamptz(3)
+  completedAt   DateTime? @db.Timestamptz(3)
+  closedAt      DateTime? @db.Timestamptz(3)
+  createdAt     DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime  @updatedAt @db.Timestamptz(3)
 
+  user               User                @relation(fields: [userId], references: [id])
+  store              Store?              @relation(fields: [storeId], references: [id], onDelete: SetNull)
+  items              OrderItem[]
+  payments           Payment[]
+  shipment           Shipment?
+  delivery           Delivery?
+  afterSales         AfterSale[]
+  reviews            Review[]
+  pickupVerification PickupVerification?
+
+  @@unique([userId, idempotencyKey])
   @@index([userId, createdAt])
   @@index([status, createdAt])
-  @@unique([userId, idempotencyKey])
+  @@index([storeId, createdAt])
+  @@index([fulfillmentType, status])
+  @@index([storeId, deliverySlot])
 }
 
 model OrderItem {
-  id          String @id @default(cuid())
-  orderId     String
-  skuId       String
-  title       String
-  specText    String
-  imageKey    String?
-  priceCents  Int
-  quantity    Int
+  id            String  @id @default(cuid())
+  orderId       String
+  skuId         String
+  title         String
+  specText      String
+  imageKey      String?
+  priceCents    Int
+  quantity      Int
   subtotalCents Int
-  /** 分摊后的行实付（不含运费）：退款上限与默认退款额以它为准 */
-  paidCents   Int @default(0)
-  refundedCents Int @default(0)
+  /**
+   * 分摊后的行实付（不含运费）：退款上限与默认退款额以它为准
+   */
+  paidCents     Int     @default(0)
+  refundedCents Int     @default(0)
+  /**
+   * 秒杀行：价格取秒杀价，不参与会员折扣/券/满减
+   */
+  isSeckill     Boolean @default(false)
+  seckillId     String?
 
   order Order @relation(fields: [orderId], references: [id])
   sku   Sku   @relation(fields: [skuId], references: [id])
@@ -242,25 +276,49 @@ model Shipment {
   order Order @relation(fields: [orderId], references: [id])
 }
 
+// 同城配送单：支付成功后创建，一单一配送；门店接单与送达推进状态
+model Delivery {
+  id           String    @id @default(cuid())
+  orderId      String    @unique
+  storeId      String
+  /// PENDING | ACCEPTED | DELIVERED | CANCELLED
+  status       String    @default("PENDING")
+  courierName  String?
+  courierPhone String?
+  acceptedAt   DateTime? @db.Timestamptz(3)
+  deliveredAt  DateTime? @db.Timestamptz(3)
+  remark       String?
+  createdAt    DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime  @updatedAt @db.Timestamptz(3)
+
+  order Order @relation(fields: [orderId], references: [id])
+  store Store @relation(fields: [storeId], references: [id])
+
+  @@index([storeId, status])
+  @@index([status, createdAt])
+}
+
 model AfterSale {
-  id             String          @id @default(cuid())
-  afterSaleNo    String          @unique
-  orderId        String
-  orderItemId    String          @unique
-  userId         String
-  type           AfterSaleType
-  reason         String
-  description    String?
-  evidenceJson   Json?
-  refundCents    Int
-  status         AfterSaleStatus @default(APPLIED)
-  rejectReason   String?
-  buyerTrackingNo String?
-  /** 申请前的订单状态，部分退款后用于恢复 */
+  id                  String          @id @default(cuid())
+  afterSaleNo         String          @unique
+  orderId             String
+  orderItemId         String          @unique
+  userId              String
+  type                AfterSaleType
+  reason              String
+  description         String?
+  evidenceJson        Json?
+  refundCents         Int
+  status              AfterSaleStatus @default(APPLIED)
+  rejectReason        String?
+  buyerTrackingNo     String?
+  /**
+   * 申请前的订单状态，部分退款后用于恢复
+   */
   previousOrderStatus OrderStatus?
-  finishedAt     DateTime?       @db.Timestamptz(3)
-  createdAt      DateTime        @default(now()) @db.Timestamptz(3)
-  updatedAt      DateTime        @updatedAt @db.Timestamptz(3)
+  finishedAt          DateTime?       @db.Timestamptz(3)
+  createdAt           DateTime        @default(now()) @db.Timestamptz(3)
+  updatedAt           DateTime        @updatedAt @db.Timestamptz(3)
 
   order     Order     @relation(fields: [orderId], references: [id])
   orderItem OrderItem @relation(fields: [orderItemId], references: [id])
@@ -284,10 +342,15 @@ model Refund {
   amountCents   Int
   status        RefundStatus @default(PENDING)
   provider      String       @default("mock")
-  /** 渠道退款单号：幂等依据 */
+  /**
+   * 渠道退款单号：幂等依据
+   */
   transactionId String?      @unique
   failReason    String?
   rawResponse   Json?
+  /// 渠道侧退款状态：PROCESSING / SUCCESS / ABNORMAL / CLOSED
+  channelStatus String?
+  lastQueriedAt DateTime?    @db.Timestamptz(3)
   createdAt     DateTime     @default(now()) @db.Timestamptz(3)
   refundedAt    DateTime?    @db.Timestamptz(3)
 
@@ -297,20 +360,45 @@ model Refund {
   @@index([status])
 }
 
+// 订阅消息 outbox：业务事务只写日志，异步发送并可重试
+model NotificationLog {
+  id           String    @id @default(cuid())
+  /// 去重键：场景 + 业务单号，同一业务事件只入队一次
+  dedupeKey    String    @unique
+  scene        String
+  templateId   String
+  userId       String
+  openid       String?
+  page         String?
+  dataJson     Json
+  /// PENDING | SENT | SKIPPED | FAILED
+  status       String    @default("PENDING")
+  attempts     Int       @default(0)
+  nextRetryAt  DateTime? @db.Timestamptz(3)
+  error        String?
+  responseJson Json?
+  sentAt       DateTime? @db.Timestamptz(3)
+  createdAt    DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime  @updatedAt @db.Timestamptz(3)
+
+  @@index([status, nextRetryAt])
+  @@index([scene, createdAt])
+}
+
 model Coupon {
-  id               String     @id @default(cuid())
-  name             String
-  type             CouponType @default(THRESHOLD)
-  thresholdCents   Int        @default(0)
-  faceValueCents   Int
-  total            Int
-  claimed          Int        @default(0)
-  perLimit         Int        @default(1)
-  channel          String     @default("MINIAPP")
-  startAt          DateTime   @db.Timestamptz(3)
-  endAt            DateTime   @db.Timestamptz(3)
-  enabled          Boolean    @default(true)
-  createdAt        DateTime   @default(now()) @db.Timestamptz(3)
+  id             String     @id @default(cuid())
+  name           String
+  type           CouponType @default(THRESHOLD)
+  thresholdCents Int        @default(0)
+  faceValueCents Int
+  total          Int
+  claimed        Int        @default(0)
+  perLimit       Int        @default(1)
+  channel        String     @default("MINIAPP")
+  startAt        DateTime   @db.Timestamptz(3)
+  endAt          DateTime   @db.Timestamptz(3)
+  enabled        Boolean    @default(true)
+  createdAt      DateTime   @default(now()) @db.Timestamptz(3)
 
   claims CouponClaim[]
 
@@ -335,35 +423,38 @@ model CouponClaim {
 }
 
 model User {
-  id            String   @id @default(cuid())
-  openid        String   @unique
-  nickname      String?
-  avatarKey     String?
-  phone         String?
-  levelId       String?
-  totalSpentCents Int    @default(0)
-  points        Int      @default(0)
-  createdAt     DateTime @default(now()) @db.Timestamptz(3)
-  updatedAt     DateTime @updatedAt @db.Timestamptz(3)
+  id              String   @id @default(cuid())
+  openid          String   @unique
+  nickname        String?
+  avatarKey       String?
+  phone           String?
+  levelId         String?
+  totalSpentCents Int      @default(0)
+  points          Int      @default(0)
+  createdAt       DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime @updatedAt @db.Timestamptz(3)
 
-  level       MemberLevel?  @relation(fields: [levelId], references: [id])
-  addresses   Address[]
-  orders      Order[]
-  cartItems   CartItem[]
-  couponClaims CouponClaim[]
-  pointsLedger PointsLedger[]
+  level              MemberLevel?        @relation(fields: [levelId], references: [id])
+  addresses          Address[]
+  orders             Order[]
+  cartItems          CartItem[]
+  couponClaims       CouponClaim[]
+  pointsLedger       PointsLedger[]
+  memberCards        MemberCard[]
+  rechargeOrders     RechargeOrder[]
+  storedValueAccount StoredValueAccount?
 
   @@index([levelId])
 }
 
 model Address {
-  id        String  @id @default(cuid())
+  id        String   @id @default(cuid())
   userId    String
   receiver  String
   phone     String
   region    String
   detail    String
-  isDefault Boolean @default(false)
+  isDefault Boolean  @default(false)
   createdAt DateTime @default(now()) @db.Timestamptz(3)
 
   user User @relation(fields: [userId], references: [id])
@@ -396,7 +487,9 @@ model PointsLedger {
   userId       String
   delta        Int
   source       String
-  /** 流水说明：订单支付、退款扣回、后台手动调整等 */
+  /**
+   * 流水说明：订单支付、退款扣回、后台手动调整等
+   */
   reason       String?
   orderId      String?
   balanceAfter Int
@@ -417,6 +510,97 @@ model MemberLevel {
   users User[]
 }
 
+// 付费会员卡方案：折扣与等级折扣取最优，不叠加
+model MemberCardPlan {
+  id           String   @id @default(cuid())
+  name         String
+  priceCents   Int
+  durationDays Int
+  discountRate Float    @default(1)
+  pointsRate   Float    @default(1)
+  freeShipping Boolean  @default(false)
+  enabled      Boolean  @default(true)
+  sort         Int      @default(0)
+  createdAt    DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime @updatedAt @db.Timestamptz(3)
+}
+
+// 用户持有的会员卡：权益快照，避免方案修改影响已购卡
+model MemberCard {
+  id           String   @id @default(cuid())
+  userId       String
+  planId       String
+  planName     String
+  discountRate Float
+  pointsRate   Float
+  freeShipping Boolean
+  startAt      DateTime @db.Timestamptz(3)
+  expireAt     DateTime @db.Timestamptz(3)
+  /// ACTIVE | REPLACED | EXPIRED
+  status       String   @default("ACTIVE")
+  createdAt    DateTime @default(now()) @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, status, expireAt])
+}
+
+// 储值充值套餐
+model RechargePlan {
+  id          String   @id @default(cuid())
+  amountCents Int
+  bonusCents  Int      @default(0)
+  enabled     Boolean  @default(true)
+  sort        Int      @default(0)
+  createdAt   DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @db.Timestamptz(3)
+}
+
+model StoredValueAccount {
+  id                  String   @id @default(cuid())
+  userId              String   @unique
+  balanceCents        Int      @default(0)
+  totalRechargedCents Int      @default(0)
+  totalConsumedCents  Int      @default(0)
+  updatedAt           DateTime @updatedAt @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+// 储值流水：所有资金变动必须留痕
+model StoredValueLedger {
+  id           String   @id @default(cuid())
+  userId       String
+  deltaCents   Int
+  balanceAfter Int
+  /// RECHARGE | CARD_PURCHASE | BALANCE_PAY | REFUND | ADMIN_ADJUST | ROLLBACK
+  type         String
+  refType      String?
+  refId        String?
+  remark       String?
+  createdAt    DateTime @default(now()) @db.Timestamptz(3)
+
+  @@index([userId, createdAt])
+}
+
+// 充值记录：本地暂以 mock 渠道直接入账，接入真实支付后改为回调入账
+model RechargeOrder {
+  id          String    @id @default(cuid())
+  rechargeNo  String    @unique
+  userId      String
+  planId      String?
+  amountCents Int
+  bonusCents  Int       @default(0)
+  provider    String    @default("mock")
+  status      String    @default("PAID")
+  paidAt      DateTime? @db.Timestamptz(3)
+  createdAt   DateTime  @default(now()) @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt])
+}
+
 model AdminUser {
   id           String    @id @default(cuid())
   account      String    @unique
@@ -429,7 +613,8 @@ model AdminUser {
   lastLoginAt  DateTime? @db.Timestamptz(3)
   createdAt    DateTime  @default(now()) @db.Timestamptz(3)
 
-  logs OperationLog[]
+  logs        OperationLog[]
+  adminStores AdminStore[]
 }
 
 model OperationLog {
@@ -452,35 +637,53 @@ model OperationLog {
 
 // 单商家自营：只有一行配置，无 merchant / settlement 表
 model ShopConfig {
-  id                 String  @id @default("singleton")
-  shopName           String  @default("山野")
+  id                 String   @id @default("singleton")
+  shopName           String   @default("山野")
   intro              String?
   logoKey            String?
   servicePhone       String?
-  freeThresholdCents Int     @default(9900)
-  flatFreightCents   Int     @default(1000)
-  payTimeoutMinutes  Int     @default(15)
-  afterSaleDays      Int     @default(7)
-  autoConfirmDays    Int     @default(10)
+  freeThresholdCents Int      @default(9900)
+  flatFreightCents   Int      @default(1000)
+  payTimeoutMinutes  Int      @default(15)
+  afterSaleDays      Int      @default(7)
+  autoConfirmDays    Int      @default(10)
   updatedAt          DateTime @updatedAt @db.Timestamptz(3)
 }
 
 model ShippingRegionException {
-  id          String @id @default(cuid())
-  regionName  String
+  id           String   @id @default(cuid())
+  regionName   String
   freightCents Int
-  createdAt   DateTime @default(now()) @db.Timestamptz(3)
+  createdAt    DateTime @default(now()) @db.Timestamptz(3)
+}
+
+// 素材库：图片落本机磁盘（UPLOAD_DIR/assets），一级文件夹做逻辑分类
+model AssetFolder {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  sort      Int      @default(0)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+
+  assets Asset[]
 }
 
 model Asset {
-  id       String   @id @default(cuid())
-  key      String   @unique
-  url      String
-  size     Int      @default(0)
-  mimeType String?
-  group    String   @default("default")
-  refCount Int      @default(0)
-  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  id           String   @id @default(cuid())
+  /// 业务引用键：上传素材为 /api/media/assets/<storageKey>，历史静态素材为相对 key
+  key          String   @unique
+  url          String
+  /// 磁盘相对路径（如 2026/11/xxx.jpg），历史外链素材为空
+  storageKey   String?
+  /// 上传时的原始文件名，仅用于检索与展示
+  originalName String?
+  size         Int      @default(0)
+  mimeType     String?
+  folderId     String?
+  createdAt    DateTime @default(now()) @db.Timestamptz(3)
+
+  folder AssetFolder? @relation(fields: [folderId], references: [id], onDelete: SetNull)
+
+  @@index([folderId])
 }
 
 // 对外集成参数：小程序登录、微信支付、订阅消息、业务域名
@@ -502,8 +705,14 @@ model IntegrationConfig {
   wechatPayApiV3KeyName   String?
   wechatPayPrivateKeyFile String?
   wechatPayPrivateKeyName String?
+  // 微信支付公钥模式（新商户）：公钥 ID + 公钥文件；平台证书模式留空
+  wechatPayPublicKeyId    String?
+  wechatPayPublicKeyFile  String?
+  wechatPayPublicKeyName  String?
   // 订阅消息模板：{ orderPaid, orderShipped, refundResult }
   subscribeTemplateIds    Json?
+  // 模板字段映射：{ orderPaid: { "character_string1": "orderNo" }, ... }
+  subscribeTemplateFields Json?
   // 小程序业务域名 / 服务端 API 地址
   apiBaseUrl              String?
   businessDomain          String?
@@ -527,4 +736,231 @@ model MiniappRelease {
   updatedAt    DateTime @updatedAt @db.Timestamptz(3)
 
   @@index([createdAt])
+}
+
+// 物流公司字典：批量发货选择物流公司，code 对外展示与导入使用
+model ExpressCompany {
+  id        String   @id @default(cuid())
+  code      String   @unique
+  name      String
+  sort      Int      @default(0)
+  enabled   Boolean  @default(true)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+}
+
+// 首页轮播：图片来自素材库，跳转目标按 linkType 解析
+model HomeBanner {
+  id        String   @id @default(cuid())
+  imageKey  String
+  title     String?
+  /// product | category | search | page | none
+  linkType  String   @default("none")
+  linkValue String?
+  sort      Int      @default(0)
+  enabled   Boolean  @default(true)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+}
+
+// 首页金刚区入口
+model HomeNav {
+  id        String   @id @default(cuid())
+  name      String
+  iconKey   String?
+  /// product | category | search | page
+  linkType  String   @default("category")
+  linkValue String?
+  sort      Int      @default(0)
+  enabled   Boolean  @default(true)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+}
+
+// 首页推荐位：按配置顺序展示商品，productIds 为有序 ID 数组
+model HomeSection {
+  id         String   @id @default(cuid())
+  title      String
+  productIds Json     @default("[]")
+  sort       Int      @default(0)
+  enabled    Boolean  @default(true)
+  createdAt  DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt  DateTime @updatedAt @db.Timestamptz(3)
+}
+
+// 营销活动：满减（FULL_REDUCTION）与限时秒杀（SECKILL）
+model Promotion {
+  id             String   @id @default(cuid())
+  name           String
+  type           String
+  enabled        Boolean  @default(true)
+  startAt        DateTime @db.Timestamptz(3)
+  endAt          DateTime @db.Timestamptz(3)
+  /// 满减门槛（仅 FULL_REDUCTION）
+  thresholdCents Int?
+  /// 满减金额（仅 FULL_REDUCTION）
+  discountCents  Int?
+  /// 满减范围：ALL | CATEGORY | PRODUCT
+  scopeType      String   @default("ALL")
+  createdAt      DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime @updatedAt @db.Timestamptz(3)
+
+  scopes PromotionScope[]
+  skus   SeckillSku[]
+
+  @@index([type, enabled, startAt, endAt])
+}
+
+model PromotionScope {
+  id          String @id @default(cuid())
+  promotionId String
+  targetType  String
+  targetId    String
+
+  promotion Promotion @relation(fields: [promotionId], references: [id], onDelete: Cascade)
+
+  @@unique([promotionId, targetType, targetId])
+  @@index([promotionId])
+}
+
+model SeckillSku {
+  id                String   @id @default(cuid())
+  promotionId       String
+  skuId             String
+  seckillPriceCents Int
+  stock             Int
+  sold              Int      @default(0)
+  limitPerUser      Int      @default(1)
+  sort              Int      @default(0)
+  createdAt         DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt         DateTime @updatedAt @db.Timestamptz(3)
+
+  promotion Promotion @relation(fields: [promotionId], references: [id], onDelete: Cascade)
+  sku       Sku       @relation(fields: [skuId], references: [id])
+
+  @@unique([promotionId, skuId])
+  @@index([skuId])
+}
+
+// 轻量多门店：门店是自提与同城配送的履约主体
+model Store {
+  id                         String   @id @default(cuid())
+  code                       String   @unique
+  name                       String
+  phone                      String?
+  region                     String
+  address                    String
+  /// 仅用于展示，不做地图距离计算
+  lat                        Float?
+  lng                        Float?
+  /// 营业时间：{ "mon": [["09:00","18:00"]], ... }
+  businessHours              Json     @default("{}")
+  pickupEnabled              Boolean  @default(false)
+  deliveryEnabled            Boolean  @default(false)
+  deliveryFeeCents           Int      @default(0)
+  freeDeliveryThresholdCents Int      @default(0)
+  /// 配送时段：["10:00-12:00", ...]
+  deliverySlots              Json     @default("[]")
+  /// 每日截单时间，如 "18:00"
+  deliveryCutoff             String?
+  /// 每时段最大单量，0 表示不限
+  maxOrdersPerSlot           Int      @default(0)
+  /// 自提支付后未核销自动完成天数
+  pickupCompleteDays         Int      @default(7)
+  notice                     String?
+  status                     String   @default("ACTIVE")
+  sort                       Int      @default(0)
+  createdAt                  DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt                  DateTime @updatedAt @db.Timestamptz(3)
+
+  adminStores         AdminStore[]
+  skus                StoreSku[]
+  deliveryRegions     StoreDeliveryRegion[]
+  stockLogs           StoreStockLog[]
+  orders              Order[]
+  pickupVerifications PickupVerification[]
+  deliveries          Delivery[]
+
+  @@index([status, sort])
+}
+
+// 管理员与门店多对多：一个门店账号可管理多个门店
+// 自提核销记录：手动核销或超时自动完成，一单一条
+model PickupVerification {
+  id         String   @id @default(cuid())
+  orderId    String   @unique
+  storeId    String
+  /// CODE | QR | AUTO
+  method     String
+  verifiedBy String?
+  verifiedAt DateTime @default(now()) @db.Timestamptz(3)
+  note       String?
+
+  order Order @relation(fields: [orderId], references: [id])
+  store Store @relation(fields: [storeId], references: [id])
+
+  @@index([storeId, verifiedAt])
+}
+
+model AdminStore {
+  id          String @id @default(cuid())
+  adminUserId String
+  storeId     String
+
+  adminUser AdminUser @relation(fields: [adminUserId], references: [id], onDelete: Cascade)
+  store     Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  @@unique([adminUserId, storeId])
+  @@index([storeId])
+}
+
+// 门店可售库存：与总部仓 Sku.stock 隔离，仅服务自提与同城配送
+model StoreSku {
+  id          String        @id @default(cuid())
+  storeId     String
+  skuId       String
+  stock       Int           @default(0)
+  reserved    Int           @default(0)
+  safetyStock Int           @default(0)
+  status      ProductStatus @default(ON_SALE)
+  createdAt   DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime      @updatedAt @db.Timestamptz(3)
+
+  store Store @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  sku   Sku   @relation(fields: [skuId], references: [id], onDelete: Cascade)
+
+  @@unique([storeId, skuId])
+  @@index([skuId])
+}
+
+// 门店配送范围：区县白名单，按收货地址 region 匹配
+model StoreDeliveryRegion {
+  id         String @id @default(cuid())
+  storeId    String
+  regionName String
+
+  store Store @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  @@unique([storeId, regionName])
+  @@index([regionName])
+}
+
+// 门店库存流水：调整、下单预占、取消释放、退款回滚均留痕
+model StoreStockLog {
+  id          String   @id @default(cuid())
+  storeId     String
+  skuId       String
+  delta       Int
+  beforeStock Int
+  afterStock  Int
+  /// ADJUST | ORDER_RESERVE | ORDER_RELEASE | REFUND | RESTOCK
+  reason      String
+  orderId     String?
+  operatorId  String?
+  createdAt   DateTime @default(now()) @db.Timestamptz(3)
+
+  store Store @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  @@index([storeId, createdAt])
+  @@index([skuId])
 }

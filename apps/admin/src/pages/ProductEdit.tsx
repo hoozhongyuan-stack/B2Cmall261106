@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 
 import { api, ApiError, toCents, toYuan } from '../api/client';
 import { hasRole } from '../auth';
+import { AssetPicker } from '../components/AssetPicker';
 import { toast } from '../components/toast';
 import { Button, Card, DataTable, Field, PageHeader, Tag, type Column } from '../components/ui';
 
@@ -28,6 +29,8 @@ interface ProductDetail {
   status: string;
   categoryId: string;
   mainImageKey: string | null;
+  mainImageKeys: string[];
+  detailImageKeys: string[];
   detail: string | null;
   sort: number;
   skus: ProductSku[];
@@ -51,7 +54,8 @@ interface BaseForm {
   categoryId: string;
   status: string;
   sort: string;
-  mainImageKey: string;
+  mainImageKeys: string[];
+  detailImageKeys: string[];
   detail: string;
 }
 
@@ -61,7 +65,8 @@ const EMPTY_FORM: BaseForm = {
   categoryId: '',
   status: 'OFF_SHELF',
   sort: '0',
-  mainImageKey: '',
+  mainImageKeys: [],
+  detailImageKeys: [],
   detail: '',
 };
 
@@ -113,7 +118,13 @@ export default function ProductEdit() {
           categoryId: result.categoryId,
           status: result.status === 'ON_SALE' ? 'ON_SALE' : 'OFF_SHELF',
           sort: String(result.sort),
-          mainImageKey: result.mainImageKey ?? '',
+          mainImageKeys:
+            result.mainImageKeys?.length > 0
+              ? result.mainImageKeys
+              : result.mainImageKey
+                ? [result.mainImageKey]
+                : [],
+          detailImageKeys: result.detailImageKeys ?? [],
           detail: result.detail ?? '',
         });
         setExistingSkus(result.skus);
@@ -231,7 +242,8 @@ export default function ProductEdit() {
             title: form.title.trim(),
             subtitle: form.subtitle.trim() || undefined,
             categoryId: form.categoryId,
-            mainImageKey: form.mainImageKey.trim() || undefined,
+            mainImageKeys: form.mainImageKeys,
+            detailImageKeys: form.detailImageKeys,
             detail: form.detail.trim() || undefined,
             status: form.status,
             sort: Number(form.sort),
@@ -245,7 +257,8 @@ export default function ProductEdit() {
             title: form.title.trim(),
             subtitle: form.subtitle.trim(),
             categoryId: form.categoryId,
-            mainImageKey: form.mainImageKey.trim(),
+            mainImageKeys: form.mainImageKeys,
+            detailImageKeys: form.detailImageKeys,
             detail: form.detail.trim(),
             status: form.status,
             sort: Number(form.sort),
@@ -372,19 +385,25 @@ export default function ProductEdit() {
                 onChange={(e) => setField('sort', e.target.value)}
               />
             </Field>
-            <Field label="主图 Key" hint="素材库中的图片 key">
-              <input
-                className="input"
-                value={form.mainImageKey}
-                placeholder="例如：products/honey.jpg"
-                onChange={(e) => setField('mainImageKey', e.target.value)}
+            <Field label="商品主图" wide hint="可多选，第一张用于列表与订单，详情页自动轮播">
+              <AssetPicker
+                multiple
+                value={form.mainImageKeys}
+                onChange={(keys) => setField('mainImageKeys', keys)}
               />
             </Field>
-            <Field label="商品详情" wide>
+            <Field label="商品详情图" wide hint="可多选，详情页按顺序上下排列">
+              <AssetPicker
+                multiple
+                value={form.detailImageKeys}
+                onChange={(keys) => setField('detailImageKeys', keys)}
+              />
+            </Field>
+            <Field label="详情文案（可选）" wide>
               <textarea
                 className="textarea"
                 value={form.detail}
-                placeholder="商品详情文案，选填"
+                placeholder="补充文字说明，选填"
                 onChange={(e) => setField('detail', e.target.value)}
               />
             </Field>

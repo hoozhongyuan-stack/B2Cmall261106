@@ -14,6 +14,12 @@ let prisma: PrismaClient | null = null;
 let userToken = '';
 let superToken = '';
 
+/** 1x1 PNG，用于素材上传契约测试 */
+const PNG_1PX = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=',
+  'base64',
+);
+
 async function api(path: string, init: RequestInit = {}, token = userToken) {
   const res = await fetch(`${BASE}${path}`, {
     ...init,
@@ -207,20 +213,68 @@ describe('店铺与素材契约', () => {
     expect(removed.status).toBe(200);
   });
 
-  it('素材可上传登记并删除', async () => {
-    const key = `contract/asset-${randomUUID()}.png`;
-    const created = await api(
-      '/admin/assets',
-      { method: 'POST', body: JSON.stringify({ key, url: `https://example.com/${key}` }) },
+  it('素材可上传、归类、移动与删除', async () => {
+    const folder = await api(
+      '/admin/assets/folders',
+      { method: 'POST', body: JSON.stringify({ name: `契约文件夹${Date.now()}` }) },
       superToken,
     );
-    expect(created.status).toBe(201);
+    expect(folder.status).toBe(201);
 
-    const list = await api(`/admin/assets?keyword=contract/asset`, {}, superToken);
-    expect(list.body.data.items.some((a: { id: string }) => a.id === created.body.data.id)).toBe(true);
+    const form = new FormData();
+    form.append(
+      'files',
+      new Blob([PNG_1PX], { type: 'image/png' }),
+      `contract-${randomUUID()}.png`,
+    );
+    form.append('folderId', folder.body.data.id);
+    const uploaded = await fetch(`${BASE}/admin/assets/upload`, {
+      method: 'POST',
+      headers: { authorization: `Bearer ${superToken}` },
+      body: form,
+    });
+    const uploadBody = await uploaded.json();
+    expect(uploaded.status).toBe(201);
+    const asset = uploadBody.data.items[0] as { id: string; key: string; url: string };
+    expect(asset.key.startsWith('/api/media/assets/')).toBe(true);
 
-    const removed = await api(`/admin/assets/${created.body.data.id}`, { method: 'DELETE' }, superToken);
+    // 静态托管可直接访问图片
+    const origin = BASE.replace(/\/api$/, '');
+    const media = await fetch(`${origin}${asset.url}`);
+    expect(media.status).toBe(200);
+    expect(media.headers.get('content-type')).toContain('image/png');
+
+    const list = await api(
+      `/admin/assets?folderId=${folder.body.data.id}&keyword=contract-`,
+      {},
+      superToken,
+    );
+    expect(list.body.data.items.some((a: { id: string }) => a.id === asset.id)).toBe(true);
+    expect(list.body.data.items[0].folderName).toBe(folder.body.data.name);
+
+    // 被店铺 Logo 引用时不可删除
+    await api('/admin/shop', { method: 'PATCH', body: JSON.stringify({ logoKey: asset.key }) }, superToken);
+    const blocked = await api(`/admin/assets/${asset.id}`, { method: 'DELETE' }, superToken);
+    expect(blocked.status).toBe(409);
+    await api('/admin/shop', { method: 'PATCH', body: JSON.stringify({ logoKey: '' }) }, superToken);
+
+    // 非空文件夹不可删除
+    const folderBlocked = await api(
+      `/admin/assets/folders/${folder.body.data.id}`,
+      { method: 'DELETE' },
+      superToken,
+    );
+    expect(folderBlocked.status).toBe(409);
+
+    const removed = await api(`/admin/assets/${asset.id}`, { method: 'DELETE' }, superToken);
     expect(removed.status).toBe(200);
+
+    const folderRemoved = await api(
+      `/admin/assets/folders/${folder.body.data.id}`,
+      { method: 'DELETE' },
+      superToken,
+    );
+    expect(folderRemoved.status).toBe(200);
   });
 });
 

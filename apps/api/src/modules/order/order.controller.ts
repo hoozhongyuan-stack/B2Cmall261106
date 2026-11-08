@@ -12,6 +12,7 @@ import {
 import { ApiBearerAuth, ApiHeader, ApiOperation, ApiTags } from '@nestjs/swagger';
 import {
   IsArray,
+  IsIn,
   IsInt,
   IsOptional,
   IsString,
@@ -46,11 +47,32 @@ class PreviewDto {
   @IsOptional()
   @IsString()
   region?: string;
+
+  @IsOptional()
+  @IsIn(['EXPRESS', 'DELIVERY', 'PICKUP'])
+  fulfillmentType?: 'EXPRESS' | 'DELIVERY' | 'PICKUP';
+
+  @IsOptional()
+  @IsString()
+  storeId?: string;
+
+  @IsOptional()
+  @IsString()
+  pickupSlot?: string;
+
+  @IsOptional()
+  @IsString()
+  deliverySlot?: string;
 }
 
 class CreateOrderDto extends PreviewDto {
+  @IsOptional()
   @IsString()
-  addressId!: string;
+  addressId?: string;
+
+  @IsOptional()
+  @IsString()
+  contactPhone?: string;
 
   @IsOptional()
   @IsString()

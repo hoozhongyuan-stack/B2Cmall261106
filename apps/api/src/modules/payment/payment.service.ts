@@ -1,32 +1,29 @@
-import {
-  ConflictException,
-  Injectable,
-  NotFoundException,
-  ServiceUnavailableException,
-} from '@nestjs/common';
+import { ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { randomBytes } from 'node:crypto';
 
 import { PrismaService } from '../../prisma/prisma.module';
 import { OrderService } from '../order/order.service';
 import { IntegrationService } from '../integration/integration.service';
+import { NotificationService } from '../notification/notification.service';
 import { MockPaymentProvider, type PaymentProvider } from './payment.provider';
+import { WechatPaymentProvider } from './wechat/wechat-payment.provider';
 
 @Injectable()
 export class PaymentService {
+  private readonly logger = new Logger(PaymentService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly orders: OrderService,
     private readonly integration: IntegrationService,
+    private readonly notifications: NotificationService,
   ) {}
 
-  /**
-   * 按后台「集成配置」选择渠道。
-   * 微信支付实现尚未接入，选 wechat 时明确报错，避免静默走错渠道。
-   */
+  /** 按后台「集成配置」选择渠道；微信支付参数不完整时由配置层报可操作的错误 */
   private async provider(): Promise<PaymentProvider> {
     const name = await this.integration.paymentProvider();
     if (name === 'wechat') {
-      throw new ServiceUnavailableException('微信支付渠道尚未接入，请在集成配置中切回模拟支付');
+      return new WechatPaymentProvider(await this.integration.wechatPayConfig());
     }
     return new MockPaymentProvider();
   }
@@ -59,9 +56,12 @@ export class PaymentService {
       });
     }
 
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
     const params = await provider.createPayment({
       orderNo: order.orderNo,
+      outTradeNo: payment.outTradeNo,
       amountCents: payment.amountCents,
+      openid: user?.openid,
     });
 
     return {
@@ -112,6 +112,14 @@ export class PaymentService {
     });
 
     await this.orders.markPaid(payment.orderId, result.amountCents, result.transactionId);
+
+    // 通知入队失败不影响支付结果，由日志与后台通知记录兜底
+    try {
+      await this.notifications.enqueueOrderPaid(payment.orderId);
+      await this.notifications.enqueuePickupReady(payment.orderId);
+    } catch (err) {
+      this.logger.warn(`支付成功通知入队失败 order=${payment.orderId}`, err as Error);
+    }
     return { handled: true, status: 'SUCCESS' };
   }
 

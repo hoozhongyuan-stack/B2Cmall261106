@@ -1,11 +1,7 @@
-import {
-  BadRequestException,
-  ConflictException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 
-import { PrismaService, isUniqueViolation } from '../../prisma/prisma.module';
+import { PrismaService } from '../../prisma/prisma.module';
+import { AssetService } from '../assets/asset.service';
 
 const SHOP_CONFIG_ID = 'singleton';
 
@@ -26,17 +22,12 @@ export interface CreateRegionInput {
   freightCents: number;
 }
 
-export interface CreateAssetInput {
-  key: string;
-  url: string;
-  size?: number;
-  mimeType?: string;
-  group?: string;
-}
-
 @Injectable()
 export class ShopService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly assets: AssetService,
+  ) {}
 
   /* ---------------- 店铺设置 ---------------- */
 
@@ -66,6 +57,7 @@ export class ShopService {
 
   async update(input: UpdateShopInput) {
     const shopName = this.optionalText(input.shopName, '店铺名称');
+    if (input.logoKey !== undefined) await this.assets.assertReference(input.logoKey);
 
     const data = {
       ...(shopName !== undefined ? { shopName } : {}),
@@ -105,51 +97,6 @@ export class ShopService {
     if (!region) throw new NotFoundException('地区运费规则不存在');
 
     await this.prisma.shippingRegionException.delete({ where: { id } });
-    return { deleted: true };
-  }
-
-  /* ---------------- 素材 ---------------- */
-
-  async listAssets(query: { group?: string; keyword?: string }) {
-    const keyword = query.keyword?.trim();
-    const items = await this.prisma.asset.findMany({
-      where: {
-        ...(query.group ? { group: query.group } : {}),
-        ...(keyword ? { key: { contains: keyword, mode: 'insensitive' as const } } : {}),
-      },
-      orderBy: { createdAt: 'desc' },
-      take: 200,
-    });
-    return { items };
-  }
-
-  async createAsset(input: CreateAssetInput) {
-    const key = this.requireText(input.key, '素材 key');
-    const url = this.requireText(input.url, '素材地址');
-    const size = input.size === undefined ? 0 : this.nonNegativeInt(input.size, '素材大小');
-
-    try {
-      return await this.prisma.asset.create({
-        data: {
-          key,
-          url,
-          size,
-          mimeType: input.mimeType,
-          group: input.group?.trim() || 'default',
-        },
-      });
-    } catch (err) {
-      if (isUniqueViolation(err)) throw new ConflictException('素材 key 已存在');
-      throw err;
-    }
-  }
-
-  async removeAsset(id: string) {
-    const asset = await this.prisma.asset.findUnique({ where: { id } });
-    if (!asset) throw new NotFoundException('素材不存在');
-    if (asset.refCount > 0) throw new ConflictException('素材已被引用，不能删除');
-
-    await this.prisma.asset.delete({ where: { id } });
     return { deleted: true };
   }
 

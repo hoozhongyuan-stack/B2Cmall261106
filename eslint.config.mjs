@@ -35,6 +35,14 @@ export default tseslint.config(
             "BinaryExpression[operator='==='] > Literal[value=/^(PENDING_PAYMENT|PAID|SHIPPED|COMPLETED|REFUNDING|REFUNDED|CLOSED)$/]",
           message: '状态判断请使用 packages/shared 的状态机，不要手写比较。',
         },
+        {
+          selector: "CallExpression[callee.property.name=/^\\$(queryRaw|executeRaw)$/]",
+          message: '原生查询仅允许在 apps/api/src/prisma 层。',
+        },
+        {
+          selector: "TaggedTemplateExpression[tag.property.name=/^\\$(queryRaw|executeRaw)$/]",
+          message: '原生查询仅允许在 apps/api/src/prisma 层。',
+        },
       ],
       'no-restricted-imports': [
         'error',

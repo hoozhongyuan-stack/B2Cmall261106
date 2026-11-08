@@ -7,10 +7,16 @@ import {
 import { averageRating, isCompleted, isValidRating, type OrderStatus } from '@shanye/shared';
 
 import { PrismaService } from '../../prisma/prisma.module';
+import { AssetService } from '../assets/asset.service';
+
+const MAX_REVIEW_IMAGES = 9;
 
 @Injectable()
 export class ReviewService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly assets: AssetService,
+  ) {}
 
   /** 买家评价：仅已完成订单、每个订单商品仅一次，先审后显 */
   async create(
@@ -26,6 +32,16 @@ export class ReviewService {
     if (!isValidRating(input.rating)) {
       throw new BadRequestException('评分必须为 1~5 的整数');
     }
+    if (input.content && input.content.length > 500) {
+      throw new BadRequestException('评价内容不能超过 500 个字符');
+    }
+
+    const images = [...new Set((input.images ?? []).filter(Boolean))];
+    if (images.length > MAX_REVIEW_IMAGES) {
+      throw new BadRequestException(`最多上传 ${MAX_REVIEW_IMAGES} 张图片`);
+    }
+    // 晒图必须先上传到素材库，禁止外链
+    await this.assets.assertReferences(images);
 
     const item = await this.prisma.orderItem.findFirst({
       where: { id: input.orderItemId, order: { userId } },
@@ -44,7 +60,7 @@ export class ReviewService {
         userId,
         rating: input.rating,
         content: input.content,
-        imagesJson: input.images ?? [],
+        imagesJson: images,
         anonymous: input.anonymous ?? false,
         status: 'PENDING',
       },

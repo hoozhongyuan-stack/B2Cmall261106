@@ -15,6 +15,20 @@ export function Price({ cents, className = 'price' }: { cents: number; className
   return <Text className={className}>{money(cents)}</Text>;
 }
 
+/**
+ * 图片地址解析：
+ * - http(s) 外链原样使用
+ * - / 开头为服务端素材（/api/media/assets/...），按 API 域名拼接
+ * - 其余为历史静态素材，走小程序包内 /static/
+ */
+export function imageSrc(key: string): string {
+  if (/^https?:\/\//i.test(key)) return key;
+  if (key.startsWith('/')) {
+    return `${API_BASE.replace(/\/api\/?$/, '')}${key}`;
+  }
+  return `/static/${key}`;
+}
+
 /** 商品图：后端只存 key，真实环境由 CDN 前缀解析；加载失败退化为品牌色块 */
 export function ProductThumb({
   imageKey,
@@ -36,7 +50,7 @@ export function ProductThumb({
   return (
     <Image
       className={className}
-      src={imageKey.startsWith('http') ? imageKey : `/static/${imageKey}`}
+      src={imageSrc(imageKey)}
       mode="aspectFill"
       onError={() => setFailed(true)}
     />

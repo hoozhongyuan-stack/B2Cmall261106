@@ -31,7 +31,13 @@ export class LoyaltyService {
       select: { totalSpentCents: true, points: true, levelId: true },
     });
 
-    const delta = pointsForAmount(input.payableCents);
+    // 付费会员卡积分倍率：仅作用于发放，退款按当前倍率扣回
+    const card = await tx.memberCard.findFirst({
+      where: { userId: input.userId, status: 'ACTIVE', expireAt: { gt: new Date() } },
+      orderBy: { expireAt: 'desc' },
+    });
+    const pointsRate = card?.pointsRate ?? 1;
+    const delta = Math.round(pointsForAmount(input.payableCents) * pointsRate);
     const balance = user.points + delta;
     if (delta > 0) {
       await tx.user.update({ where: { id: input.userId }, data: { points: balance } });
@@ -69,7 +75,15 @@ export class LoyaltyService {
     });
 
     const totalSpentCents = Math.max(user.totalSpentCents - input.refundCents, 0);
-    const { balance, applied } = clampPoints(user.points, -pointsForAmount(input.refundCents));
+    const card = await tx.memberCard.findFirst({
+      where: { userId: input.userId, status: 'ACTIVE', expireAt: { gt: new Date() } },
+      orderBy: { expireAt: 'desc' },
+    });
+    const pointsRate = card?.pointsRate ?? 1;
+    const { balance, applied } = clampPoints(
+      user.points,
+      -Math.round(pointsForAmount(input.refundCents) * pointsRate),
+    );
     const level = resolveMemberLevel(await tx.memberLevel.findMany(), totalSpentCents);
 
     await tx.user.update({

@@ -6,8 +6,10 @@ import { AdminProductController } from './admin/admin-product.controller';
 import { AdminProductService } from './admin/admin-product.service';
 import { AdminCategoryController, AdminTagController } from './admin/admin-category.controller';
 import { AdminTaxonomyService } from './admin/admin-taxonomy.service';
-import { AdminAssetController, AdminShopController } from './shop/shop-admin.controller';
+import { AdminShopController } from './shop/shop-admin.controller';
 import { ShopService } from './shop/shop.service';
+import { AdminAssetController } from './assets/asset.controller';
+import { AssetModule } from './assets/asset.module';
 import { JwtAuthGuard, RolesGuard } from '../common/auth.guards';
 
 /**
@@ -16,6 +18,7 @@ import { JwtAuthGuard, RolesGuard } from '../common/auth.guards';
  */
 @Module({
   imports: [
+    AssetModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -32,6 +35,12 @@ import { JwtAuthGuard, RolesGuard } from '../common/auth.guards';
     AdminShopController,
     AdminAssetController,
   ],
-  providers: [AdminProductService, AdminTaxonomyService, ShopService, JwtAuthGuard, RolesGuard],
+  providers: [
+    AdminProductService,
+    AdminTaxonomyService,
+    ShopService,
+    JwtAuthGuard,
+    RolesGuard,
+  ],
 })
 export class CatalogAdminModule {}

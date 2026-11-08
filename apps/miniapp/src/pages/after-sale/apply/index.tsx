@@ -3,6 +3,7 @@ import Taro, { useRouter } from '@tarojs/taro';
 import { useState } from 'react';
 
 import { api, showError } from '../../../api/client';
+import { requestSubscriptions } from '../../../utils/subscribe';
 
 import './index.css';
 
@@ -36,6 +37,8 @@ export default function Page() {
 
     setSubmitting(true);
     try {
+      // 退款结果通知在提交手势内授权，拒绝不影响提交
+      await requestSubscriptions(['refundResult']);
       await api('/after-sales', {
         method: 'POST',
         body: {

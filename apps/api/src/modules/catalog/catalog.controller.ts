@@ -94,34 +94,4 @@ export class CatalogController {
       })),
     };
   }
-
-  @Get('home')
-  @ApiOperation({ summary: '首页聚合：分类 + 精选商品 + 包邮提示' })
-  async home() {
-    const [config, categories, picks] = await Promise.all([
-      this.prisma.shopConfig.findFirst(),
-      this.prisma.category.findMany({
-        where: { parentId: null },
-        orderBy: { sort: 'asc' },
-        take: 6,
-      }),
-      this.prisma.product.findMany({
-        where: { status: 'ON_SALE' },
-        orderBy: { sort: 'asc' },
-        take: 4,
-      }),
-    ]);
-
-    return {
-      freeThresholdCents: config?.freeThresholdCents ?? 9900,
-      categories: categories.map((c, i) => ({ id: c.id, name: c.name, index: i + 1 })),
-      picks: picks.map((p) => ({
-        id: p.id,
-        title: p.title,
-        subtitle: p.subtitle,
-        mainImageKey: p.mainImageKey,
-        priceCents: p.priceMinCents,
-      })),
-    };
-  }
 }

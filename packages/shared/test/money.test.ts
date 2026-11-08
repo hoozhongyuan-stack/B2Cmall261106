@@ -175,6 +175,93 @@ describe('金额工具', () => {
   });
 });
 
+describe('满减与秒杀金额链路', () => {
+  const freight = { freeThresholdCents: 9900, flatCents: 1000 };
+
+  it('满减在优惠券之后，按券后金额判断门槛', () => {
+    const r = calculateOrderAmount({
+      items: [{ priceCents: 10000, quantity: 1 }],
+      memberDiscountRate: 0.95,
+      coupon: { thresholdCents: 9000, faceValueCents: 500 },
+      fullReduction: { thresholdCents: 9000, discountCents: 1000 },
+      freight,
+    });
+    // 商品 10000 → 会员折扣 500 → 券后 9000 → 达满减门槛 → 再减 1000
+    expect(r.memberDiscountCents).toBe(500);
+    expect(r.couponCents).toBe(500);
+    expect(r.fullReductionCents).toBe(1000);
+    expect(r.payableCents).toBe(9000 - 1000 + 1000); // 券后 9000 → 满减 1000 → 加运费 1000
+    expect(() => assertAmountSelfConsistent(r)).not.toThrow();
+  });
+
+  it('券后金额不足门槛时不触发满减', () => {
+    const r = calculateOrderAmount({
+      items: [{ priceCents: 10000, quantity: 1 }],
+      coupon: { thresholdCents: 5000, faceValueCents: 2000 },
+      fullReduction: { thresholdCents: 9000, discountCents: 1000 },
+      freight,
+    });
+    expect(r.fullReductionCents).toBe(0);
+    expect(r.payableCents).toBe(8000 + 1000);
+  });
+
+  it('秒杀商品不参与会员折扣、优惠券与满减', () => {
+    const r = calculateOrderAmount({
+      items: [{ priceCents: 5000, quantity: 1, seckill: true }],
+      memberDiscountRate: 0.9,
+      coupon: { thresholdCents: 0, faceValueCents: 1000 },
+      fullReduction: { thresholdCents: 0, discountCents: 1000 },
+      freight,
+    });
+    expect(r.goodsCents).toBe(5000);
+    expect(r.memberDiscountCents).toBe(0);
+    expect(r.couponCents).toBe(0);
+    expect(r.fullReductionCents).toBe(0);
+    expect(r.payableCents).toBe(5000 + 1000);
+  });
+
+  it('混合购物车：优惠只作用于普通商品', () => {
+    const r = calculateOrderAmount({
+      items: [
+        { priceCents: 10000, quantity: 1 },
+        { priceCents: 5000, quantity: 1, seckill: true },
+      ],
+      memberDiscountRate: 0.9,
+      coupon: { thresholdCents: 0, faceValueCents: 1000 },
+      fullReduction: { thresholdCents: 8000, discountCents: 2000 },
+      freight,
+    });
+    expect(r.goodsCents).toBe(15000);
+    expect(r.memberDiscountCents).toBe(1000);
+    expect(r.couponCents).toBe(1000);
+    expect(r.fullReductionCents).toBe(2000);
+    expect(r.payableCents).toBe(15000 - 1000 - 1000 - 2000);
+  });
+
+  it('满减不会把普通商品抵扣为负数', () => {
+    const r = calculateOrderAmount({
+      items: [{ priceCents: 1000, quantity: 1 }],
+      fullReduction: { thresholdCents: 0, discountCents: 5000 },
+      freight,
+    });
+    expect(r.fullReductionCents).toBe(1000);
+    expect(r.payableCents).toBe(1000);
+  });
+
+  it('秒杀行不参与优惠分摊，普通行承担全部优惠', () => {
+    const paid = allocateLinePaidCents({
+      lines: [
+        { priceCents: 10000, quantity: 1 },
+        { priceCents: 5000, quantity: 1, seckill: true },
+      ],
+      memberDiscountCents: 1000,
+      couponCents: 1000,
+      fullReductionCents: 2000,
+    });
+    expect(paid).toEqual([6000, 5000]);
+  });
+});
+
 describe('金额自检', () => {
   it('伪造快照会被自检拦下', () => {
     expect(() =>
@@ -182,6 +269,7 @@ describe('金额自检', () => {
         goodsCents: 100,
         memberDiscountCents: 10,
         couponCents: 20,
+        fullReductionCents: 0,
         freightCents: 5,
         payableCents: 999,
       }),

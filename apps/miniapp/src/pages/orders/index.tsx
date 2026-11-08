@@ -11,6 +11,7 @@ import {
 import { api, showError } from '../../api/client';
 import { Empty, Loading, Price, ProductThumb } from '../../components/common';
 import { formatDate, money } from '../../utils/format';
+import { payOrder } from '../../utils/pay';
 
 import './index.css';
 
@@ -72,13 +73,9 @@ export default function Page() {
 
   const pay = async (order: OrderRow) => {
     try {
-      const res = await api<{ outTradeNo: string }>(`/orders/${order.id}/pay`, { method: 'POST' });
-      await api('/payments/mock/confirm', {
-        method: 'POST',
-        body: { outTradeNo: res.outTradeNo },
-      });
+      const outcome = await payOrder(order.id);
       await Taro.redirectTo({
-        url: `/pages/pay-result/index?orderId=${order.id}&status=success`,
+        url: `/pages/pay-result/index?orderId=${order.id}&status=${outcome === 'paid' ? 'success' : 'pending'}`,
       });
     } catch (err) {
       showError(err);

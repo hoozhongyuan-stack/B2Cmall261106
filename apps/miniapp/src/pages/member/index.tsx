@@ -22,8 +22,14 @@ function discountText(rate: number): string {
   return `${(rate * 10).toFixed(1).replace(/\.0$/, '')} 折`;
 }
 
+interface Membership {
+  card: { planName: string; discountRate: number; expireAt: string } | null;
+  balanceCents: number;
+}
+
 export default function Page() {
   const { data } = useRequest(() => api<Profile>('/member/profile'));
+  const { data: membership } = useRequest(() => api<Membership>('/member-cards/mine'));
 
   if (!data) return <Loading />;
 
@@ -60,6 +66,23 @@ export default function Page() {
       </View>
 
       <View className="member-body">
+        <View
+          className="card row-between"
+          onClick={() => Taro.navigateTo({ url: '/pages/member-card/index' })}
+        >
+          <View className="col">
+            <Text className="small">
+              {membership?.card
+                ? `${membership.card.planName} · ${discountText(membership.card.discountRate)}`
+                : '未开通付费会员卡'}
+            </Text>
+            <Text className="muted tiny">
+              储值余额 {money(membership?.balanceCents ?? 0)} · 会员卡与储值
+            </Text>
+          </View>
+          <Text className="muted small">去查看 ›</Text>
+        </View>
+
         <View className="card">
           <View className="stat-row">
             <View

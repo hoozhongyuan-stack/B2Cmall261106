@@ -19,6 +19,7 @@ const ACCOUNT_SELECT = {
   lockedUntil: true,
   lastLoginAt: true,
   createdAt: true,
+  adminStores: { select: { storeId: true } },
 } as const;
 
 export type AccountStatus = 'ACTIVE' | 'DISABLED';
@@ -28,25 +29,30 @@ export interface CreateAccountInput {
   displayName: string;
   role: AdminRole;
   password: string;
+  storeIds?: string[];
 }
 
 export interface UpdateAccountInput {
   displayName?: string;
   role?: AdminRole;
+  storeIds?: string[];
 }
 
 @Injectable()
 export class AdminAccountService {
   constructor(private readonly prisma: PrismaService) {}
 
-  list() {
-    return this.prisma.adminUser
-      .findMany({ select: ACCOUNT_SELECT, orderBy: { createdAt: 'desc' } })
-      .then((items) => ({ items }));
+  async list() {
+    const items = await this.prisma.adminUser.findMany({
+      select: ACCOUNT_SELECT,
+      orderBy: { createdAt: 'desc' },
+    });
+    return { items: items.map((item) => this.view(item)) };
   }
 
   async create(input: CreateAccountInput) {
     this.assertPassword(input.password);
+    const storeIds = await this.storeIdsFor(input.role, input.storeIds);
 
     const exists = await this.prisma.adminUser.findUnique({
       where: { account: input.account },
@@ -55,15 +61,19 @@ export class AdminAccountService {
     if (exists) throw new ConflictException('账号已存在');
 
     try {
-      return await this.prisma.adminUser.create({
+      const row = await this.prisma.adminUser.create({
         data: {
           account: input.account,
           displayName: input.displayName,
           role: input.role,
           passwordHash: hashPassword(input.password),
+          ...(storeIds.length
+            ? { adminStores: { create: storeIds.map((storeId) => ({ storeId })) } }
+            : {}),
         },
         select: ACCOUNT_SELECT,
       });
+      return this.view(row);
     } catch (err) {
       if (isUniqueViolation(err)) throw new ConflictException('账号已存在');
       throw err;
@@ -81,11 +91,33 @@ export class AdminAccountService {
       await this.assertNotLastActiveSuper('不能降级最后一个启用中的超级管理员');
     }
 
-    return this.prisma.adminUser.update({
+    const nextRole = input.role ?? target.role;
+    let storeIds: string[] | undefined;
+    if (input.storeIds !== undefined) {
+      storeIds = await this.storeIdsFor(nextRole, input.storeIds);
+    } else if (input.role !== undefined && nextRole !== 'STORE') {
+      storeIds = [];
+    } else if (input.role !== undefined && nextRole === 'STORE' && target.role !== 'STORE') {
+      throw new BadRequestException('门店账号至少绑定一个门店');
+    }
+
+    const row = await this.prisma.adminUser.update({
       where: { id },
-      data: { displayName: input.displayName, role: input.role },
+      data: {
+        displayName: input.displayName,
+        role: input.role,
+        ...(storeIds !== undefined
+          ? {
+              adminStores: {
+                deleteMany: {},
+                create: storeIds.map((storeId) => ({ storeId })),
+              },
+            }
+          : {}),
+      },
       select: ACCOUNT_SELECT,
     });
+    return this.view(row);
   }
 
   async setStatus(id: string, status: AccountStatus, operatorId: string) {
@@ -124,6 +156,27 @@ export class AdminAccountService {
     });
 
     return { id };
+  }
+
+  /** 门店账号至少绑定一个启用中的门店；其他角色不允许绑定门店 */
+  private async storeIdsFor(role: AdminRole, input?: string[]): Promise<string[]> {
+    const ids = [...new Set((input ?? []).map((value) => value.trim()).filter(Boolean))];
+    if (role !== 'STORE') {
+      if (ids.length) throw new BadRequestException('只有门店账号可以绑定门店');
+      return [];
+    }
+    if (!ids.length) throw new BadRequestException('门店账号至少绑定一个门店');
+
+    const count = await this.prisma.store.count({
+      where: { id: { in: ids }, status: 'ACTIVE' },
+    });
+    if (count !== ids.length) throw new BadRequestException('门店不存在或已停用');
+    return ids;
+  }
+
+  private view<T extends { adminStores: { storeId: string }[] }>(row: T) {
+    const { adminStores, ...rest } = row;
+    return { ...rest, storeIds: adminStores.map((item) => item.storeId) };
   }
 
   private assertPassword(password: string): void {

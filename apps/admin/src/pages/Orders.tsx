@@ -1,8 +1,10 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { ORDER_STATUS_LABEL, type OrderStatus } from '@shanye/shared/src/orderState';
 
 import { api, ApiError, formatDate, money } from '../api/client';
+import { hasRole } from '../auth';
+import { getActiveStoreId, STORE_CHANGED_EVENT } from '../store-context';
 import { toast } from '../components/toast';
 import {
   Button,
@@ -34,7 +36,16 @@ interface OrderRow {
   itemCount: number;
   firstItemTitle: string;
   address: AddressSnapshot;
+  fulfillmentType: 'EXPRESS' | 'DELIVERY' | 'PICKUP';
+  storeId: string | null;
+  storeName: string | null;
 }
+
+const FULFILLMENT_LABEL: Record<string, string> = {
+  EXPRESS: '快递',
+  DELIVERY: '同城配送',
+  PICKUP: '到店自提',
+};
 
 interface OrderListResult {
   tabs: { status: string; count: number }[];
@@ -80,6 +91,9 @@ export default function Orders() {
   const [status, setStatus] = useState(searchParams.get('status') ?? '');
   const [keyword, setKeyword] = useState('');
   const [appliedKeyword, setAppliedKeyword] = useState('');
+  const [storeId, setStoreId] = useState(getActiveStoreId());
+  const [fulfillmentType, setFulfillmentType] = useState('');
+  const [stores, setStores] = useState<{ id: string; name: string }[]>([]);
   const [data, setData] = useState<OrderListResult>({
     tabs: [],
     items: [],
@@ -93,11 +107,40 @@ export default function Orders() {
 
   useEffect(() => {
     let alive = true;
+    api<{ items: { id: string; name: string }[] }>('/admin/stores/mine')
+      .then((result) => {
+        if (alive) setStores(result.items);
+      })
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    function onStoreChanged(event: Event) {
+      const next = (event as CustomEvent<string>).detail ?? '';
+      setStoreId(next);
+      setPage(1);
+    }
+    window.addEventListener(STORE_CHANGED_EVENT, onStoreChanged);
+    return () => window.removeEventListener(STORE_CHANGED_EVENT, onStoreChanged);
+  }, []);
+
+  useEffect(() => {
+    let alive = true;
     async function load() {
       setLoading(true);
       try {
         const result = await api<OrderListResult>('/admin/orders', {
-          query: { status, keyword: appliedKeyword, page, pageSize: PAGE_SIZE },
+          query: {
+            status,
+            keyword: appliedKeyword,
+            storeId,
+            fulfillmentType,
+            page,
+            pageSize: PAGE_SIZE,
+          },
         });
         if (alive) setData(result);
       } catch (err) {
@@ -110,7 +153,7 @@ export default function Orders() {
     return () => {
       alive = false;
     };
-  }, [status, appliedKeyword, page]);
+  }, [status, appliedKeyword, storeId, fulfillmentType, page]);
 
   function changeStatus(next: string) {
     setStatus(next);
@@ -178,6 +221,16 @@ export default function Orders() {
       ),
     },
     {
+      key: 'fulfillment',
+      title: '门店 / 履约',
+      render: (row) => (
+        <div className="small">
+          <div>{row.storeName ?? '—'}</div>
+          <Tag>{FULFILLMENT_LABEL[row.fulfillmentType] ?? row.fulfillmentType}</Tag>
+        </div>
+      ),
+    },
+    {
       key: 'address',
       title: '收货信息',
       render: (row) => (
@@ -205,7 +258,17 @@ export default function Orders() {
 
   return (
     <>
-      <PageHeader title="所有订单" desc="按状态筛选与关键词搜索，点击行查看订单详情" />
+      <PageHeader
+        title="所有订单"
+        desc="按状态筛选与关键词搜索，点击行查看订单详情"
+        actions={
+          hasRole('SUPER', 'WMS') ? (
+            <Link className="btn btn-ghost btn-sm" to="/orders/batch-ship">
+              批量发货
+            </Link>
+          ) : undefined
+        }
+      />
 
       <Card>
         <Tabs items={tabs} value={status} onChange={changeStatus} />
@@ -219,6 +282,36 @@ export default function Orders() {
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
             />
+            <select
+              className="select"
+              value={storeId}
+              aria-label="按门店筛选"
+              onChange={(e) => {
+                setStoreId(e.target.value);
+                setPage(1);
+              }}
+            >
+              <option value="">全部门店</option>
+              {stores.map((store) => (
+                <option key={store.id} value={store.id}>
+                  {store.name}
+                </option>
+              ))}
+            </select>
+            <select
+              className="select"
+              value={fulfillmentType}
+              aria-label="按履约方式筛选"
+              onChange={(e) => {
+                setFulfillmentType(e.target.value);
+                setPage(1);
+              }}
+            >
+              <option value="">全部履约方式</option>
+              <option value="EXPRESS">快递</option>
+              <option value="DELIVERY">同城配送</option>
+              <option value="PICKUP">到店自提</option>
+            </select>
             <Button type="submit" variant="ghost">
               搜索
             </Button>
@@ -228,6 +321,9 @@ export default function Orders() {
               onClick={() => {
                 setKeyword('');
                 setAppliedKeyword('');
+                setStoreId('');
+                setFulfillmentType('');
+                setPage(1);
               }}
             >
               重置

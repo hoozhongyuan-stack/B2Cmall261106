@@ -22,6 +22,18 @@ interface AddressSnapshot {
   phone?: string;
   region?: string;
   detail?: string;
+  type?: string;
+  storeName?: string;
+  storePhone?: string | null;
+  storeAddress?: string;
+  pickupSlot?: string;
+}
+
+interface PickupVerificationRow {
+  method: string;
+  verifiedBy: string | null;
+  verifiedAt: string;
+  note: string | null;
 }
 
 interface OrderItemRow {
@@ -65,6 +77,14 @@ interface OrderDetailData {
   freightCents: number;
   payableCents: number;
   refundedCents: number;
+  fulfillmentType?: string;
+  storeId?: string | null;
+  storeName?: string | null;
+  store?: { id: string; name: string; phone: string | null; region: string; address: string } | null;
+  pickupCode?: string | null;
+  pickupAt?: string | null;
+  pickupCodeExpiresAt?: string | null;
+  pickupVerification?: PickupVerificationRow | null;
   addressSnapshot: AddressSnapshot;
   remark: string | null;
   adminRemark: string | null;
@@ -295,6 +315,16 @@ export default function OrderDetail() {
             { label: '订单号', value: <span className="mono">{data.orderNo}</span> },
             { label: '订单状态', value: <Tag tone={statusTone(data.status)}>{ORDER_STATUS_LABEL[status]}</Tag> },
             {
+              label: '履约方式',
+              value:
+                data.fulfillmentType === 'PICKUP'
+                  ? '到店自提'
+                  : data.fulfillmentType === 'DELIVERY'
+                    ? '同城配送'
+                    : '快递',
+            },
+            ...(data.storeName ? [{ label: '门店', value: data.storeName }] : []),
+            {
               label: '客户',
               value: `${data.user.nickname ?? '山野顾客'}${data.user.phone ? ` · ${data.user.phone}` : ''}`,
             },
@@ -321,15 +351,56 @@ export default function OrderDetail() {
             ]}
           />
         </Card>
-        <Card title="收货信息">
-          <KeyValue
-            items={[
-              { label: '收货人', value: data.addressSnapshot?.receiver ?? '—' },
-              { label: '联系电话', value: data.addressSnapshot?.phone ?? '—' },
-              { label: '所在地区', value: data.addressSnapshot?.region ?? '—' },
-              { label: '详细地址', value: data.addressSnapshot?.detail ?? '—' },
-            ]}
-          />
+        <Card title={data.fulfillmentType === 'PICKUP' ? '自提信息' : '收货信息'}>
+          {data.fulfillmentType === 'PICKUP' ? (
+            <KeyValue
+              items={[
+                { label: '自提门店', value: data.store?.name ?? data.storeName ?? '—' },
+                { label: '门店地址', value: data.store?.address ?? data.addressSnapshot?.storeAddress ?? '—' },
+                { label: '门店电话', value: data.store?.phone ?? data.addressSnapshot?.storePhone ?? '—' },
+                { label: '预约时段', value: data.addressSnapshot?.pickupSlot ?? '未指定' },
+                { label: '联系电话', value: data.addressSnapshot?.phone ?? '—' },
+                {
+                  label: '核销码',
+                  value: data.pickupCode ? (
+                    <span className="mono pickup-code">{data.pickupCode}</span>
+                  ) : (
+                    '支付后生成'
+                  ),
+                },
+                { label: '核销码过期', value: formatDate(data.pickupCodeExpiresAt) },
+                {
+                  label: '核销状态',
+                  value: data.pickupVerification
+                    ? data.pickupVerification.method === 'AUTO'
+                      ? '超时自动完成'
+                      : '已人工核销'
+                    : '待核销',
+                },
+                ...(data.pickupVerification
+                  ? [
+                      {
+                        label: '核销时间',
+                        value: formatDate(data.pickupVerification.verifiedAt),
+                      },
+                      {
+                        label: '核销人',
+                        value: data.pickupVerification.verifiedBy ?? 'SYSTEM',
+                      },
+                    ]
+                  : []),
+              ]}
+            />
+          ) : (
+            <KeyValue
+              items={[
+                { label: '收货人', value: data.addressSnapshot?.receiver ?? '—' },
+                { label: '联系电话', value: data.addressSnapshot?.phone ?? '—' },
+                { label: '所在地区', value: data.addressSnapshot?.region ?? '—' },
+                { label: '详细地址', value: data.addressSnapshot?.detail ?? '—' },
+              ]}
+            />
+          )}
         </Card>
       </div>
 
@@ -342,7 +413,9 @@ export default function OrderDetail() {
       </Card>
 
       <Card title="物流信息">
-        {data.shipment ? (
+        {data.fulfillmentType === 'PICKUP' ? (
+          <div className="empty">自提订单无需物流</div>
+        ) : data.shipment ? (
           <KeyValue
             items={[
               { label: '快递公司', value: data.shipment.expressName },

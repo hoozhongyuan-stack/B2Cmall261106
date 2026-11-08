@@ -12,6 +12,7 @@ const ProductStock = lazy(() => import('./pages/ProductStock'));
 const Categories = lazy(() => import('./pages/Categories'));
 const Tags = lazy(() => import('./pages/Tags'));
 const Orders = lazy(() => import('./pages/Orders'));
+const BatchShip = lazy(() => import('./pages/BatchShip'));
 const OrderDetail = lazy(() => import('./pages/OrderDetail'));
 const AfterSales = lazy(() => import('./pages/AfterSales'));
 const AfterSaleDetail = lazy(() => import('./pages/AfterSaleDetail'));
@@ -31,6 +32,15 @@ const PaymentSettings = lazy(() => import('./pages/PaymentSettings'));
 const Assets = lazy(() => import('./pages/Assets'));
 const Accounts = lazy(() => import('./pages/Accounts'));
 const Logs = lazy(() => import('./pages/Logs'));
+const SystemStatus = lazy(() => import('./pages/SystemStatus'));
+const HomeLayout = lazy(() => import('./pages/HomeLayout'));
+const ExpressSettings = lazy(() => import('./pages/ExpressSettings'));
+const MemberCommerce = lazy(() => import('./pages/MemberCommerce'));
+const Promotions = lazy(() => import('./pages/Promotions'));
+const Analytics = lazy(() => import('./pages/Analytics'));
+const Stores = lazy(() => import('./pages/Stores'));
+const Pickups = lazy(() => import('./pages/Pickups'));
+const Deliveries = lazy(() => import('./pages/Deliveries'));
 
 function Guard({ children }: { children: ReactNode }) {
   if (!isLoggedIn()) return <Navigate to="/login" replace />;
@@ -58,6 +68,7 @@ export function App() {
           <Route path="categories" element={<Categories />} />
           <Route path="tags" element={<Tags />} />
           <Route path="orders" element={<Orders />} />
+          <Route path="orders/batch-ship" element={<BatchShip />} />
           <Route path="orders/:id" element={<OrderDetail />} />
           <Route path="after-sales" element={<AfterSales />} />
           <Route path="after-sales/:id" element={<AfterSaleDetail />} />
@@ -65,15 +76,24 @@ export function App() {
           <Route path="customers" element={<Customers />} />
           <Route path="customers/:id" element={<CustomerDetail />} />
           <Route path="levels" element={<Levels />} />
+          <Route path="member-commerce" element={<MemberCommerce />} />
           <Route path="points-rules" element={<PointsRules />} />
           <Route path="coupons" element={<Coupons />} />
+          <Route path="marketing/promotions" element={<Promotions />} />
+          <Route path="analytics" element={<Analytics />} />
           <Route path="coupons/new" element={<CouponNew />} />
           <Route path="coupons/:id/claims" element={<CouponClaims />} />
+          <Route path="settings/stores" element={<Stores />} />
+          <Route path="fulfillment/pickups" element={<Pickups />} />
+          <Route path="fulfillment/deliveries" element={<Deliveries />} />
           <Route path="settings/shop" element={<ShopSettings />} />
           <Route path="settings/integration" element={<Integration />} />
           <Route path="settings/miniapp-release" element={<MiniappRelease />} />
           <Route path="settings/freight" element={<Freight />} />
           <Route path="settings/payment" element={<PaymentSettings />} />
+          <Route path="settings/system" element={<SystemStatus />} />
+          <Route path="settings/home" element={<HomeLayout />} />
+          <Route path="settings/express" element={<ExpressSettings />} />
           <Route path="assets" element={<Assets />} />
           <Route path="accounts" element={<Accounts />} />
           <Route path="logs" element={<Logs />} />

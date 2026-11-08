@@ -47,6 +47,29 @@ describe('订单状态机', () => {
     expect(can('REFUNDED', 'refund_apply')).toBe(false);
   });
 
+  it('自提核销：待发货 → 已完成，其他状态不可核销', () => {
+    expect(nextStatus('PAID', 'pickup_verify')).toBe('COMPLETED');
+    expect(can('PENDING_PAYMENT', 'pickup_verify')).toBe(false);
+    expect(() => nextStatus('CLOSED', 'pickup_verify')).toThrow(/非法状态迁移/);
+  });
+
+  it('自提订单不出现确认收货按钮', () => {
+    expect(buyerActions('SHIPPED', 'PICKUP')).toEqual([]);
+    expect(buyerActions('PAID', 'PICKUP')).toEqual(['refund_apply']);
+  });
+
+  it('同城配送：接单 → 待收货，送达 → 已完成', () => {
+    expect(nextStatus('PAID', 'accept_delivery')).toBe('SHIPPED');
+    expect(nextStatus('SHIPPED', 'deliver_complete')).toBe('COMPLETED');
+    expect(can('PENDING_PAYMENT', 'accept_delivery')).toBe(false);
+    expect(can('PAID', 'deliver_complete')).toBe(false);
+    expect(() => nextStatus('COMPLETED', 'deliver_complete')).toThrow(/非法状态迁移/);
+  });
+
+  it('配送订单由门店送达，买家只保留售后入口', () => {
+    expect(buyerActions('SHIPPED', 'DELIVERY')).toEqual(['refund_apply']);
+  });
+
   it('已关闭订单不能发货：抛错而不是静默', () => {
     expect(can('CLOSED', 'ship')).toBe(false);
     expect(() => nextStatus('CLOSED', 'ship')).toThrow(/非法状态迁移/);

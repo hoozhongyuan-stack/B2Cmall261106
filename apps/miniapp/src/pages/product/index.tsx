@@ -1,9 +1,9 @@
-import { Text, View } from '@tarojs/components';
+import { Image, ScrollView, Swiper, SwiperItem, Text, View } from '@tarojs/components';
 import Taro, { useDidShow, useRouter } from '@tarojs/taro';
 import { useEffect, useRef, useState } from 'react';
 
 import { api, showError } from '../../api/client';
-import { Empty, Loading, Price, ProductThumb } from '../../components/common';
+import { Empty, Loading, Price, ProductThumb, imageSrc } from '../../components/common';
 import { useRequest } from '../../hooks/useRequest';
 import { formatDate, money, specText } from '../../utils/format';
 
@@ -15,6 +15,12 @@ interface Sku {
   priceCents: number;
   originCents: number | null;
   available: number;
+  seckill?: {
+    promotionName: string;
+    priceCents: number;
+    stockLeft: number;
+    limitPerUser: number;
+  } | null;
   status: string;
 }
 
@@ -24,6 +30,8 @@ interface ProductDetail {
   subtitle: string | null;
   detail: string | null;
   mainImageKey: string | null;
+  mainImageKeys: string[];
+  detailImageKeys: string[];
   status: string;
   category: string;
   tags: string[];
@@ -41,6 +49,7 @@ interface ReviewList {
     id: string;
     rating: number;
     content: string | null;
+    images: string[];
     createdAt: string;
     specText: string;
     nickname: string;
@@ -92,8 +101,19 @@ export default function Page() {
 
   const sku = product.skus.find((item) => item.id === skuId) ?? product.skus[0];
   const available = sku?.available ?? 0;
+  const seckill = sku?.seckill ?? null;
+  const displayPrice = seckill ? seckill.priceCents : (sku?.priceCents ?? 0);
+  const comparePrice = seckill ? (sku?.priceCents ?? 0) : (sku?.originCents ?? 0);
   const canBuy = Boolean(sku) && available > 0 && sku?.status === 'ON_SALE';
   const reviews = reviewData?.items.slice(0, 3) ?? [];
+  const buyerShows = (reviewData?.items ?? []).flatMap((item) => item.images ?? []).slice(0, 9);
+  const heroImages =
+    product.mainImageKeys?.length > 0
+      ? product.mainImageKeys
+      : product.mainImageKey
+        ? [product.mainImageKey]
+        : [];
+  const detailImages = product.detailImageKeys ?? [];
 
   const changeQuantity = (delta: number) => {
     const next = Math.min(Math.max(quantity + delta, 1), Math.max(available, 1));
@@ -126,20 +146,39 @@ export default function Page() {
 
   return (
     <View className="page page--bar product-page">
-      <ProductThumb
-        imageKey={product.mainImageKey}
-        title={product.title}
-        className="product-hero"
-      />
+      {heroImages.length > 1 ? (
+        <Swiper
+          className="product-hero product-hero--swiper"
+          indicatorDots
+          circular
+          autoplay={false}
+        >
+          {heroImages.map((key) => (
+            <SwiperItem key={key}>
+              <Image className="product-hero-image" src={imageSrc(key)} mode="aspectFill" />
+            </SwiperItem>
+          ))}
+        </Swiper>
+      ) : (
+        <ProductThumb
+          imageKey={heroImages[0] ?? null}
+          title={product.title}
+          className="product-hero"
+        />
+      )}
 
       <View className="card">
         <View className="row product-price-row">
-          <Price cents={sku?.priceCents ?? 0} />
-          {!!sku?.originCents && sku.originCents > sku.priceCents && (
-            <Text className="price--old">{money(sku.originCents)}</Text>
-          )}
+          <Price cents={displayPrice} />
+          {seckill && <Text className="tag tag--brand">秒杀</Text>}
+          {comparePrice > displayPrice && <Text className="price--old">{money(comparePrice)}</Text>}
           {product.status !== 'ON_SALE' && <Text className="tag">已下架</Text>}
         </View>
+        {seckill && (
+          <Text className="muted tiny">
+            {seckill.promotionName} · 仅剩 {seckill.stockLeft} 件 · 每人限购 {seckill.limitPerUser} 件
+          </Text>
+        )}
         <Text className="title product-title">{product.title}</Text>
         {product.subtitle && <Text className="muted small product-subtitle">{product.subtitle}</Text>}
         <View className="product-tags">
@@ -170,6 +209,7 @@ export default function Page() {
                 }}
               >
                 <Text>{specText(item.spec) || '默认规格'}</Text>
+                {item.seckill && <Text className="sku-chip-note">秒杀</Text>}
                 {soldOut && <Text className="sku-chip-note">售罄</Text>}
               </View>
             );
@@ -195,6 +235,20 @@ export default function Page() {
           </Text>
         </View>
         {!reviews.length && <Text className="muted small">暂无评价</Text>}
+        {buyerShows.length > 0 && (
+          <ScrollView className="product-buyer-shows" scrollX enhanced showScrollbar={false}>
+            <View className="product-buyer-show-row">
+              {buyerShows.map((key) => (
+                <Image
+                  key={key}
+                  className="product-buyer-show"
+                  src={imageSrc(key)}
+                  mode="aspectFill"
+                />
+              ))}
+            </View>
+          </ScrollView>
+        )}
         {reviews.map((review) => (
           <View key={review.id} className="product-review">
             <View className="row-between">
@@ -202,6 +256,18 @@ export default function Page() {
               <Text className="muted tiny">{formatDate(review.createdAt)}</Text>
             </View>
             {review.content && <Text className="small product-review-text">{review.content}</Text>}
+            {!!review.images?.length && (
+              <View className="product-review-images">
+                {review.images.slice(0, 3).map((key) => (
+                  <Image
+                    key={key}
+                    className="product-review-image"
+                    src={imageSrc(key)}
+                    mode="aspectFill"
+                  />
+                ))}
+              </View>
+            )}
             <Text className="muted tiny">
               {review.nickname}
               {review.specText ? ` · ${review.specText}` : ''}
@@ -210,10 +276,18 @@ export default function Page() {
         ))}
       </View>
 
-      {product.detail && (
+      {(detailImages.length > 0 || product.detail) && (
         <View className="card">
           <Text className="section-title product-flush-title">商品详情</Text>
-          <Text className="small product-detail">{product.detail}</Text>
+          {detailImages.map((key) => (
+            <Image
+              key={key}
+              className="product-detail-image"
+              src={imageSrc(key)}
+              mode="widthFix"
+            />
+          ))}
+          {product.detail && <Text className="small product-detail">{product.detail}</Text>}
         </View>
       )}
 

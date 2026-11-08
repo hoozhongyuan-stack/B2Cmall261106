@@ -18,20 +18,36 @@ interface IntegrationDetail {
   wechatPayMchId: string | null;
   wechatPayCertSerial: string | null;
   wechatPayNotifyUrl: string | null;
+  wechatPayPublicKeyId: string | null;
   wechatPayApiV3Key: SecretMeta;
   wechatPayPrivateKey: SecretMeta;
-  subscribeTemplateIds: { orderPaid: string; orderShipped: string; refundResult: string };
+  wechatPayPublicKey: SecretMeta;
+  subscribeTemplateIds: {
+    orderPaid: string;
+    orderShipped: string;
+    refundResult: string;
+    pickupReady: string;
+    pickupExpiring: string;
+    deliveryAccepted: string;
+    deliveryDone: string;
+  };
+  subscribeTemplateFields: Record<string, Record<string, string>>;
   apiBaseUrl: string | null;
   businessDomain: string | null;
   updatedAt: string;
 }
 
-type SecretField = 'miniappUploadKey' | 'wechatPayApiV3Key' | 'wechatPayPrivateKey';
+type SecretField =
+  | 'miniappUploadKey'
+  | 'wechatPayApiV3Key'
+  | 'wechatPayPrivateKey'
+  | 'wechatPayPublicKey';
 
 const SECRET_ACCEPT: Record<SecretField, string> = {
   miniappUploadKey: '.key,.pem',
   wechatPayApiV3Key: '.txt,.key,.secret',
   wechatPayPrivateKey: '.pem,.key,.p12,.pfx',
+  wechatPayPublicKey: '.pem,.txt,.key',
 };
 
 const SECRET_MAX_BYTES = 200 * 1024;
@@ -108,9 +124,15 @@ export default function IntegrationSettings() {
     wechatPayMchId: '',
     wechatPayCertSerial: '',
     wechatPayNotifyUrl: '',
+    wechatPayPublicKeyId: '',
     orderPaid: '',
     orderShipped: '',
     refundResult: '',
+    pickupReady: '',
+    pickupExpiring: '',
+    deliveryAccepted: '',
+    deliveryDone: '',
+    templateFields: '{}',
     apiBaseUrl: '',
     businessDomain: '',
   });
@@ -128,9 +150,15 @@ export default function IntegrationSettings() {
         wechatPayMchId: result.wechatPayMchId ?? '',
         wechatPayCertSerial: result.wechatPayCertSerial ?? '',
         wechatPayNotifyUrl: result.wechatPayNotifyUrl ?? '',
+        wechatPayPublicKeyId: result.wechatPayPublicKeyId ?? '',
         orderPaid: result.subscribeTemplateIds.orderPaid,
         orderShipped: result.subscribeTemplateIds.orderShipped,
         refundResult: result.subscribeTemplateIds.refundResult,
+        pickupReady: result.subscribeTemplateIds.pickupReady,
+        pickupExpiring: result.subscribeTemplateIds.pickupExpiring,
+        deliveryAccepted: result.subscribeTemplateIds.deliveryAccepted,
+        deliveryDone: result.subscribeTemplateIds.deliveryDone,
+        templateFields: JSON.stringify(result.subscribeTemplateFields ?? {}, null, 2),
         apiBaseUrl: result.apiBaseUrl ?? '',
         businessDomain: result.businessDomain ?? '',
       });
@@ -155,17 +183,24 @@ export default function IntegrationSettings() {
       toast('只有超级管理员可以修改集成配置', 'error');
       return;
     }
-    if (
-      form.paymentProvider === 'wechat' &&
-      !window.confirm(
-        '微信支付实现尚未接入，切换到 wechat 后小程序下单支付会失败。确定保存吗？',
-      )
-    ) {
-      return;
-    }
-
     setSaving(true);
     try {
+      let templateFields: Record<string, Record<string, string>> = {};
+      const raw = form.templateFields.trim();
+      if (raw) {
+        try {
+          const parsed = JSON.parse(raw) as unknown;
+          if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+            throw new Error('字段映射必须是 JSON 对象');
+          }
+          templateFields = parsed as Record<string, Record<string, string>>;
+        } catch (err) {
+          toast(err instanceof Error ? err.message : '字段映射不是合法 JSON', 'error');
+          setSaving(false);
+          return;
+        }
+      }
+
       await api('/admin/integration', {
         method: 'PATCH',
         body: {
@@ -178,11 +213,17 @@ export default function IntegrationSettings() {
           wechatPayMchId: form.wechatPayMchId.trim(),
           wechatPayCertSerial: form.wechatPayCertSerial.trim(),
           wechatPayNotifyUrl: form.wechatPayNotifyUrl.trim(),
+          wechatPayPublicKeyId: form.wechatPayPublicKeyId.trim(),
           subscribeTemplateIds: {
             orderPaid: form.orderPaid.trim(),
             orderShipped: form.orderShipped.trim(),
             refundResult: form.refundResult.trim(),
+            pickupReady: form.pickupReady.trim(),
+            pickupExpiring: form.pickupExpiring.trim(),
+            deliveryAccepted: form.deliveryAccepted.trim(),
+            deliveryDone: form.deliveryDone.trim(),
           },
+          subscribeTemplateFields: templateFields,
           apiBaseUrl: form.apiBaseUrl.trim(),
           businessDomain: form.businessDomain.trim(),
         },
@@ -249,7 +290,9 @@ export default function IntegrationSettings() {
         ? detail?.miniappUploadKey
         : field === 'wechatPayApiV3Key'
           ? detail?.wechatPayApiV3Key
-          : detail?.wechatPayPrivateKey;
+          : field === 'wechatPayPrivateKey'
+            ? detail?.wechatPayPrivateKey
+            : detail?.wechatPayPublicKey;
     return meta ?? { configured: false, fileName: null };
   }
 
@@ -340,7 +383,7 @@ export default function IntegrationSettings() {
 
         <Card title="微信支付">
           <div className="grid grid-2">
-            <Field label="支付渠道" hint="wechat 渠道代码尚未接入，联调阶段请保持 mock">
+            <Field label="支付渠道" hint="切到 wechat 后小程序将调起真实微信收银台">
               <select
                 className="input"
                 value={form.paymentProvider}
@@ -348,7 +391,7 @@ export default function IntegrationSettings() {
                 onChange={(e) => setField('paymentProvider', e.target.value as 'mock' | 'wechat')}
               >
                 <option value="mock">mock（模拟支付）</option>
-                <option value="wechat">wechat（微信支付，待接入）</option>
+                <option value="wechat">wechat（微信支付）</option>
               </select>
             </Field>
             <Field label="商户号 MchID">
@@ -374,8 +417,20 @@ export default function IntegrationSettings() {
                 className="input"
                 value={form.wechatPayNotifyUrl}
                 disabled={!canWrite}
-                placeholder="https://api.example.com/api/payments/callback"
+                placeholder="https://car.aition.art/api/payments/callback"
                 onChange={(e) => setField('wechatPayNotifyUrl', e.target.value)}
+              />
+            </Field>
+            <Field
+              label="微信支付公钥 ID"
+              hint="公钥模式填写 PUB_KEY_ID_...；平台证书模式留空"
+            >
+              <input
+                className="input"
+                value={form.wechatPayPublicKeyId}
+                disabled={!canWrite}
+                placeholder="PUB_KEY_ID_..."
+                onChange={(e) => setField('wechatPayPublicKeyId', e.target.value)}
               />
             </Field>
           </div>
@@ -398,6 +453,16 @@ export default function IntegrationSettings() {
             uploading={uploading === 'wechatPayPrivateKey'}
             onUpload={(file) => void handleUpload('wechatPayPrivateKey', file)}
             onRemove={() => void handleRemoveSecret('wechatPayPrivateKey', '商户 API 私钥')}
+          />
+          <SecretRow
+            field="wechatPayPublicKey"
+            label="微信支付公钥"
+            hint="商户平台 → API 安全 → 微信支付公钥，下载 pub_key.pem；公钥模式必填"
+            meta={secretMeta('wechatPayPublicKey')}
+            disabled={!canWrite}
+            uploading={uploading === 'wechatPayPublicKey'}
+            onUpload={(file) => void handleUpload('wechatPayPublicKey', file)}
+            onRemove={() => void handleRemoveSecret('wechatPayPublicKey', '微信支付公钥')}
           />
         </Card>
 
@@ -427,7 +492,52 @@ export default function IntegrationSettings() {
                 onChange={(e) => setField('refundResult', e.target.value)}
               />
             </Field>
+            <Field label="自提待取通知模板 ID">
+              <input
+                className="input"
+                value={form.pickupReady}
+                disabled={!canWrite}
+                onChange={(e) => setField('pickupReady', e.target.value)}
+              />
+            </Field>
+            <Field label="自提到期提醒模板 ID">
+              <input
+                className="input"
+                value={form.pickupExpiring}
+                disabled={!canWrite}
+                onChange={(e) => setField('pickupExpiring', e.target.value)}
+              />
+            </Field>
+            <Field label="配送接单通知模板 ID">
+              <input
+                className="input"
+                value={form.deliveryAccepted}
+                disabled={!canWrite}
+                onChange={(e) => setField('deliveryAccepted', e.target.value)}
+              />
+            </Field>
+            <Field label="配送送达通知模板 ID">
+              <input
+                className="input"
+                value={form.deliveryDone}
+                disabled={!canWrite}
+                onChange={(e) => setField('deliveryDone', e.target.value)}
+              />
+            </Field>
           </div>
+          <Field
+            label="模板字段映射（JSON）"
+            hint='键为微信模板字段名，值为变量：orderNo / payable / items / paidAt / trackingNo / expressName / shippedAt / refundNo / amount / status / refundedAt / pickupCode / storeName / pickupAt / expiresAt / courierName / courierPhone / acceptedAt / deliveredAt。留空 {} 使用默认映射；字段名必须与公众平台模板一致，否则微信返回 47003。'
+          >
+            <textarea
+              className="input"
+              rows={8}
+              style={{ fontFamily: 'monospace' }}
+              value={form.templateFields}
+              disabled={!canWrite}
+              onChange={(e) => setField('templateFields', e.target.value)}
+            />
+          </Field>
         </Card>
 
         <Card title="域名与地址">

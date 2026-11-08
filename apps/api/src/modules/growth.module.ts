@@ -14,6 +14,7 @@ import {
   ReviewController,
 } from './review/review.controller';
 import { ReviewService } from './review/review.service';
+import { AssetModule } from './assets/asset.module';
 import { JwtAuthGuard, RolesGuard } from '../common/auth.guards';
 import { UserJwtGuard } from '../common/user-auth.guard';
 
@@ -23,6 +24,7 @@ import { UserJwtGuard } from '../common/user-auth.guard';
  */
 @Module({
   imports: [
+    AssetModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],

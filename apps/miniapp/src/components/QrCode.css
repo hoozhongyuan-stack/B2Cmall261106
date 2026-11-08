@@ -1,0 +1,22 @@
+.qrcode {
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  box-sizing: border-box;
+  background: var(--surface);
+  border-radius: var(--radius-md);
+}
+
+.qrcode-row {
+  flex: 1;
+  display: flex;
+}
+
+.qrcode-cell {
+  flex: 1;
+  background: var(--surface);
+}
+
+.qrcode-cell--dark {
+  background: var(--ink);
+}

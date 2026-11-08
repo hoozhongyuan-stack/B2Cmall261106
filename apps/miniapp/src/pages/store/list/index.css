@@ -1,0 +1,48 @@
+.store-page {
+  padding-bottom: 24px;
+}
+
+.store-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: var(--surface-2);
+}
+
+.store-search-input {
+  flex: 1;
+  height: 36px;
+  padding: 0 12px;
+  border-radius: 18px;
+  background: var(--surface);
+  font-size: 14px;
+}
+
+.store-search-btn {
+  font-size: 14px;
+  color: var(--brand);
+}
+
+.store-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.store-name {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.store-address {
+  line-height: 1.5;
+}
+
+.store-meta {
+  margin-top: 2px;
+}
+
+.store-notice {
+  margin-top: 2px;
+}

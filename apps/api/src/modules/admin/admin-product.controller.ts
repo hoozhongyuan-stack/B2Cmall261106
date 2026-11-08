@@ -58,9 +58,22 @@ class CreateProductDto {
   @IsString()
   categoryId!: string;
 
+  /** 兼容旧字段：单张主图，等价于 mainImageKeys[0] */
   @IsOptional()
   @IsString()
   mainImageKey?: string;
+
+  /** 主图轮播（有序，第一张为列表主图） */
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  mainImageKeys?: string[];
+
+  /** 详情图片（有序，详情页上下排列） */
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  detailImageKeys?: string[];
 
   @IsOptional()
   @IsString()
@@ -97,6 +110,16 @@ class UpdateProductDto {
   @IsOptional()
   @IsString()
   mainImageKey?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  mainImageKeys?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  detailImageKeys?: string[];
 
   @IsOptional()
   @IsString()

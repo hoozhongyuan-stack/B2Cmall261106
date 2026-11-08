@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import {
@@ -16,20 +17,53 @@ import {
 
 import { PrismaService } from '../../prisma/prisma.module';
 import { MockRefundProvider, type RefundProvider } from '../payment/refund.provider';
+import { BalanceRefundProvider } from '../payment/balance-refund.provider';
+import { WechatRefundProvider } from '../payment/wechat/wechat-refund.provider';
+import { IntegrationService } from '../integration/integration.service';
 import { CouponService } from '../coupon/coupon.service';
 import { LoyaltyService } from '../member/loyalty.service';
+import { NotificationService } from '../notification/notification.service';
+import { StoreInventoryService } from '../store/store-inventory.service';
 
 const REFUNDABLE_ORDER_STATUS: OrderStatus[] = ['PAID', 'SHIPPED', 'COMPLETED'];
 
 @Injectable()
 export class AfterSaleService {
-  private readonly refundProvider: RefundProvider = new MockRefundProvider();
+  private readonly logger = new Logger(AfterSaleService.name);
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly coupons: CouponService,
     private readonly loyalty: LoyaltyService,
+    private readonly integration: IntegrationService,
+    private readonly notifications: NotificationService,
+    private readonly storeInventory: StoreInventoryService,
   ) {}
+
+  /**
+   * 退款渠道按「该订单实际成功的支付单」选择，
+   * 避免后台切换渠道后把 mock 订单误发到微信（或反之）。
+   */
+  private async refundProviderFor(orderId: string): Promise<{
+    provider: RefundProvider;
+    transactionId?: string;
+  }> {
+    const payment = await this.prisma.payment.findFirst({
+      where: { orderId, status: 'SUCCESS' },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (payment?.provider === 'wechat') {
+      return {
+        provider: new WechatRefundProvider(await this.integration.wechatPayConfig()),
+        transactionId: payment.transactionId ?? undefined,
+      };
+    }
+    if (payment?.provider === 'balance') {
+      return { provider: new BalanceRefundProvider() };
+    }
+    return { provider: new MockRefundProvider() };
+  }
 
   /** 买家提交售后：校验归属、期限、金额上限与是否重复申请 */
   async apply(
@@ -280,6 +314,10 @@ export class AfterSaleService {
       record.refund?.refundNo ??
       `RF${Date.now()}${Math.floor(Math.random() * 900 + 100)}`;
 
+    const { provider: refundProvider, transactionId } = await this.refundProviderFor(
+      record.orderId,
+    );
+
     // PRD：整单退时含运费退，部分退时不退运费
     const siblings = await this.prisma.orderItem.findMany({
       where: { orderId: record.orderId },
@@ -307,7 +345,7 @@ export class AfterSaleService {
           orderId: record.orderId,
           amountCents: actualRefundCents,
           status: 'PENDING',
-          provider: this.refundProvider.name,
+          provider: refundProvider.name,
         },
       }));
 
@@ -321,30 +359,78 @@ export class AfterSaleService {
       throw new ConflictException('累计退款金额超过订单实付');
     }
 
-    const result = await this.refundProvider.refund({
+    const result = await refundProvider.refund({
       refundNo: pending.refundNo,
       orderNo: record.order.orderNo,
       amountCents: pending.amountCents,
+      totalCents: record.order.payableCents,
+      transactionId,
+      reason: record.reason,
     });
+
+    // 渠道受理但结果未定：保留待处理，等待对账任务查询确认
+    if (result.status === 'PROCESSING') {
+      await this.prisma.refund.update({
+        where: { id: pending.id },
+        data: {
+          ...(result.transactionId ? { transactionId: result.transactionId } : {}),
+          rawResponse: result.raw as never,
+          channelStatus: 'PROCESSING',
+          lastQueriedAt: new Date(),
+        },
+      });
+      return { refundNo: pending.refundNo, status: 'PROCESSING' };
+    }
 
     if (result.status === 'FAILED') {
       await this.prisma.refund.update({
         where: { id: pending.id },
-        data: { status: 'FAILED', failReason: result.failReason ?? '渠道退款失败' },
+        data: {
+          status: 'FAILED',
+          failReason: result.failReason ?? '渠道退款失败',
+          channelStatus: 'CLOSED',
+        },
       });
+      await this.notifyRefundResult(pending.id);
       throw new ConflictException(result.failReason ?? '渠道退款失败');
     }
 
-    await this.prisma.$transaction(async (tx) => {
+    return this.completeRefund(pending.id, {
+      transactionId: result.transactionId,
+      raw: result.raw,
+      channelStatus: 'SUCCESS',
+    });
+  }
+
+  /**
+   * 渠道确认退款成功：幂等回写退款单、售后单、订单金额、状态与库存。
+   * 支付同步响应与退款对账任务共用，重复调用只生效一次。
+   */
+  async completeRefund(
+    refundId: string,
+    channel: { transactionId?: string; raw?: unknown; channelStatus?: string } = {},
+  ): Promise<{ refundNo: string; status: 'SUCCESS' }> {
+    const refund = await this.prisma.refund.findUnique({
+      where: { id: refundId },
+      include: { afterSale: { include: { order: true, orderItem: true } } },
+    });
+    if (!refund) throw new NotFoundException('退款单不存在');
+    if (refund.status === 'SUCCESS') return { refundNo: refund.refundNo, status: 'SUCCESS' };
+
+    const record = refund.afterSale;
+
+    const applied = await this.prisma.$transaction(async (tx) => {
       const updated = await tx.refund.updateMany({
-        where: { id: pending.id, status: 'PENDING' },
+        where: { id: refund.id, status: 'PENDING' },
         data: {
           status: 'SUCCESS',
-          transactionId: result.transactionId,
+          ...(channel.transactionId ? { transactionId: channel.transactionId } : {}),
+          ...(channel.raw !== undefined ? { rawResponse: channel.raw as never } : {}),
+          ...(channel.channelStatus ? { channelStatus: channel.channelStatus } : {}),
           refundedAt: new Date(),
         },
       });
-      if (updated.count !== 1) return; // 并发重复执行，已处理
+      if (updated.count !== 1) return false; // 并发重复执行，已处理
 
       await tx.afterSale.update({
         where: { id: record.id },
@@ -356,12 +442,12 @@ export class AfterSaleService {
 
       await tx.orderItem.update({
         where: { id: record.orderItemId },
-        data: { refundedCents: { increment: pending.amountCents } },
+        data: { refundedCents: { increment: refund.amountCents } },
       });
 
       const order = await tx.order.update({
         where: { id: record.orderId },
-        data: { refundedCents: { increment: pending.amountCents } },
+        data: { refundedCents: { increment: refund.amountCents } },
       });
 
       // 未发货仅退款：库存可二次销售，回滚库存
@@ -371,10 +457,19 @@ export class AfterSaleService {
           ? isBeforeShipment(record.order.previousStatus as OrderStatus)
           : false);
       if (beforeShipment) {
-        await tx.sku.update({
-          where: { id: record.orderItem.skuId },
-          data: { stock: { increment: record.orderItem.quantity } },
-        });
+        if (record.order.storeId) {
+          await this.storeInventory.restock(
+            tx,
+            record.order.storeId,
+            [{ skuId: record.orderItem.skuId, quantity: record.orderItem.quantity }],
+            record.orderId,
+          );
+        } else {
+          await tx.sku.update({
+            where: { id: record.orderItem.skuId },
+            data: { stock: { increment: record.orderItem.quantity } },
+          });
+        }
       }
 
       const fullyRefunded = order.refundedCents >= order.payableCents;
@@ -389,6 +484,9 @@ export class AfterSaleService {
           status: next,
           version: { increment: 1 },
           previousStatus: fullyRefunded ? null : previous,
+          ...(fullyRefunded && record.order.fulfillmentType === 'PICKUP'
+            ? { pickupCode: null, pickupCodeExpiresAt: null }
+            : {}),
         },
       });
 
@@ -396,14 +494,45 @@ export class AfterSaleService {
       await this.loyalty.revokeForRefund(tx, {
         userId: record.order.userId,
         orderId: record.orderId,
-        refundCents: pending.amountCents,
+        refundCents: refund.amountCents,
       });
 
       // 整单退款：已使用的券在有效期内退回，可再次使用
       if (fullyRefunded) await this.coupons.releaseForOrder(tx, record.orderId);
+
+      // 余额支付的订单：退款原路退回储值余额并记流水
+      if (refund.provider === 'balance') {
+        const account = await tx.storedValueAccount.upsert({
+          where: { userId: record.order.userId },
+          update: { balanceCents: { increment: refund.amountCents } },
+          create: { userId: record.order.userId, balanceCents: refund.amountCents },
+        });
+        await tx.storedValueLedger.create({
+          data: {
+            userId: record.order.userId,
+            deltaCents: refund.amountCents,
+            balanceAfter: account.balanceCents,
+            type: 'REFUND',
+            refType: 'Refund',
+            refId: refund.id,
+            remark: `订单退款 ${record.order.orderNo}`,
+          },
+        });
+      }
+      return true;
     });
 
-    return { refundNo: pending.refundNo, status: 'SUCCESS' };
+    if (applied) await this.notifyRefundResult(refund.id);
+    return { refundNo: refund.refundNo, status: 'SUCCESS' };
+  }
+
+  /** 退款结果通知：失败不影响退款主流程 */
+  private async notifyRefundResult(refundId: string): Promise<void> {
+    try {
+      await this.notifications.enqueueRefundResult(refundId);
+    } catch (err) {
+      this.logger.warn(`退款结果通知入队失败 refund=${refundId}`, err as Error);
+    }
   }
 
   /* ---------------- 内部 ---------------- */
@@ -448,7 +577,12 @@ export class AfterSaleService {
     finishedAt: Date | null;
     order?: { orderNo: string; payableCents: number } | null;
     orderItem?: { title: string; specText: string; priceCents: number; quantity: number } | null;
-    refund?: { refundNo: string; status: string; refundedAt: Date | null } | null;
+    refund?: {
+      refundNo: string;
+      status: string;
+      channelStatus?: string | null;
+      refundedAt: Date | null;
+    } | null;
   }) {
     return {
       id: a.id,
@@ -473,7 +607,12 @@ export class AfterSaleService {
           }
         : null,
       refund: a.refund
-        ? { refundNo: a.refund.refundNo, status: a.refund.status, refundedAt: a.refund.refundedAt }
+        ? {
+            refundNo: a.refund.refundNo,
+            status: a.refund.status,
+            channelStatus: a.refund.channelStatus ?? null,
+            refundedAt: a.refund.refundedAt,
+          }
         : null,
     };
   }

@@ -10,7 +10,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { IsIn, IsOptional, IsString, Length, ValidateNested } from 'class-validator';
+import { IsIn, IsObject, IsOptional, IsString, Length, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 
 import { IntegrationService } from './integration.service';
@@ -31,6 +31,26 @@ class SubscribeTemplatesDto {
   @IsString()
   @Length(0, 64)
   refundResult?: string;
+
+  @IsOptional()
+  @IsString()
+  @Length(0, 64)
+  pickupReady?: string;
+
+  @IsOptional()
+  @IsString()
+  @Length(0, 64)
+  pickupExpiring?: string;
+
+  @IsOptional()
+  @IsString()
+  @Length(0, 64)
+  deliveryAccepted?: string;
+
+  @IsOptional()
+  @IsString()
+  @Length(0, 64)
+  deliveryDone?: string;
 }
 
 class UpdateIntegrationDto {
@@ -64,10 +84,21 @@ class UpdateIntegrationDto {
   @Length(0, 300)
   wechatPayNotifyUrl?: string;
 
+  /** 微信支付公钥 ID（公钥模式）；平台证书模式留空 */
+  @IsOptional()
+  @IsString()
+  @Length(0, 64)
+  wechatPayPublicKeyId?: string;
+
   @IsOptional()
   @ValidateNested()
   @Type(() => SubscribeTemplatesDto)
   subscribeTemplateIds?: SubscribeTemplatesDto;
+
+  /** 模板字段映射：{ 场景: { 微信字段名: 变量名 } } */
+  @IsOptional()
+  @IsObject()
+  subscribeTemplateFields?: Record<string, Record<string, string>>;
 
   @IsOptional()
   @IsString()

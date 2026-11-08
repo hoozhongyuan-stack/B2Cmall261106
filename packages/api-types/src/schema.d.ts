@@ -91,7 +91,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 首页聚合 */
+        /** 首页聚合（运营位 + 分类与精选兜底） */
         get: {
             parameters: {
                 query?: never;
@@ -106,7 +106,40 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": {
+                            data?: {
+                                freeThresholdCents?: number;
+                                banners?: {
+                                    id?: string;
+                                    imageKey?: string;
+                                    title?: string | null;
+                                    /** @enum {string} */
+                                    linkType?: "product" | "category" | "search" | "page" | "none";
+                                    linkValue?: string | null;
+                                }[];
+                                navs?: {
+                                    id?: string;
+                                    name?: string;
+                                    iconKey?: string | null;
+                                    /** @enum {string} */
+                                    linkType?: "product" | "category" | "search" | "page" | "none";
+                                    linkValue?: string | null;
+                                }[];
+                                sections?: {
+                                    id?: string;
+                                    title?: string;
+                                    products?: components["schemas"]["HomeProduct"][];
+                                }[];
+                                categories?: {
+                                    id?: string;
+                                    name?: string;
+                                    index?: number;
+                                }[];
+                                picks?: components["schemas"]["HomeProduct"][];
+                            };
+                        };
+                    };
                 };
             };
         };
@@ -466,6 +499,23 @@ export interface paths {
                                     flatCents?: number;
                                     exceptionRegion?: boolean;
                                 };
+                                /** @enum {string} */
+                                fulfillmentType?: "EXPRESS" | "DELIVERY" | "PICKUP";
+                                delivery?: {
+                                    slot?: string;
+                                    region?: string;
+                                    feeCents?: number;
+                                    store?: {
+                                        id?: string;
+                                        name?: string;
+                                        phone?: string | null;
+                                        region?: string;
+                                        address?: string;
+                                        deliverySlots?: string[];
+                                        deliveryCutoff?: string | null;
+                                        maxOrdersPerSlot?: number;
+                                    };
+                                } | null;
                             };
                         };
                     };
@@ -521,10 +571,20 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
-                        addressId: string;
+                        /** @description 快递/配送必填；自提不需要 */
+                        addressId?: string;
                         items?: components["schemas"]["OrderLine"][];
                         couponClaimId?: string | null;
                         remark?: string;
+                        /** @enum {string} */
+                        fulfillmentType?: "EXPRESS" | "DELIVERY" | "PICKUP";
+                        storeId?: string | null;
+                        /** @description 自提时段 HH:mm-HH:mm */
+                        pickupSlot?: string;
+                        /** @description 同城配送时段 HH:mm-HH:mm */
+                        deliverySlot?: string;
+                        /** @description 自提联系电话 */
+                        contactPhone?: string;
                     };
                 };
             };
@@ -637,7 +697,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 发起支付（首版返回模拟支付参数） */
+        /** 发起支付，返回渠道参数（mock 或微信 JSAPI） */
         post: {
             parameters: {
                 query?: never;
@@ -767,6 +827,8 @@ export interface paths {
                 query?: {
                     status?: string;
                     keyword?: string;
+                    storeId?: string;
+                    fulfillmentType?: "EXPRESS" | "DELIVERY" | "PICKUP";
                     page?: number;
                     pageSize?: number;
                 };
@@ -781,7 +843,20 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": {
+                            data?: {
+                                tabs?: {
+                                    status?: string;
+                                    count?: number;
+                                }[];
+                                total?: number;
+                                page?: number;
+                                pageSize?: number;
+                                items?: components["schemas"]["AdminOrderListItem"][];
+                            };
+                        };
+                    };
                 };
                 /** @description 角色无权限 */
                 403: {
@@ -1992,6 +2067,58 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/reviews/images": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 评价晒图上传（multipart，最多 9 张，单张 ≤5MB） */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "multipart/form-data": {
+                        files: string[];
+                    };
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: {
+                                items?: {
+                                    id?: string;
+                                    key?: string;
+                                    url?: string;
+                                }[];
+                            };
+                        };
+                    };
+                };
+                400: components["responses"]["BadRequest"];
+                429: components["responses"]["TooManyRequests"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/reviews/context/{orderItemId}": {
         parameters: {
             query?: never;
@@ -2542,7 +2669,12 @@ export interface paths {
                         title?: string;
                         subtitle?: string;
                         categoryId?: string;
+                        /** @description 兼容旧字段，等价于 mainImageKeys 第一张 */
                         mainImageKey?: string;
+                        /** @description 主图轮播（有序，第一张为列表主图） */
+                        mainImageKeys?: string[];
+                        /** @description 详情图片（有序，详情页上下排列） */
+                        detailImageKeys?: string[];
                         detail?: string;
                         /** @enum {string} */
                         status?: "ON_SALE" | "OFF_SHELF";
@@ -3064,12 +3196,14 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 素材库列表 */
+        /** 素材列表（文件夹 / 关键词筛选，分页） */
         get: {
             parameters: {
                 query?: {
-                    group?: string;
+                    folderId?: string;
                     keyword?: string;
+                    page?: number;
+                    pageSize?: number;
                 };
                 header?: never;
                 path?: never;
@@ -3085,6 +3219,9 @@ export interface paths {
                     content: {
                         "application/json": {
                             data?: {
+                                total?: number;
+                                page?: number;
+                                pageSize?: number;
                                 items?: components["schemas"]["Asset"][];
                             };
                         };
@@ -3093,7 +3230,49 @@ export interface paths {
             };
         };
         put?: never;
-        /** 登记素材（key 全局唯一） */
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/assets/folders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 一级文件夹列表（含素材数量） */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: {
+                                total?: number;
+                                uncategorized?: number;
+                                items?: components["schemas"]["AssetFolder"][];
+                            };
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** 新建文件夹 */
         post: {
             parameters: {
                 query?: never;
@@ -3104,11 +3283,8 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
-                        key: string;
-                        url: string;
-                        size?: number;
-                        mimeType?: string;
-                        group?: string;
+                        name: string;
+                        sort?: number;
                     };
                 };
             };
@@ -3129,7 +3305,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/admin/assets/{id}": {
+    "/admin/assets/folders/{id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -3139,7 +3315,7 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        /** 删除素材（被引用时拒绝） */
+        /** 删除空文件夹 */
         delete: {
             parameters: {
                 query?: never;
@@ -3163,7 +3339,142 @@ export interface paths {
         };
         options?: never;
         head?: never;
+        /** 重命名或调整文件夹排序 */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        name?: string;
+                        sort?: number;
+                    };
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                409: components["responses"]["Conflict"];
+            };
+        };
+        trace?: never;
+    };
+    "/admin/assets/upload": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 上传图片（multipart，最多 9 张，单张 ≤5MB） */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "multipart/form-data": {
+                        files: string[];
+                        /** @description 目标文件夹；空表示未分类 */
+                        folderId?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description 上传成功 */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                400: components["responses"]["BadRequest"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/admin/assets/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** 删除素材（被商品或店铺 Logo 引用时拒绝） */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                409: components["responses"]["Conflict"];
+            };
+        };
+        options?: never;
+        head?: never;
+        /** 移动素材到文件夹 */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @description null 表示未分类 */
+                        folderId?: string | null;
+                    };
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
         trace?: never;
     };
     "/admin/accounts": {
@@ -3213,8 +3524,9 @@ export interface paths {
                         account: string;
                         displayName: string;
                         /** @enum {string} */
-                        role: "SUPER" | "OPS" | "CS" | "WMS";
+                        role: "SUPER" | "OPS" | "CS" | "WMS" | "STORE";
                         password: string;
+                        storeIds?: string[];
                     };
                 };
             };
@@ -3263,7 +3575,8 @@ export interface paths {
                     "application/json": {
                         displayName?: string;
                         /** @enum {string} */
-                        role?: "SUPER" | "OPS" | "CS" | "WMS";
+                        role?: "SUPER" | "OPS" | "CS" | "WMS" | "STORE";
+                        storeIds?: string[];
                     };
                 };
             };
@@ -3562,6 +3875,16 @@ export interface paths {
                             orderPaid?: string;
                             orderShipped?: string;
                             refundResult?: string;
+                            pickupReady?: string;
+                            pickupExpiring?: string;
+                            deliveryAccepted?: string;
+                            deliveryDone?: string;
+                        };
+                        /** @description 模板字段映射：场景 → { 微信字段名: 变量名 } */
+                        subscribeTemplateFields?: {
+                            [key: string]: {
+                                [key: string]: string;
+                            };
                         };
                         apiBaseUrl?: string;
                         businessDomain?: string;
@@ -3865,6 +4188,2365 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/subscriptions/templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 订阅消息模板 ID（仅返回已配置项，小程序发起订阅授权使用） */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: {
+                                templates?: {
+                                    orderPaid?: string;
+                                    orderShipped?: string;
+                                    refundResult?: string;
+                                    pickupReady?: string;
+                                    pickupExpiring?: string;
+                                    deliveryAccepted?: string;
+                                    deliveryDone?: string;
+                                };
+                            };
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/notifications/logs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 订阅消息发送日志（按状态/场景筛选） */
+        get: {
+            parameters: {
+                query?: {
+                    status?: "PENDING" | "SENT" | "SKIPPED" | "FAILED";
+                    scene?: "ORDER_PAID" | "ORDER_SHIPPED" | "REFUND_RESULT" | "PICKUP_READY" | "PICKUP_EXPIRING" | "DELIVERY_ACCEPTED" | "DELIVERY_DONE";
+                    page?: number;
+                    pageSize?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: {
+                                total?: number;
+                                page?: number;
+                                pageSize?: number;
+                                items?: components["schemas"]["NotificationLog"][];
+                            };
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/notifications/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 测试发送一条订阅消息（使用订单支付模板） */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        userId?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: {
+                                id?: string;
+                                ok?: boolean;
+                                error?: string | null;
+                            };
+                        };
+                    };
+                };
+                400: components["responses"]["BadRequest"];
+                404: components["responses"]["NotFound"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/notifications/{id}/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 立即重试一条失败或跳过的通知 */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                404: components["responses"]["NotFound"];
+                409: components["responses"]["Conflict"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/refunds": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 退款单列表（对账用） */
+        get: {
+            parameters: {
+                query?: {
+                    status?: "PENDING" | "SUCCESS" | "FAILED";
+                    channelStatus?: "PROCESSING" | "SUCCESS" | "ABNORMAL" | "CLOSED";
+                    page?: number;
+                    pageSize?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: {
+                                total?: number;
+                                page?: number;
+                                pageSize?: number;
+                                items?: components["schemas"]["AdminRefund"][];
+                            };
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/refunds/{id}/query": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 立即查询微信退款状态并同步 */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: {
+                                id?: string;
+                                status?: string;
+                                channelStatus?: string | null;
+                            };
+                        };
+                    };
+                };
+                400: components["responses"]["BadRequest"];
+                404: components["responses"]["NotFound"];
+                /** @description 微信接口不可用 */
+                502: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/ops/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 系统状态：磁盘、备份、通知、退款与告警 */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: {
+                                /** Format: date-time */
+                                now?: string;
+                                uptimeSeconds?: number;
+                                disk?: {
+                                    path?: string;
+                                    totalBytes?: number;
+                                    freeBytes?: number;
+                                    usedRatio?: number;
+                                };
+                                backup?: {
+                                    dir?: string;
+                                    latestFile?: string | null;
+                                    /** Format: date-time */
+                                    latestAt?: string | null;
+                                    ageHours?: number | null;
+                                    stale?: boolean;
+                                };
+                                notifications?: {
+                                    pending?: number;
+                                    failed?: number;
+                                };
+                                refunds?: {
+                                    pending?: number;
+                                    abnormal?: number;
+                                    oldestPendingHours?: number | null;
+                                };
+                                payment?: {
+                                    /** @enum {string} */
+                                    provider?: "mock" | "wechat";
+                                    subscribeConfigured?: boolean;
+                                };
+                                alerts?: {
+                                    /** @enum {string} */
+                                    level?: "warn" | "error";
+                                    code?: string;
+                                    message?: string;
+                                }[];
+                            };
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/orders/batch-ship": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 批量发货（逐单事务，返回成功/失败明细，最多 200 单） */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @description 默认物流公司编码 */
+                        expressCode?: string;
+                        items: {
+                            orderId?: string;
+                            orderNo?: string;
+                            expressCode?: string;
+                            trackingNo: string;
+                        }[];
+                    };
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: {
+                                total?: number;
+                                success?: number;
+                                failed?: number;
+                                results?: {
+                                    orderId?: string;
+                                    orderNo?: string;
+                                    ok?: boolean;
+                                    trackingNo?: string;
+                                    expressName?: string;
+                                    reason?: string;
+                                }[];
+                            };
+                        };
+                    };
+                };
+                400: components["responses"]["BadRequest"];
+                409: components["responses"]["Conflict"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/express-companies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 启用的物流公司（发货与导入使用） */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: {
+                                items?: components["schemas"]["ExpressCompany"][];
+                            };
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/express-companies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 物流公司列表（含停用项） */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: {
+                                items?: components["schemas"]["ExpressCompany"][];
+                            };
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** 新增物流公司 */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        code: string;
+                        name: string;
+                        sort?: number;
+                        enabled?: boolean;
+                    };
+                };
+            };
+            responses: {
+                /** @description 创建成功 */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                400: components["responses"]["BadRequest"];
+                409: components["responses"]["Conflict"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/express-companies/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** 删除物流公司 */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                404: components["responses"]["NotFound"];
+            };
+        };
+        options?: never;
+        head?: never;
+        /** 修改物流公司名称 / 排序 / 启停 */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        code?: string;
+                        name?: string;
+                        sort?: number;
+                        enabled?: boolean;
+                    };
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                404: components["responses"]["NotFound"];
+            };
+        };
+        trace?: never;
+    };
+    "/stores": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 启用中的门店列表（可按区域与履约能力筛选） */
+        get: {
+            parameters: {
+                query?: {
+                    region?: string;
+                    capability?: "PICKUP" | "DELIVERY";
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: {
+                                items?: components["schemas"]["Store"][];
+                            };
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/stores/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 门店详情（仅启用中的门店） */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: components["schemas"]["Store"];
+                        };
+                    };
+                };
+                404: components["responses"]["NotFound"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/stores/mine": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 当前账号可访问的门店（门店切换器） */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: {
+                                items?: components["schemas"]["Store"][];
+                            };
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/stores": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 门店列表（总部全量，门店账号仅授权门店） */
+        get: {
+            parameters: {
+                query?: {
+                    status?: "ACTIVE" | "DISABLED";
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: {
+                                items?: components["schemas"]["Store"][];
+                            };
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** 新增门店 */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["StoreInput"];
+                };
+            };
+            responses: {
+                /** @description 创建成功 */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                400: components["responses"]["BadRequest"];
+                409: components["responses"]["Conflict"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/stores/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 门店详情（门店账号仅授权门店） */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: components["schemas"]["Store"];
+                        };
+                    };
+                };
+                404: components["responses"]["NotFound"];
+            };
+        };
+        put?: never;
+        post?: never;
+        /** 停用门店（保留历史订单归属） */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                404: components["responses"]["NotFound"];
+            };
+        };
+        options?: never;
+        head?: never;
+        /** 修改门店配置、配送范围与履约能力 */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["StoreUpdateInput"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                400: components["responses"]["BadRequest"];
+                404: components["responses"]["NotFound"];
+                409: components["responses"]["Conflict"];
+            };
+        };
+        trace?: never;
+    };
+    "/admin/stores/{id}/dashboard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 门店看板 v1：今日经营、待履约与库存预警 */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: components["schemas"]["StoreDashboard"];
+                        };
+                    };
+                };
+                404: components["responses"]["NotFound"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/stores/{storeId}/skus": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 门店可售库存列表 */
+        get: {
+            parameters: {
+                query?: {
+                    skuIds?: string;
+                    keyword?: string;
+                    page?: string;
+                    pageSize?: string;
+                };
+                header?: never;
+                path: {
+                    storeId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: {
+                                total?: number;
+                                page?: number;
+                                pageSize?: number;
+                                items?: components["schemas"]["StoreSkuStock"][];
+                            };
+                        };
+                    };
+                };
+                404: components["responses"]["NotFound"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/stores/{storeId}/sku-options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 可添加到门店的 SKU（按编码/商品名搜索） */
+        get: {
+            parameters: {
+                query?: {
+                    keyword?: string;
+                    page?: string;
+                    pageSize?: string;
+                };
+                header?: never;
+                path: {
+                    storeId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: {
+                                total?: number;
+                                page?: number;
+                                pageSize?: number;
+                                items?: components["schemas"]["StoreSkuOption"][];
+                            };
+                        };
+                    };
+                };
+                404: components["responses"]["NotFound"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/stores/{storeId}/skus/{skuId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** 调整门店单 SKU 库存 / 安全库存 / 状态 */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    storeId: string;
+                    skuId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        stock?: number;
+                        safetyStock?: number;
+                        /** @enum {string} */
+                        status?: "ON_SALE" | "OFF_SHELF";
+                    };
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                400: components["responses"]["BadRequest"];
+                404: components["responses"]["NotFound"];
+            };
+        };
+        trace?: never;
+    };
+    "/admin/stores/{storeId}/skus/batch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 批量设置门店库存（最多 100 个 SKU） */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    storeId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        items: {
+                            skuId: string;
+                            stock?: number;
+                            safetyStock?: number;
+                            /** @enum {string} */
+                            status?: "ON_SALE" | "OFF_SHELF";
+                        }[];
+                    };
+                };
+            };
+            responses: {
+                /** @description 创建成功 */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                400: components["responses"]["BadRequest"];
+                404: components["responses"]["NotFound"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/stores/{storeId}/stock-logs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 门店库存流水（可售库存口径） */
+        get: {
+            parameters: {
+                query?: {
+                    skuId?: string;
+                    page?: string;
+                    pageSize?: string;
+                };
+                header?: never;
+                path: {
+                    storeId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: {
+                                total?: number;
+                                page?: number;
+                                pageSize?: number;
+                                items?: components["schemas"]["StoreStockLog"][];
+                            };
+                        };
+                    };
+                };
+                404: components["responses"]["NotFound"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/pickups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 自提待核销 / 核销记录 */
+        get: {
+            parameters: {
+                query?: {
+                    status?: "pending" | "verified";
+                    storeId?: string;
+                    keyword?: string;
+                    date?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: {
+                                total?: number;
+                                items?: {
+                                    [key: string]: unknown;
+                                }[];
+                            };
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/pickups/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 核销自提码；重复核销返回已核销信息 */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        code: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: {
+                                alreadyVerified?: boolean;
+                                order?: components["schemas"]["Order"];
+                                verification?: {
+                                    [key: string]: unknown;
+                                };
+                            };
+                        };
+                    };
+                };
+                400: components["responses"]["BadRequest"];
+                404: components["responses"]["NotFound"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/deliveries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 同城配送单列表：状态/门店/日期筛选 */
+        get: {
+            parameters: {
+                query?: {
+                    status?: "PENDING" | "ACCEPTED" | "DELIVERED" | "CANCELLED";
+                    storeId?: string;
+                    date?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: {
+                                total?: number;
+                                items?: components["schemas"]["Delivery"][];
+                            };
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/deliveries/{id}/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 接单：可带配送员姓名/电话，订单推进到待收货 */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        courierName?: string;
+                        courierPhone?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: {
+                                alreadyAccepted?: boolean;
+                                delivery?: components["schemas"]["Delivery"];
+                            };
+                        };
+                    };
+                };
+                404: components["responses"]["NotFound"];
+                409: components["responses"]["Conflict"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/deliveries/{id}/deliver": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 送达：订单推进到已完成 */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: {
+                                alreadyDelivered?: boolean;
+                                delivery?: components["schemas"]["Delivery"];
+                            };
+                        };
+                    };
+                };
+                404: components["responses"]["NotFound"];
+                409: components["responses"]["Conflict"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/deliveries/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 取消配送：仅待接单/配送中，需填写原因 */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        reason: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: {
+                                delivery?: components["schemas"]["Delivery"];
+                            };
+                        };
+                    };
+                };
+                400: components["responses"]["BadRequest"];
+                404: components["responses"]["NotFound"];
+                409: components["responses"]["Conflict"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/home-layout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 首页运营位配置（含停用项） */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: {
+                                banners?: components["schemas"]["HomeBannerConfig"][];
+                                navs?: components["schemas"]["HomeNavConfig"][];
+                                sections?: components["schemas"]["HomeSectionConfig"][];
+                            };
+                        };
+                    };
+                };
+            };
+        };
+        /** 保存首页运营位（全量替换，保存后即时生效） */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        banners: components["schemas"]["HomeBannerConfig"][];
+                        navs: components["schemas"]["HomeNavConfig"][];
+                        sections: components["schemas"]["HomeSectionConfig"][];
+                    };
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                400: components["responses"]["BadRequest"];
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/member-cards/plans": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 可购买的会员卡方案 */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: {
+                                items?: components["schemas"]["MemberCardPlan"][];
+                            };
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/member-cards/mine": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 我的会员卡与储值余额 */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/member-cards/purchase": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 使用储值余额购买会员卡（权益立即生效） */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        planId: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                404: components["responses"]["NotFound"];
+                409: components["responses"]["Conflict"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/stored-value": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 储值余额、充值套餐与最近流水 */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/stored-value/recharge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 储值充值（本地测试渠道直接入账） */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        planId: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                404: components["responses"]["NotFound"];
+                /** @description 微信充值支付尚未开启 */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/orders/{id}/pay-balance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 储值余额支付订单（与微信支付互斥） */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                404: components["responses"]["NotFound"];
+                409: components["responses"]["Conflict"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/member-card-plans": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 会员卡方案列表（含停用项） */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        /** 新增会员卡方案 */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["MemberCardPlanInput"];
+                };
+            };
+            responses: {
+                /** @description 创建成功 */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                400: components["responses"]["BadRequest"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/member-card-plans/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** 修改会员卡方案 */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["MemberCardPlanInput"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                404: components["responses"]["NotFound"];
+            };
+        };
+        trace?: never;
+    };
+    "/admin/member-cards": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 用户会员卡台账 */
+        get: {
+            parameters: {
+                query?: {
+                    keyword?: string;
+                    page?: number;
+                    pageSize?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/recharge-plans": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 充值套餐列表（含停用项） */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        /** 新增充值套餐 */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        amountCents: number;
+                        bonusCents?: number;
+                        enabled?: boolean;
+                        sort?: number;
+                    };
+                };
+            };
+            responses: {
+                /** @description 创建成功 */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                400: components["responses"]["BadRequest"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/recharge-plans/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** 修改充值套餐 */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        amountCents?: number;
+                        bonusCents?: number;
+                        enabled?: boolean;
+                        sort?: number;
+                    };
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                404: components["responses"]["NotFound"];
+            };
+        };
+        trace?: never;
+    };
+    "/admin/stored-value/accounts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 储值账户台账 */
+        get: {
+            parameters: {
+                query?: {
+                    keyword?: string;
+                    page?: number;
+                    pageSize?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/stored-value/ledger": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 储值流水（可按用户筛选） */
+        get: {
+            parameters: {
+                query?: {
+                    userId?: string;
+                    page?: number;
+                    pageSize?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/stored-value/adjust": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 后台调整储值余额（记流水） */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        userId: string;
+                        deltaCents: number;
+                        reason: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                400: components["responses"]["BadRequest"];
+                409: components["responses"]["Conflict"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/recharge-orders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 充值记录 */
+        get: {
+            parameters: {
+                query?: {
+                    page?: number;
+                    pageSize?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/promotions/seckill": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 进行中的秒杀商品 */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/promotions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 满减与秒杀活动列表 */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        /** 新建满减或秒杀活动 */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["PromotionInput"];
+                };
+            };
+            responses: {
+                /** @description 创建成功 */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                400: components["responses"]["BadRequest"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/promotions/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** 删除活动 */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                404: components["responses"]["NotFound"];
+            };
+        };
+        options?: never;
+        head?: never;
+        /** 修改活动（启停 / 时间 / 范围 / 商品） */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["PromotionInput"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                404: components["responses"]["NotFound"];
+            };
+        };
+        trace?: never;
+    };
+    "/admin/analytics/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 经营看板（活动效果 / 会员贡献 / 复购 / 商品排行） */
+        get: {
+            parameters: {
+                query?: {
+                    days?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -3896,6 +6578,19 @@ export interface components {
             items?: components["schemas"]["OrderLine"][];
             couponClaimId?: string | null;
             region?: string;
+            /** @enum {string} */
+            fulfillmentType?: "EXPRESS" | "DELIVERY" | "PICKUP";
+            storeId?: string | null;
+            /**
+             * @description 自提时段，格式 HH:mm-HH:mm；自提订单省略表示不指定时段
+             * @example 10:00-12:00
+             */
+            pickupSlot?: string;
+            /**
+             * @description 同城配送时段，格式 HH:mm-HH:mm，必须在门店配置时段内
+             * @example 10:00-12:00
+             */
+            deliverySlot?: string;
         };
         OrderLine: {
             skuId: string;
@@ -3938,12 +6633,67 @@ export interface components {
             quantity?: number;
             subtotalCents?: number;
         };
+        AdminOrderListItem: {
+            id?: string;
+            orderNo?: string;
+            status?: string;
+            payableCents?: number;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            paidAt?: string | null;
+            customer?: {
+                nickname?: string | null;
+                phone?: string | null;
+            };
+            itemCount?: number;
+            firstItemTitle?: string;
+            address?: {
+                [key: string]: unknown;
+            };
+            /** @enum {string} */
+            fulfillmentType?: "EXPRESS" | "DELIVERY" | "PICKUP";
+            storeId?: string | null;
+            storeName?: string | null;
+        };
         Order: {
             id: string;
             /** @example SY20261106093812 */
             orderNo: string;
             /** @enum {string} */
             status: "PENDING_PAYMENT" | "PAID" | "SHIPPED" | "COMPLETED" | "REFUNDING" | "REFUNDED" | "CLOSED";
+            /** @enum {string} */
+            fulfillmentType?: "EXPRESS" | "DELIVERY" | "PICKUP";
+            storeId?: string | null;
+            storeName?: string | null;
+            store?: {
+                id?: string;
+                name?: string;
+                phone?: string | null;
+                region?: string;
+                address?: string;
+                businessHours?: {
+                    [key: string]: unknown;
+                };
+            } | null;
+            /** @description 8 位数字核销码，支付成功后生成 */
+            pickupCode?: string | null;
+            /** Format: date-time */
+            pickupAt?: string | null;
+            /** Format: date-time */
+            pickupCodeExpiresAt?: string | null;
+            /** @description 同城配送时段 */
+            deliverySlot?: string | null;
+            /** Format: date-time */
+            pickupVerifiedAt?: string | null;
+            pickupVerification?: {
+                /** @enum {string} */
+                method?: "CODE" | "QR" | "AUTO";
+                verifiedBy?: string | null;
+                /** Format: date-time */
+                verifiedAt?: string;
+                note?: string | null;
+            } | null;
             /** Format: date-time */
             payDeadlineAt?: string;
             /** Format: date-time */
@@ -3968,6 +6718,47 @@ export interface components {
                 /** Format: date-time */
                 shippedAt?: string;
             } | null;
+            delivery?: {
+                /** @enum {string} */
+                status?: "PENDING" | "ACCEPTED" | "DELIVERED" | "CANCELLED";
+                courierName?: string | null;
+                courierPhone?: string | null;
+                /** Format: date-time */
+                acceptedAt?: string | null;
+                /** Format: date-time */
+                deliveredAt?: string | null;
+                remark?: string | null;
+            } | null;
+        };
+        Delivery: {
+            id?: string;
+            orderId?: string;
+            orderNo?: string;
+            orderStatus?: string;
+            storeId?: string;
+            storeName?: string;
+            /** @enum {string} */
+            status?: "PENDING" | "ACCEPTED" | "DELIVERED" | "CANCELLED";
+            /** @description 待接单超 15 分钟 / 配送中超 60 分钟 */
+            overdue?: boolean;
+            courierName?: string | null;
+            courierPhone?: string | null;
+            /** Format: date-time */
+            acceptedAt?: string | null;
+            /** Format: date-time */
+            deliveredAt?: string | null;
+            remark?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            receiver?: string | null;
+            phone?: string | null;
+            address?: string | null;
+            payableCents?: number;
+            items?: {
+                title?: string;
+                specText?: string;
+                quantity?: number;
+            }[];
         };
         PaymentParams: {
             /** @enum {string} */
@@ -3979,6 +6770,16 @@ export interface components {
             amountCents: number;
             /** Format: date-time */
             expiresAt?: string;
+            /** @description 微信支付 JSAPI 调起参数，直接传给 wx.requestPayment */
+            payParams?: {
+                timeStamp: string;
+                nonceStr: string;
+                /** @example prepay_id=wx201410272009395522657a690389285100 */
+                package: string;
+                /** @enum {string} */
+                signType: "RSA";
+                paySign: string;
+            };
         };
         PaymentCallback: {
             outTradeNo: string;
@@ -4014,6 +6815,7 @@ export interface components {
                 refundNo?: string;
                 /** @enum {string} */
                 status?: "PENDING" | "SUCCESS" | "FAILED";
+                channelStatus?: string | null;
                 /** Format: date-time */
                 refundedAt?: string | null;
             } | null;
@@ -4160,6 +6962,8 @@ export interface components {
             subtitle?: string | null;
             categoryId?: string;
             mainImageKey?: string | null;
+            mainImageKeys?: string[];
+            detailImageKeys?: string[];
             detail?: string | null;
             /** @enum {string} */
             status?: "ON_SALE" | "OFF_SHELF" | "SOLD_OUT";
@@ -4175,6 +6979,8 @@ export interface components {
             subtitle?: string;
             categoryId: string;
             mainImageKey?: string;
+            mainImageKeys?: string[];
+            detailImageKeys?: string[];
             detail?: string;
             /** @enum {string} */
             status?: "ON_SALE" | "OFF_SHELF";
@@ -4224,12 +7030,24 @@ export interface components {
         };
         Asset: {
             id?: string;
+            /** @description 业务引用键；上传素材为 /api/media/assets/... */
             key?: string;
             url?: string;
+            storageKey?: string | null;
+            originalName?: string | null;
             size?: number;
             mimeType?: string | null;
-            group?: string;
+            folderId?: string | null;
+            folderName?: string | null;
             refCount?: number;
+            /** Format: date-time */
+            createdAt?: string;
+        };
+        AssetFolder: {
+            id?: string;
+            name?: string;
+            sort?: number;
+            count?: number;
             /** Format: date-time */
             createdAt?: string;
         };
@@ -4254,11 +7072,306 @@ export interface components {
                 orderPaid?: string;
                 orderShipped?: string;
                 refundResult?: string;
+                pickupReady?: string;
+                pickupExpiring?: string;
+                deliveryAccepted?: string;
+                deliveryDone?: string;
+            };
+            /** @description 模板字段映射：场景 → { 微信字段名: 变量名 } */
+            subscribeTemplateFields?: {
+                [key: string]: {
+                    [key: string]: string;
+                };
             };
             apiBaseUrl?: string | null;
             businessDomain?: string | null;
             /** Format: date-time */
             updatedAt?: string;
+        };
+        NotificationLog: {
+            id?: string;
+            /** @enum {string} */
+            scene?: "ORDER_PAID" | "ORDER_SHIPPED" | "REFUND_RESULT" | "PICKUP_READY" | "PICKUP_EXPIRING" | "DELIVERY_ACCEPTED" | "DELIVERY_DONE";
+            templateId?: string;
+            userId?: string;
+            /** @enum {string} */
+            status?: "PENDING" | "SENT" | "SKIPPED" | "FAILED";
+            attempts?: number;
+            error?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            sentAt?: string | null;
+            /** Format: date-time */
+            nextRetryAt?: string | null;
+        };
+        AdminRefund: {
+            id?: string;
+            refundNo?: string;
+            orderNo?: string;
+            afterSaleNo?: string;
+            amountCents?: number;
+            /** @enum {string} */
+            status?: "PENDING" | "SUCCESS" | "FAILED";
+            provider?: string;
+            channelStatus?: string | null;
+            transactionId?: string | null;
+            failReason?: string | null;
+            /** Format: date-time */
+            lastQueriedAt?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+        };
+        HomeProduct: {
+            id?: string;
+            title?: string;
+            subtitle?: string | null;
+            mainImageKey?: string | null;
+            priceCents?: number;
+        };
+        ExpressCompany: {
+            id?: string;
+            code?: string;
+            name?: string;
+            sort?: number;
+            enabled?: boolean;
+        };
+        Store: {
+            id?: string;
+            code?: string;
+            name?: string;
+            phone?: string | null;
+            region?: string;
+            address?: string;
+            lat?: number | null;
+            lng?: number | null;
+            businessHours?: {
+                [key: string]: unknown;
+            };
+            pickupEnabled?: boolean;
+            deliveryEnabled?: boolean;
+            deliveryFeeCents?: number;
+            freeDeliveryThresholdCents?: number;
+            deliverySlots?: string[];
+            deliveryCutoff?: string | null;
+            maxOrdersPerSlot?: number;
+            pickupCompleteDays?: number;
+            notice?: string | null;
+            /** @enum {string} */
+            status?: "ACTIVE" | "DISABLED";
+            sort?: number;
+            deliveryRegions?: string[];
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        StoreInput: {
+            code: string;
+            name: string;
+            phone?: string;
+            region: string;
+            address: string;
+            lat?: number;
+            lng?: number;
+            businessHours?: {
+                [key: string]: unknown;
+            };
+            pickupEnabled?: boolean;
+            deliveryEnabled?: boolean;
+            deliveryFeeCents?: number;
+            freeDeliveryThresholdCents?: number;
+            deliverySlots?: string[];
+            deliveryCutoff?: string;
+            maxOrdersPerSlot?: number;
+            pickupCompleteDays?: number;
+            notice?: string;
+            /** @enum {string} */
+            status?: "ACTIVE" | "DISABLED";
+            sort?: number;
+            deliveryRegions?: string[];
+        };
+        StoreUpdateInput: {
+            code?: string;
+            name?: string;
+            phone?: string;
+            region?: string;
+            address?: string;
+            lat?: number;
+            lng?: number;
+            businessHours?: {
+                [key: string]: unknown;
+            };
+            pickupEnabled?: boolean;
+            deliveryEnabled?: boolean;
+            deliveryFeeCents?: number;
+            freeDeliveryThresholdCents?: number;
+            deliverySlots?: string[];
+            deliveryCutoff?: string;
+            maxOrdersPerSlot?: number;
+            pickupCompleteDays?: number;
+            notice?: string;
+            /** @enum {string} */
+            status?: "ACTIVE" | "DISABLED";
+            sort?: number;
+            deliveryRegions?: string[];
+        };
+        StoreDashboard: {
+            store?: {
+                id?: string;
+                name?: string;
+                /** @enum {string} */
+                status?: "ACTIVE" | "DISABLED";
+            };
+            range?: {
+                /** Format: date-time */
+                start?: string;
+                /** Format: date-time */
+                end?: string;
+            };
+            today?: {
+                paidOrders?: number;
+                gmvCents?: number;
+                refundOrders?: number;
+                refundCents?: number;
+            };
+            pending?: {
+                pickupOrders?: number;
+                deliveryOrders?: number;
+            };
+            delivery?: {
+                avgAcceptMinutes?: number | null;
+                avgDeliverMinutes?: number | null;
+                overdueCount?: number;
+            };
+            stock?: {
+                warningCount?: number;
+                warnings?: {
+                    skuId?: string;
+                    code?: string;
+                    title?: string;
+                    available?: number;
+                    safetyStock?: number;
+                }[];
+            };
+        };
+        StoreSkuStock: {
+            skuId?: string;
+            code?: string;
+            title?: string;
+            specText?: string;
+            imageKey?: string | null;
+            priceCents?: number;
+            stock?: number;
+            reserved?: number;
+            available?: number;
+            safetyStock?: number;
+            /** @enum {string} */
+            status?: "ON_SALE" | "OFF_SHELF" | "SOLD_OUT";
+        };
+        StoreSkuOption: {
+            skuId?: string;
+            code?: string;
+            title?: string;
+            specText?: string;
+            imageKey?: string | null;
+            priceCents?: number;
+            configured?: boolean;
+            stock?: number;
+            reserved?: number;
+            available?: number;
+            safetyStock?: number;
+            /** @enum {string} */
+            status?: "ON_SALE" | "OFF_SHELF" | "SOLD_OUT";
+        };
+        StoreStockLog: {
+            id?: string;
+            skuId?: string;
+            skuCode?: string;
+            title?: string;
+            delta?: number;
+            beforeStock?: number;
+            afterStock?: number;
+            /** @enum {string} */
+            reason?: "ADJUST" | "ORDER_RESERVE" | "ORDER_RELEASE" | "ORDER_PAID" | "REFUND" | "RESTOCK";
+            orderId?: string | null;
+            operatorId?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+        };
+        HomeBannerConfig: {
+            id?: string;
+            imageKey: string;
+            title?: string | null;
+            /** @enum {string} */
+            linkType: "product" | "category" | "search" | "page" | "none";
+            linkValue?: string | null;
+            sort: number;
+            enabled: boolean;
+        };
+        HomeNavConfig: {
+            id?: string;
+            name: string;
+            iconKey?: string | null;
+            /** @enum {string} */
+            linkType: "product" | "category" | "search" | "page" | "none";
+            linkValue?: string | null;
+            sort: number;
+            enabled: boolean;
+        };
+        HomeSectionConfig: {
+            id?: string;
+            title: string;
+            productIds: string[];
+            sort: number;
+            enabled: boolean;
+        };
+        MemberCardPlan: {
+            id?: string;
+            name?: string;
+            priceCents?: number;
+            durationDays?: number;
+            discountRate?: number;
+            pointsRate?: number;
+            freeShipping?: boolean;
+            enabled?: boolean;
+            sort?: number;
+        };
+        MemberCardPlanInput: {
+            name?: string;
+            priceCents?: number;
+            durationDays?: number;
+            discountRate?: number;
+            pointsRate?: number;
+            freeShipping?: boolean;
+            enabled?: boolean;
+            sort?: number;
+        };
+        PromotionInput: {
+            name?: string;
+            /** @enum {string} */
+            type?: "FULL_REDUCTION" | "SECKILL";
+            enabled?: boolean;
+            /** Format: date-time */
+            startAt?: string;
+            /** Format: date-time */
+            endAt?: string;
+            thresholdCents?: number;
+            discountCents?: number;
+            /** @enum {string} */
+            scopeType?: "ALL" | "CATEGORY" | "PRODUCT";
+            scopes?: {
+                /** @enum {string} */
+                targetType?: "CATEGORY" | "PRODUCT";
+                targetId?: string;
+            }[];
+            skus?: {
+                skuId?: string;
+                seckillPriceCents?: number;
+                stock?: number;
+                limitPerUser?: number;
+                sort?: number;
+            }[];
         };
         MiniappRelease: {
             id?: string;
@@ -4290,7 +7403,8 @@ export interface components {
             account?: string;
             displayName?: string;
             /** @enum {string} */
-            role?: "SUPER" | "OPS" | "CS" | "WMS";
+            role?: "SUPER" | "OPS" | "CS" | "WMS" | "STORE";
+            storeIds?: string[];
             /** @enum {string} */
             status?: "ACTIVE" | "DISABLED";
             failCount?: number;

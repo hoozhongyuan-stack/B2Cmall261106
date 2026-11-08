@@ -6,11 +6,19 @@
 export interface AmountLine {
   priceCents: number;
   quantity: number;
+  /** 秒杀行：不参与会员折扣、优惠券与满减 */
+  seckill?: boolean;
 }
 
 export interface CouponRule {
   thresholdCents: number;
   faceValueCents: number;
+}
+
+/** 满减规则：门槛按「券后普通商品金额」判断 */
+export interface FullReductionRule {
+  thresholdCents: number;
+  discountCents: number;
 }
 
 export interface FreightRule {
@@ -24,9 +32,11 @@ export interface FreightRule {
 
 export interface AmountInput {
   items: AmountLine[];
-  /** 1 表示无折扣，0.98 / 0.95 为等级折扣 */
+  /** 1 表示无折扣，0.98 / 0.95 为等级折扣；仅作用于非秒杀商品 */
   memberDiscountRate?: number;
   coupon?: CouponRule | null;
+  /** 满减：在优惠券之后，按券后普通商品金额判断门槛 */
+  fullReduction?: FullReductionRule | null;
   freight: FreightRule;
 }
 
@@ -34,6 +44,7 @@ export interface OrderAmount {
   goodsCents: number;
   memberDiscountCents: number;
   couponCents: number;
+  fullReductionCents: number;
   freightCents: number;
   payableCents: number;
 }
@@ -51,27 +62,40 @@ export function calculateOrderAmount(input: AmountInput): OrderAmount {
   if (!(rate > 0 && rate <= 1)) throw new Error(`会员折扣率非法：${rate}`);
 
   let goodsCents = 0;
+  let normalGoodsCents = 0;
   for (const line of input.items) {
     assertNonNegativeInt(line.priceCents, '商品单价');
     if (!Number.isInteger(line.quantity) || line.quantity <= 0) {
       throw new Error(`商品数量必须为正整数，收到 ${line.quantity}`);
     }
-    goodsCents += line.priceCents * line.quantity;
+    const subtotal = line.priceCents * line.quantity;
+    goodsCents += subtotal;
+    if (!line.seckill) normalGoodsCents += subtotal;
   }
 
-  // 会员折扣：按比例折算，四舍五入到分
-  const memberDiscountCents = goodsCents - Math.round(goodsCents * rate);
+  // 会员折扣：仅作用于非秒杀商品，按比例折算，四舍五入到分
+  const memberDiscountCents = normalGoodsCents - Math.round(normalGoodsCents * rate);
   const afterMemberCents = goodsCents - memberDiscountCents;
 
-  // 优惠券：按「会员折扣后金额」判断门槛；最多抵扣到 0 元商品部分
+  // 优惠券：只抵扣普通商品（秒杀行不参与），按会员折扣后普通商品金额判断门槛
+  const afterMemberNormalCents = normalGoodsCents - memberDiscountCents;
   const couponCents = input.coupon
     ? Math.min(
         Math.max(input.coupon.faceValueCents, 0),
-        afterMemberCents >= input.coupon.thresholdCents ? afterMemberCents : 0,
+        afterMemberNormalCents >= input.coupon.thresholdCents ? afterMemberNormalCents : 0,
       )
     : 0;
 
   const afterCouponCents = afterMemberCents - couponCents;
+
+  // 满减：券后普通商品金额判断门槛，最多抵扣普通商品部分
+  const normalAfterCouponCents = afterMemberNormalCents - couponCents;
+  const fullReductionCents =
+    input.fullReduction && normalAfterCouponCents >= input.fullReduction.thresholdCents
+      ? Math.min(Math.max(input.fullReduction.discountCents, 0), normalAfterCouponCents)
+      : 0;
+
+  const afterReductionCents = afterCouponCents - fullReductionCents;
 
   // 运费：地区例外优先，其次判断包邮门槛（用券后商品金额）
   const freightCents = input.freight.isExceptionRegion
@@ -86,8 +110,9 @@ export function calculateOrderAmount(input: AmountInput): OrderAmount {
     goodsCents,
     memberDiscountCents,
     couponCents,
+    fullReductionCents,
     freightCents,
-    payableCents: afterCouponCents + freightCents,
+    payableCents: afterReductionCents + freightCents,
   };
 }
 
@@ -97,10 +122,14 @@ export function formatCents(cents: number, withSymbol = true): string {
   return withSymbol ? `¥${yuan}` : yuan;
 }
 
-/** 校验订单金额快照自洽：payable = goods - discount - coupon + freight */
+/** 校验订单金额快照自洽：payable = goods - discount - coupon - 满减 + freight */
 export function assertAmountSelfConsistent(amount: OrderAmount): void {
   const expected =
-    amount.goodsCents - amount.memberDiscountCents - amount.couponCents + amount.freightCents;
+    amount.goodsCents -
+    amount.memberDiscountCents -
+    amount.couponCents -
+    amount.fullReductionCents +
+    amount.freightCents;
   if (expected !== amount.payableCents) {
     throw new Error(`金额不自洽：期望 ${expected}，实际 ${amount.payableCents}`);
   }
@@ -124,14 +153,18 @@ export function allocateDiscount(totalDiscountCents: number, weightsCents: numbe
   return result;
 }
 
-/** 计算每行实付（不含运费），返回与输入等长的数组 */
+/** 计算每行实付（不含运费），返回与输入等长的数组；秒杀行不参与任何优惠 */
 export function allocateLinePaidCents(input: {
-  lines: { priceCents: number; quantity: number }[];
+  lines: AmountLine[];
   memberDiscountCents: number;
   couponCents: number;
+  fullReductionCents?: number;
 }): number[] {
   const goods = input.lines.map((l) => l.priceCents * l.quantity);
-  const memberAlloc = allocateDiscount(input.memberDiscountCents, goods);
-  const couponAlloc = allocateDiscount(input.couponCents, goods);
-  return goods.map((g, i) => g - memberAlloc[i] - couponAlloc[i]);
+  // 秒杀行权重为 0，优惠只摊到普通商品
+  const weights = input.lines.map((l, i) => (l.seckill ? 0 : goods[i]));
+  const memberAlloc = allocateDiscount(input.memberDiscountCents, weights);
+  const couponAlloc = allocateDiscount(input.couponCents, weights);
+  const fullAlloc = allocateDiscount(input.fullReductionCents ?? 0, weights);
+  return goods.map((g, i) => g - memberAlloc[i] - couponAlloc[i] - fullAlloc[i]);
 }

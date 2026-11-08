@@ -1,11 +1,18 @@
 import { Body, Controller, Get, HttpCode, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { IsIn, IsOptional, IsString, MinLength } from 'class-validator';
+import {
+  ArrayMaxSize,
+  IsArray,
+  IsIn,
+  IsOptional,
+  IsString,
+  MinLength,
+} from 'class-validator';
 
 import { AdminAccountService, type AccountStatus } from './admin-account.service';
 import { CurrentUser, JwtAuthGuard, Roles, RolesGuard, type AdminRole, type AuthUser } from '../../common/auth.guards';
 
-const ROLES: AdminRole[] = ['SUPER', 'OPS', 'CS', 'WMS'];
+const ROLES: AdminRole[] = ['SUPER', 'OPS', 'CS', 'WMS', 'STORE'];
 
 class CreateAccountDto {
   @IsString()
@@ -20,6 +27,12 @@ class CreateAccountDto {
   @IsString()
   @MinLength(8)
   password!: string;
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(20)
+  @IsString({ each: true })
+  storeIds?: string[];
 }
 
 class UpdateAccountDto {
@@ -30,6 +43,12 @@ class UpdateAccountDto {
   @IsOptional()
   @IsIn(ROLES)
   role?: AdminRole;
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(20)
+  @IsString({ each: true })
+  storeIds?: string[];
 }
 
 class SetStatusDto {

@@ -5,6 +5,23 @@ export interface PaymentParams {
   orderNo: string;
   prepayId?: string;
   mockConfirmUrl?: string;
+  /** 微信支付 JSAPI 调起参数（仅 wechat） */
+  payParams?: {
+    timeStamp: string;
+    nonceStr: string;
+    package: string;
+    signType: 'RSA';
+    paySign: string;
+  };
+}
+
+export interface CreatePaymentInput {
+  /** 业务订单号（展示与 mock 使用） */
+  orderNo: string;
+  /** 渠道交易单号：微信支付 out_trade_no，回调按它匹配支付单 */
+  outTradeNo?: string;
+  amountCents: number;
+  openid?: string;
 }
 
 export interface CallbackResult {
@@ -21,7 +38,7 @@ export interface CallbackResult {
  */
 export interface PaymentProvider {
   readonly name: 'mock' | 'wechat';
-  createPayment(input: { orderNo: string; amountCents: number; openid?: string }): Promise<PaymentParams>;
+  createPayment(input: CreatePaymentInput): Promise<PaymentParams>;
   verifyCallback(headers: Record<string, string | undefined>, rawBody: string): Promise<CallbackResult>;
 }
 

@@ -19,6 +19,7 @@ interface AccountRow {
   account: string;
   displayName: string;
   role: string;
+  storeIds?: string[];
   status: string;
   failCount: number;
   lockedUntil: string | null;
@@ -26,8 +27,19 @@ interface AccountRow {
   createdAt: string;
 }
 
-const ROLES: AdminRole[] = ['SUPER', 'OPS', 'CS', 'WMS'];
-const EMPTY_CREATE = { account: '', displayName: '', role: 'CS' as AdminRole, password: '' };
+interface StoreOption {
+  id: string;
+  name: string;
+}
+
+const ROLES: AdminRole[] = ['SUPER', 'OPS', 'CS', 'WMS', 'STORE'];
+const EMPTY_CREATE = {
+  account: '',
+  displayName: '',
+  role: 'CS' as AdminRole,
+  password: '',
+  storeIds: [] as string[],
+};
 
 function errorText(err: unknown): string {
   return err instanceof ApiError ? err.message : '操作失败';
@@ -36,6 +48,7 @@ function errorText(err: unknown): string {
 export default function Accounts() {
   const canWrite = hasRole('SUPER');
   const [items, setItems] = useState<AccountRow[]>([]);
+  const [stores, setStores] = useState<StoreOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [createOpen, setCreateOpen] = useState(false);
   const [createForm, setCreateForm] = useState(EMPTY_CREATE);
@@ -43,12 +56,21 @@ export default function Accounts() {
   const [resetTarget, setResetTarget] = useState<AccountRow | null>(null);
   const [password, setPassword] = useState('');
   const [resetting, setResetting] = useState(false);
+  const [bindTarget, setBindTarget] = useState<AccountRow | null>(null);
+  const [bindStoreIds, setBindStoreIds] = useState<string[]>([]);
+  const [binding, setBinding] = useState(false);
 
   async function load() {
     setLoading(true);
     try {
-      const result = await api<{ items: AccountRow[] }>('/admin/accounts');
+      const [result, storeResult] = await Promise.all([
+        api<{ items: AccountRow[] }>('/admin/accounts'),
+        canWrite
+          ? api<{ items: StoreOption[] }>('/admin/stores', { query: { status: 'ACTIVE' } })
+          : Promise.resolve({ items: [] as StoreOption[] }),
+      ]);
       setItems(result.items);
+      setStores(storeResult.items);
     } catch (err) {
       toast(errorText(err), 'error');
     } finally {
@@ -74,6 +96,10 @@ export default function Accounts() {
       toast('密码至少 8 位', 'error');
       return;
     }
+    if (createForm.role === 'STORE' && !createForm.storeIds.length) {
+      toast('门店账号至少绑定一个门店', 'error');
+      return;
+    }
     setCreating(true);
     try {
       await api('/admin/accounts', {
@@ -83,6 +109,7 @@ export default function Accounts() {
           displayName: createForm.displayName.trim(),
           role: createForm.role,
           password: createForm.password,
+          ...(createForm.role === 'STORE' ? { storeIds: createForm.storeIds } : {}),
         },
       });
       toast('已保存');
@@ -132,6 +159,40 @@ export default function Accounts() {
     }
   }
 
+  function openBind(row: AccountRow) {
+    setBindTarget(row);
+    setBindStoreIds(row.storeIds ?? []);
+  }
+
+  async function bindStores() {
+    if (!bindTarget) return;
+    if (!bindStoreIds.length) {
+      toast('门店账号至少绑定一个门店', 'error');
+      return;
+    }
+    setBinding(true);
+    try {
+      await api(`/admin/accounts/${bindTarget.id}`, {
+        method: 'PATCH',
+        body: { storeIds: bindStoreIds },
+      });
+      toast('已更新门店绑定');
+      setBindTarget(null);
+      await load();
+    } catch (err) {
+      toast(errorText(err), 'error');
+    } finally {
+      setBinding(false);
+    }
+  }
+
+  function storeNames(storeIds?: string[]): string {
+    if (!storeIds?.length) return '未绑定';
+    return storeIds
+      .map((id) => stores.find((store) => store.id === id)?.name ?? id)
+      .join('、');
+  }
+
   const columns: Column<AccountRow>[] = [
     {
       key: 'account',
@@ -147,6 +208,16 @@ export default function Accounts() {
       key: 'role',
       title: '角色',
       render: (row) => <Tag tone="brand">{ROLE_LABEL[row.role as AdminRole] ?? row.role}</Tag>,
+    },
+    {
+      key: 'stores',
+      title: '绑定门店',
+      render: (row) =>
+        row.role === 'STORE' ? (
+          <span className="small">{storeNames(row.storeIds)}</span>
+        ) : (
+          <span className="muted">—</span>
+        ),
     },
     {
       key: 'status',
@@ -179,6 +250,11 @@ export default function Accounts() {
       render: (row) =>
         canWrite ? (
           <div className="row" style={{ justifyContent: 'flex-end', gap: 6 }}>
+            {row.role === 'STORE' && (
+              <Button size="sm" variant="ghost" onClick={() => openBind(row)}>
+                绑定门店
+              </Button>
+            )}
             <Button size="sm" variant="ghost" onClick={() => void toggleStatus(row)}>
               {row.status === 'ACTIVE' ? '停用' : '启用'}
             </Button>
@@ -248,9 +324,14 @@ export default function Accounts() {
             <select
               className="select"
               value={createForm.role}
-              onChange={(e) =>
-                setCreateForm((prev) => ({ ...prev, role: e.target.value as AdminRole }))
-              }
+              onChange={(e) => {
+                const role = e.target.value as AdminRole;
+                setCreateForm((prev) => ({
+                  ...prev,
+                  role,
+                  storeIds: role === 'STORE' ? prev.storeIds : [],
+                }));
+              }}
             >
               {ROLES.map((role) => (
                 <option key={role} value={role}>
@@ -259,6 +340,32 @@ export default function Accounts() {
               ))}
             </select>
           </Field>
+          {createForm.role === 'STORE' && (
+            <Field label="绑定门店" hint="至少选择一个，可多选">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {stores.map((store) => (
+                  <label key={store.id} className="row" style={{ gap: 6 }}>
+                    <input
+                      type="checkbox"
+                      checked={createForm.storeIds.includes(store.id)}
+                      onChange={(e) =>
+                        setCreateForm((prev) => ({
+                          ...prev,
+                          storeIds: e.target.checked
+                            ? [...prev.storeIds, store.id]
+                            : prev.storeIds.filter((id) => id !== store.id),
+                        }))
+                      }
+                    />
+                    <span className="small">{store.name}</span>
+                  </label>
+                ))}
+                {!stores.length && (
+                  <span className="small muted">暂无启用门店，请先在门店管理中创建</span>
+                )}
+              </div>
+            </Field>
+          )}
           <Field label="初始密码" hint="至少 8 位">
             <input
               className="input"
@@ -268,6 +375,43 @@ export default function Accounts() {
             />
           </Field>
         </form>
+      </Modal>
+
+      <Modal
+        open={Boolean(bindTarget)}
+        title={`绑定门店${bindTarget ? ` · ${bindTarget.account}` : ''}`}
+        onClose={() => setBindTarget(null)}
+        footer={
+          <>
+            <Button variant="plain" onClick={() => setBindTarget(null)}>
+              取消
+            </Button>
+            <Button loading={binding} onClick={() => void bindStores()}>
+              保存
+            </Button>
+          </>
+        }
+      >
+        <Field label="门店" hint="至少选择一个，可多选">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {stores.map((store) => (
+              <label key={store.id} className="row" style={{ gap: 6 }}>
+                <input
+                  type="checkbox"
+                  checked={bindStoreIds.includes(store.id)}
+                  onChange={(e) =>
+                    setBindStoreIds((prev) =>
+                      e.target.checked
+                        ? [...prev, store.id]
+                        : prev.filter((id) => id !== store.id),
+                    )
+                  }
+                />
+                <span className="small">{store.name}</span>
+              </label>
+            ))}
+          </div>
+        </Field>
       </Modal>
 
       <Modal

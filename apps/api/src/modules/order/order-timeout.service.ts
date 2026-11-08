@@ -3,6 +3,7 @@ import { nextStatus } from '@shanye/shared';
 
 import { PrismaService } from '../../prisma/prisma.module';
 import { CouponService } from '../coupon/coupon.service';
+import { StoreInventoryService } from '../store/store-inventory.service';
 
 const INTERVAL_MS = 60_000;
 
@@ -18,6 +19,7 @@ export class OrderTimeoutService implements OnModuleInit, OnModuleDestroy {
   constructor(
     private readonly prisma: PrismaService,
     private readonly coupons: CouponService,
+    private readonly storeInventory: StoreInventoryService,
   ) {}
 
   onModuleInit(): void {
@@ -57,11 +59,28 @@ export class OrderTimeoutService implements OnModuleInit, OnModuleDestroy {
         });
         if (updated.count !== 1) return false;
 
+        if (order.storeId) {
+          await this.storeInventory.release(
+            tx,
+            order.storeId,
+            order.items.map((item) => ({ skuId: item.skuId, quantity: item.quantity })),
+            order.id,
+          );
+        }
+
         for (const item of order.items) {
-          await tx.sku.update({
-            where: { id: item.skuId },
-            data: { reserved: { decrement: item.quantity } },
-          });
+          if (!order.storeId) {
+            await tx.sku.update({
+              where: { id: item.skuId },
+              data: { reserved: { decrement: item.quantity } },
+            });
+          }
+          if (item.seckillId) {
+            await tx.seckillSku.updateMany({
+              where: { id: item.seckillId, sold: { gte: item.quantity } },
+              data: { sold: { decrement: item.quantity } },
+            });
+          }
         }
 
         // 超时关单等同取消：已锁定的券在有效期内退回

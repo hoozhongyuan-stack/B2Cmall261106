@@ -6,12 +6,17 @@ import {
   Param,
   Post,
   Query,
+  UploadedFiles,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { FilesInterceptor } from '@nestjs/platform-express';
+import { ApiBearerAuth, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { IsArray, IsBoolean, IsIn, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
 
 import { ReviewService } from './review.service';
+import { AssetService, type UploadedImage } from '../assets/asset.service';
+import { RateLimit } from '../../common/rate-limit.guard';
 import { CurrentUser, UserJwtGuard, type MiniappUser } from '../../common/user-auth.guard';
 import { JwtAuthGuard, Roles, RolesGuard } from '../../common/auth.guards';
 
@@ -53,12 +58,25 @@ class ReplyReviewDto {
 @UseGuards(UserJwtGuard)
 @Controller('reviews')
 export class ReviewController {
-  constructor(private readonly reviews: ReviewService) {}
+  constructor(
+    private readonly reviews: ReviewService,
+    private readonly assets: AssetService,
+  ) {}
 
   @Post()
   @ApiOperation({ summary: '发布评价（仅已完成订单，先审后显）' })
   create(@CurrentUser() user: MiniappUser, @Body() dto: CreateReviewDto) {
     return this.reviews.create(user.sub, dto);
+  }
+
+  @Post('images')
+  @HttpCode(200)
+  @RateLimit({ limit: 10, windowMs: 60_000 })
+  @UseInterceptors(FilesInterceptor('files', 9, { limits: { fileSize: 5 * 1024 * 1024 } }))
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({ summary: '评价晒图上传（multipart，最多 9 张，单张 ≤5MB）' })
+  async uploadImages(@UploadedFiles() files: UploadedImage[]) {
+    return this.assets.upload(files ?? []);
   }
 
   @Get('mine')
