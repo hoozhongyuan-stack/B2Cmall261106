@@ -19,8 +19,8 @@ test('集成配置：填写 AppSecret 保存并清除', async ({ page }) => {
   await expect(secretField.getByText('已配置')).toBeVisible();
   await expect(secretField.locator('input[type="password"]')).toHaveValue('');
 
-  // 清除后恢复未配置
-  page.once('dialog', (dialog) => void dialog.accept());
+  // 清除后恢复未配置（统一确认弹窗）
   await secretField.getByRole('button', { name: '清除' }).click();
+  await page.locator('.modal').getByRole('button', { name: '确定' }).click();
   await expect(secretField.getByText('未配置')).toBeVisible();
 });

@@ -69,22 +69,55 @@ export class AdminProductService {
     private readonly assets: AssetService,
   ) {}
 
-  async listAdmin(query: { keyword?: string; status?: string; categoryId?: string }) {
+  async listAdmin(query: {
+    keyword?: string;
+    status?: string;
+    categoryId?: string;
+    minPriceCents?: number;
+    maxPriceCents?: number;
+    sort?: string;
+    page?: number;
+    pageSize?: number;
+  }) {
     const status = this.parseStatus(query.status, PRODUCT_STATUSES, '商品状态不合法');
     const keyword = query.keyword?.trim();
+    const page = Math.max(query.page ?? 1, 1);
+    const pageSize = Math.min(Math.max(query.pageSize ?? 20, 1), 100);
 
-    const products = await this.prisma.product.findMany({
-      where: {
-        ...(status ? { status: status as never } : {}),
-        ...(query.categoryId ? { categoryId: query.categoryId } : {}),
-        ...(keyword ? { title: { contains: keyword, mode: 'insensitive' as const } } : {}),
-      },
-      orderBy: [{ sort: 'asc' }, { createdAt: 'desc' }],
-      take: 100,
-      include: { category: true, skus: { select: { stock: true } } },
-    });
+    const orderBy =
+      query.sort === 'price_asc'
+        ? [{ priceMinCents: 'asc' as const }]
+        : query.sort === 'price_desc'
+          ? [{ priceMaxCents: 'desc' as const }]
+          : query.sort === 'sales'
+            ? [{ soldCount: 'desc' as const }]
+            : query.sort === 'newest'
+              ? [{ createdAt: 'desc' as const }]
+              : [{ sort: 'asc' as const }, { createdAt: 'desc' as const }];
+
+    const where = {
+      ...(status ? { status: status as never } : {}),
+      ...(query.categoryId ? { categoryId: query.categoryId } : {}),
+      ...(keyword ? { title: { contains: keyword, mode: 'insensitive' as const } } : {}),
+      ...(query.minPriceCents !== undefined ? { priceMaxCents: { gte: query.minPriceCents } } : {}),
+      ...(query.maxPriceCents !== undefined ? { priceMinCents: { lte: query.maxPriceCents } } : {}),
+    };
+
+    const [products, total] = await Promise.all([
+      this.prisma.product.findMany({
+        where,
+        orderBy,
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+        include: { category: true, skus: { select: { stock: true } } },
+      }),
+      this.prisma.product.count({ where }),
+    ]);
 
     return {
+      total,
+      page,
+      pageSize,
       items: products.map((p) => ({
         id: p.id,
         title: p.title,
@@ -99,6 +132,34 @@ export class AdminProductService {
         createdAt: p.createdAt,
       })),
     };
+  }
+
+  /** 批量上下架：只更新存在的商品，返回实际影响行数 */
+  async batchStatus(ids: string[], status: 'ON_SALE' | 'OFF_SHELF') {
+    const unique = [...new Set(ids.filter(Boolean))];
+    if (!unique.length) throw new BadRequestException('请选择商品');
+    const result = await this.prisma.product.updateMany({
+      where: { id: { in: unique } },
+      data: { status },
+    });
+    return { total: unique.length, success: result.count, failed: unique.length - result.count };
+  }
+
+  /** 批量删除：逐条执行，已产生订单的商品记为失败并返回原因 */
+  async batchRemove(ids: string[]) {
+    const unique = [...new Set(ids.filter(Boolean))];
+    if (!unique.length) throw new BadRequestException('请选择商品');
+    const errors: { id: string; message: string }[] = [];
+    let success = 0;
+    for (const id of unique) {
+      try {
+        await this.remove(id);
+        success += 1;
+      } catch (error) {
+        errors.push({ id, message: error instanceof Error ? error.message : '删除失败' });
+      }
+    }
+    return { total: unique.length, success, failed: errors.length, errors };
   }
 
   async detail(id: string) {

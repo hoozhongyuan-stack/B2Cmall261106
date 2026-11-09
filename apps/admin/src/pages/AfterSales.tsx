@@ -8,12 +8,14 @@ import {
 import { api, ApiError, formatDate, money } from '../api/client';
 import { toast } from '../components/toast';
 import {
+  Button,
   Card,
   DataTable,
   PageHeader,
   Pagination,
   Tabs,
   Tag,
+  Toolbar,
   type Column,
 } from '../components/ui';
 
@@ -83,6 +85,11 @@ export default function AfterSales() {
   });
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
+  const [keyword, setKeyword] = useState('');
+  const [appliedKeyword, setAppliedKeyword] = useState('');
+  const [typeFilter, setTypeFilter] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const PAGE_SIZE = 20;
 
   useEffect(() => {
@@ -91,7 +98,15 @@ export default function AfterSales() {
       setLoading(true);
       try {
         const result = await api<AfterSaleResult>('/admin/after-sales', {
-          query: { status, page, pageSize: PAGE_SIZE },
+          query: {
+            status,
+            page,
+            pageSize: PAGE_SIZE,
+            keyword: appliedKeyword || undefined,
+            type: typeFilter || undefined,
+            startDate: startDate || undefined,
+            endDate: endDate || undefined,
+          },
         });
         if (alive) setData(result);
       } catch (err) {
@@ -104,7 +119,7 @@ export default function AfterSales() {
     return () => {
       alive = false;
     };
-  }, [status, page]);
+  }, [status, page, appliedKeyword, typeFilter, startDate, endDate]);
 
   const countMap = new Map(data.tabs.map((tab) => [tab.status, tab.count]));
   const total = data.tabs.reduce((sum, tab) => sum + tab.count, 0);
@@ -175,6 +190,79 @@ export default function AfterSales() {
       <PageHeader title="售后管理" desc="审核仅退款 / 退货退款，确认收货后自动发起退款" />
 
       <Card>
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            setAppliedKeyword(keyword.trim());
+            setPage(1);
+          }}
+        >
+          <Toolbar>
+            <input
+              className="input"
+              style={{ width: 260 }}
+              aria-label="搜索售后单号或订单号"
+              placeholder="搜索售后单号 / 订单号 / 商品…"
+              value={keyword}
+              onChange={(event) => setKeyword(event.target.value)}
+            />
+            <select
+              className="select"
+              aria-label="按售后类型筛选"
+              value={typeFilter}
+              onChange={(event) => {
+                setTypeFilter(event.target.value);
+                setPage(1);
+              }}
+            >
+              <option value="">全部类型</option>
+              <option value="REFUND_ONLY">仅退款</option>
+              <option value="RETURN_REFUND">退货退款</option>
+            </select>
+            <input
+              className="input"
+              type="date"
+              style={{ width: 148 }}
+              aria-label="售后开始日期"
+              value={startDate}
+              onChange={(event) => {
+                setStartDate(event.target.value);
+                setPage(1);
+              }}
+            />
+            <span className="muted small">至</span>
+            <input
+              className="input"
+              type="date"
+              style={{ width: 148 }}
+              aria-label="售后结束日期"
+              value={endDate}
+              onChange={(event) => {
+                setEndDate(event.target.value);
+                setPage(1);
+              }}
+            />
+            <div className="toolbar-actions">
+              <Button
+                type="button"
+                variant="plain"
+                onClick={() => {
+                  setKeyword('');
+                  setAppliedKeyword('');
+                  setTypeFilter('');
+                  setStartDate('');
+                  setEndDate('');
+                  setPage(1);
+                }}
+              >
+                重置
+              </Button>
+              <Button type="submit" variant="ghost">
+                搜索
+              </Button>
+            </div>
+          </Toolbar>
+        </form>
         <Tabs
           items={tabs}
           value={status}

@@ -83,6 +83,13 @@ export function deleteAsset(id: string) {
   return api<{ deleted: boolean }>(`/admin/assets/${id}`, { method: 'DELETE' });
 }
 
+export function batchDeleteAssets(ids: string[]) {
+  return api<{ total: number; success: number; failed: number; errors?: { id: string; message: string }[] }>(
+    '/admin/assets/batch/delete',
+    { method: 'POST', body: { ids } },
+  );
+}
+
 export function formatAssetSize(size: number): string {
   if (!size || size <= 0) return '—';
   if (size < 1024) return `${size} B`;

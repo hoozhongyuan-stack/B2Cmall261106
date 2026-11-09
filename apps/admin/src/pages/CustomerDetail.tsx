@@ -5,6 +5,7 @@ import { ORDER_STATUS_LABEL, type OrderStatus } from '@shanye/shared/src/orderSt
 import { api, ApiError, formatDate, money } from '../api/client';
 import { hasRole } from '../auth';
 import { toast } from '../components/toast';
+import { TagPicker, type TagOption } from '../components/TagPicker';
 import {
   Button,
   Card,
@@ -38,6 +39,13 @@ interface PointsRow {
   createdAt: string;
 }
 
+interface CustomerTag {
+  id: string;
+  name: string;
+  parentId: string | null;
+  parentName: string | null;
+}
+
 interface CustomerDetailData {
   id: string;
   nickname: string | null;
@@ -47,6 +55,7 @@ interface CustomerDetailData {
   createdAt: string;
   points: number;
   totalSpentCents: number;
+  tags: CustomerTag[];
   level: { name: string; discountRate: number; thresholdCents: number } | null;
   nextLevel: { name: string; thresholdCents: number; remainCents: number } | null;
   stats: {
@@ -87,6 +96,16 @@ export default function CustomerDetail() {
   const [delta, setDelta] = useState('');
   const [reason, setReason] = useState('');
   const [saving, setSaving] = useState(false);
+  const [tagOptions, setTagOptions] = useState<TagOption[]>([]);
+  const [tagOpen, setTagOpen] = useState(false);
+  const [pickedTags, setPickedTags] = useState<string[]>([]);
+  const [savingTags, setSavingTags] = useState(false);
+
+  useEffect(() => {
+    api<{ items: TagOption[] }>('/admin/user-tags/options')
+      .then((result) => setTagOptions(result.items))
+      .catch(() => undefined);
+  }, []);
 
   async function load() {
     if (!id) return;
@@ -132,6 +151,24 @@ export default function CustomerDetail() {
       toast(errorText(err), 'error');
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function saveTags() {
+    if (!id) return;
+    setSavingTags(true);
+    try {
+      await api('/admin/customers/batch/tags', {
+        method: 'POST',
+        body: { userIds: [id], tagIds: pickedTags, mode: 'replace' },
+      });
+      toast('已更新标签');
+      setTagOpen(false);
+      await load();
+    } catch (err) {
+      toast(errorText(err), 'error');
+    } finally {
+      setSavingTags(false);
     }
   }
 
@@ -284,6 +321,36 @@ export default function CustomerDetail() {
         </Card>
       </div>
 
+      <Card
+        title="客户标签"
+        extra={
+          hasRole('SUPER', 'OPS', 'CS') ? (
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => {
+                setPickedTags(data.tags.map((tag) => tag.id));
+                setTagOpen(true);
+              }}
+            >
+              编辑标签
+            </Button>
+          ) : undefined
+        }
+      >
+        {data.tags.length ? (
+          <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
+            {data.tags.map((tag) => (
+              <Tag key={tag.id} tone={tag.parentId ? 'ok' : 'brand'}>
+                {tag.parentName ? `${tag.parentName} / ${tag.name}` : tag.name}
+              </Tag>
+            ))}
+          </div>
+        ) : (
+          <span className="muted small">暂未打标签</span>
+        )}
+      </Card>
+
       <Card title="最近订单">
         <DataTable
           columns={orderColumns}
@@ -296,6 +363,27 @@ export default function CustomerDetail() {
       <Card title="积分流水" extra={<span className="small muted">最近 10 条</span>}>
         <DataTable columns={pointsColumns} rows={data.recentPoints} empty="暂无积分流水" />
       </Card>
+
+      <Modal
+        open={tagOpen}
+        title="编辑客户标签"
+        onClose={() => setTagOpen(false)}
+        footer={
+          <>
+            <Button variant="plain" onClick={() => setTagOpen(false)}>
+              取消
+            </Button>
+            <Button loading={savingTags} onClick={() => void saveTags()}>
+              保存标签
+            </Button>
+          </>
+        }
+      >
+        <p className="small muted" style={{ marginTop: 0 }}>
+          标签支持多选，保存后覆盖该客户现有标签。
+        </p>
+        <TagPicker options={tagOptions} selected={pickedTags} onChange={setPickedTags} />
+      </Modal>
 
       <Modal
         open={pointsOpen}

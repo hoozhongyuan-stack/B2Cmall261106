@@ -156,10 +156,40 @@ export class ReviewService {
 
   /* ---------------- 后台 ---------------- */
 
-  async listAdmin(status?: string, page = 1, pageSize = 20) {
+  async listAdmin(
+    status?: string,
+    page = 1,
+    pageSize = 20,
+    filters: { keyword?: string; rating?: number; startDate?: string; endDate?: string } = {},
+  ) {
     const currentPage = Math.max(page, 1);
     const size = Math.min(Math.max(pageSize, 1), 100);
-    const where = status ? { status: status as never } : {};
+    const search = filters.keyword?.trim();
+    const createdAt =
+      filters.startDate || filters.endDate
+        ? {
+            ...(filters.startDate
+              ? { gte: new Date(`${filters.startDate}T00:00:00.000+08:00`) }
+              : {}),
+            ...(filters.endDate
+              ? { lte: new Date(`${filters.endDate}T23:59:59.999+08:00`) }
+              : {}),
+          }
+        : undefined;
+    const where = {
+      ...(status ? { status: status as never } : {}),
+      ...(filters.rating ? { rating: filters.rating } : {}),
+      ...(createdAt ? { createdAt } : {}),
+      ...(search
+        ? {
+            OR: [
+              { content: { contains: search, mode: 'insensitive' as const } },
+              { order: { orderNo: { contains: search, mode: 'insensitive' as const } } },
+              { orderItem: { title: { contains: search, mode: 'insensitive' as const } } },
+            ],
+          }
+        : {}),
+    };
 
     const [reviews, total, counts] = await Promise.all([
       this.prisma.review.findMany({
@@ -208,6 +238,17 @@ export class ReviewService {
       where: { id },
       data: { status: action === 'show' ? 'SHOWN' : 'HIDDEN' },
     });
+  }
+
+  /** 批量审核：逐条更新，返回成功/失败数量 */
+  async batchModerate(ids: string[], action: 'show' | 'hide') {
+    const unique = [...new Set(ids.filter(Boolean))];
+    if (!unique.length) throw new BadRequestException('请选择评价');
+    const result = await this.prisma.review.updateMany({
+      where: { id: { in: unique } },
+      data: { status: action === 'show' ? 'SHOWN' : 'HIDDEN' },
+    });
+    return { total: unique.length, success: result.count, failed: unique.length - result.count };
   }
 
   async reply(id: string, content: string) {

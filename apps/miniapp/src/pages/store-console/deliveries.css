@@ -1,0 +1,108 @@
+.delivery-tabs {
+  display: flex;
+  background: var(--surface);
+  padding: 0 16px;
+  gap: 20px;
+  border-bottom: 1px solid var(--line);
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.delivery-tab {
+  padding: 12px 0;
+  font-size: 14px;
+  color: var(--ink-3);
+  border-bottom: 2px solid transparent;
+}
+
+.delivery-tab.active {
+  color: var(--brand);
+  font-weight: 600;
+  border-bottom-color: var(--brand);
+}
+
+.delivery-list {
+  padding: 12px 16px 32px;
+  height: calc(100vh - 120px);
+  box-sizing: border-box;
+}
+
+.delivery-card {
+  background: var(--surface);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  margin-bottom: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.delivery-no {
+  font-size: 12px;
+  color: var(--ink-3);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.delivery-tag {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--brand-soft);
+  color: var(--brand);
+}
+
+.delivery-tag.is-overdue {
+  background: #fdecec;
+  color: var(--danger, #c0392b);
+}
+
+.delivery-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.delivery-link {
+  font-size: 12px;
+  color: var(--brand);
+}
+
+.delivery-address {
+  line-height: 1.6;
+}
+
+.delivery-foot {
+  margin-top: 6px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--line);
+}
+
+.delivery-btn {
+  min-width: 76px;
+  height: 34px;
+  border-radius: 999px;
+  border: 1px solid var(--brand);
+  color: var(--brand);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+}
+
+.delivery-btn--primary {
+  background: var(--brand);
+  color: var(--on-brand);
+}
+
+.delivery-btn.is-disabled {
+  opacity: 0.55;
+}
+
+.delivery-empty {
+  display: block;
+  text-align: center;
+  color: var(--ink-3);
+  font-size: 13px;
+  padding: 48px 0;
+}

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { api, ApiError, formatDate, money } from '../api/client';
@@ -11,7 +11,9 @@ import {
   Field,
   Modal,
   PageHeader,
+  Pagination,
   Tag,
+  Toolbar,
   type Column,
 } from '../components/ui';
 
@@ -49,17 +51,33 @@ export default function Coupons() {
   const navigate = useNavigate();
   const canWrite = hasRole('SUPER', 'OPS');
   const [items, setItems] = useState<CouponRow[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
   const [loading, setLoading] = useState(true);
   const [grantTarget, setGrantTarget] = useState<CouponRow | null>(null);
   const [grantAll, setGrantAll] = useState(false);
   const [userIds, setUserIds] = useState('');
   const [granting, setGranting] = useState(false);
+  const [keyword, setKeyword] = useState('');
+  const [appliedKeyword, setAppliedKeyword] = useState('');
+  const [enabled, setEnabled] = useState('');
+  const [typeFilter, setTypeFilter] = useState('');
 
   async function load() {
     setLoading(true);
     try {
-      const result = await api<{ items: CouponRow[] }>('/admin/coupons');
+      const result = await api<{ total: number; items: CouponRow[] }>('/admin/coupons', {
+        query: {
+          page,
+          pageSize,
+          keyword: appliedKeyword || undefined,
+          enabled: enabled || undefined,
+          type: typeFilter || undefined,
+        },
+      });
       setItems(result.items);
+      setTotal(result.total);
     } catch (err) {
       toast(errorText(err), 'error');
     } finally {
@@ -69,7 +87,7 @@ export default function Coupons() {
 
   useEffect(() => {
     void load();
-  }, []);
+  }, [page, pageSize, appliedKeyword, enabled, typeFilter]);
 
   async function toggle(row: CouponRow) {
     try {
@@ -207,7 +225,79 @@ export default function Coupons() {
       />
 
       <Card>
+        <form
+          onSubmit={(event: FormEvent) => {
+            event.preventDefault();
+            setAppliedKeyword(keyword.trim());
+            setPage(1);
+          }}
+        >
+          <Toolbar>
+            <input
+              className="input"
+              style={{ width: 220 }}
+              aria-label="搜索优惠券名称"
+              placeholder="搜索优惠券名称…"
+              value={keyword}
+              onChange={(event) => setKeyword(event.target.value)}
+            />
+            <select
+              className="select"
+              aria-label="按类型筛选"
+              value={typeFilter}
+              onChange={(event) => {
+                setTypeFilter(event.target.value);
+                setPage(1);
+              }}
+            >
+              <option value="">全部类型</option>
+              <option value="THRESHOLD">满减券</option>
+              <option value="NO_THRESHOLD">无门槛券</option>
+            </select>
+            <select
+              className="select"
+              aria-label="按状态筛选"
+              value={enabled}
+              onChange={(event) => {
+                setEnabled(event.target.value);
+                setPage(1);
+              }}
+            >
+              <option value="">全部状态</option>
+              <option value="true">发放中</option>
+              <option value="false">已停用</option>
+            </select>
+            <div className="toolbar-actions">
+              <Button
+                type="button"
+                variant="plain"
+                onClick={() => {
+                  setKeyword('');
+                  setAppliedKeyword('');
+                  setEnabled('');
+                  setTypeFilter('');
+                  setPage(1);
+                }}
+              >
+                重置
+              </Button>
+              <Button type="submit" variant="ghost">
+                搜索
+              </Button>
+            </div>
+          </Toolbar>
+        </form>
         <DataTable columns={columns} rows={items} loading={loading} empty="还没有优惠券" />
+        <Pagination
+          page={page}
+          total={total}
+          pageSize={pageSize}
+          onChange={setPage}
+          onPageSizeChange={(size) => {
+            setPageSize(size);
+            setPage(1);
+          }}
+        />
       </Card>
 
       <Modal

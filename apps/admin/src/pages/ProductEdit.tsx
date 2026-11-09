@@ -322,17 +322,12 @@ export default function ProductEdit() {
       <PageHeader
         title={isNew ? '新建商品' : '编辑商品'}
         desc={isNew ? '填写基础信息并至少创建一个 SKU' : 'SKU 价格与库存请前往「规格库存」页维护'}
-        actions={
-          <Button variant="ghost" onClick={() => navigate('/products')}>
-            返回列表
-          </Button>
-        }
       />
 
       <form onSubmit={handleSubmit}>
         <Card title="基础信息">
           <div className="grid grid-2">
-            <Field label="商品标题">
+            <Field label="商品标题" required>
               <input
                 className="input"
                 value={form.title}
@@ -348,7 +343,7 @@ export default function ProductEdit() {
                 onChange={(e) => setField('subtitle', e.target.value)}
               />
             </Field>
-            <Field label="分类">
+            <Field label="分类" required>
               <select
                 className="select"
                 value={form.categoryId}
@@ -526,11 +521,16 @@ export default function ProductEdit() {
           </>
         )}
 
-        <div className="row-between">
+        <div className="form-actions">
           <span className="small muted">提交后价格区间会根据 SKU 自动计算</span>
-          <Button type="submit" loading={saving} disabled={!canWrite}>
-            保存
-          </Button>
+          <div className="row" style={{ gap: 8 }}>
+            <Button type="button" variant="ghost" onClick={() => navigate('/products')}>
+              取消
+            </Button>
+            <Button type="submit" loading={saving} disabled={!canWrite}>
+              保存
+            </Button>
+          </div>
         </div>
       </form>
     </>

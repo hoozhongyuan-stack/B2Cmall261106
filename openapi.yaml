@@ -458,9 +458,14 @@ paths:
         - { name: status, in: query, schema: { type: string } }
         - { name: keyword, in: query, schema: { type: string } }
         - { name: storeId, in: query, schema: { type: string } }
+        - { name: storeIds, in: query, schema: { type: string, description: 多个门店 ID，逗号分隔 } }
         - name: fulfillmentType
           in: query
           schema: { type: string, enum: [EXPRESS, DELIVERY, PICKUP] }
+        - { name: startDate, in: query, schema: { type: string, example: 2026-11-01 } }
+        - { name: endDate, in: query, schema: { type: string, example: 2026-11-30 } }
+        - { name: minCents, in: query, schema: { type: integer, minimum: 0 } }
+        - { name: maxCents, in: query, schema: { type: integer, minimum: 0 } }
         - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
         - { name: pageSize, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
       responses:
@@ -745,10 +750,31 @@ paths:
   /admin/coupons:
     get:
       tags: [admin-coupons]
-      summary: 优惠券列表（含已领取数）
+      summary: 优惠券列表（含已领取数，分页）
       security: [{ adminToken: [] }]
+      parameters:
+        - { name: enabled, in: query, schema: { type: boolean } }
+        - { name: keyword, in: query, schema: { type: string, description: 优惠券名称模糊匹配 } }
+        - { name: type, in: query, schema: { type: string, enum: [THRESHOLD, NO_THRESHOLD] } }
+        - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+        - { name: pageSize, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
       responses:
-        '200': { description: OK }
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      total: { type: integer }
+                      page: { type: integer }
+                      pageSize: { type: integer }
+                      items:
+                        type: array
+                        items: { type: object, additionalProperties: true }
         '403': { description: 角色无权限 }
     post:
       tags: [admin-coupons]
@@ -881,18 +907,148 @@ paths:
         '200': { description: OK }
         '400': { $ref: '#/components/responses/BadRequest' }
 
+  /admin/user-tags:
+    get:
+      tags: [admin-user-tags]
+      summary: 用户标签树（两级，含覆盖客户数）
+      security: [{ adminToken: [] }]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      total: { type: integer }
+                      items:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id: { type: string }
+                            name: { type: string }
+                            parentId: { type: string, nullable: true }
+                            sort: { type: integer }
+                            userCount: { type: integer }
+                            children:
+                              type: array
+                              items: { type: object, additionalProperties: true }
+    post:
+      tags: [admin-user-tags]
+      summary: 新建一级 / 二级标签（最多两级）
+      security: [{ adminToken: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [name]
+              properties:
+                name: { type: string, maxLength: 20 }
+                parentId: { type: string, nullable: true, description: 传一级标签 id 即创建二级标签 }
+      responses:
+        '201': { description: 创建成功 }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /admin/user-tags/options:
+    get:
+      tags: [admin-user-tags]
+      summary: 用户标签扁平选项（供筛选与打标选择）
+      security: [{ adminToken: [] }]
+      responses:
+        '200': { description: OK }
+
+  /admin/user-tags/{id}:
+    patch:
+      tags: [admin-user-tags]
+      summary: 重命名或调整排序
+      security: [{ adminToken: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                name: { type: string, maxLength: 20 }
+                sort: { type: integer }
+      responses:
+        '200': { description: OK }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+    delete:
+      tags: [admin-user-tags]
+      summary: 删除标签（级联删除二级标签与用户绑定）
+      security: [{ adminToken: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { description: OK }
+        '404': { $ref: '#/components/responses/NotFound' }
+
   /admin/customers:
     get:
       tags: [admin-customers]
-      summary: 客户列表：消费统计、等级与积分（分页）
+      summary: 客户列表：消费统计、等级、标签与积分（分页）
       security: [{ adminToken: [] }]
       parameters:
         - { name: keyword, in: query, schema: { type: string } }
         - { name: levelId, in: query, schema: { type: string } }
+        - { name: tagId, in: query, schema: { type: string, description: 一级标签会同时命中其下二级标签 } }
+        - { name: startDate, in: query, schema: { type: string, description: 注册开始日期 } }
+        - { name: endDate, in: query, schema: { type: string, description: 注册结束日期 } }
+        - { name: minSpentCents, in: query, schema: { type: integer, minimum: 0 } }
+        - { name: maxSpentCents, in: query, schema: { type: integer, minimum: 0 } }
         - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
         - { name: pageSize, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
       responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      total: { type: integer }
+                      page: { type: integer }
+                      pageSize: { type: integer }
+                      items:
+                        type: array
+                        items: { type: object, additionalProperties: true }
+
+  /admin/customers/batch/tags:
+    post:
+      tags: [admin-customers]
+      summary: 批量打标签：add 追加 / remove 移除 / replace 覆盖
+      security: [{ adminToken: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [userIds]
+              properties:
+                userIds: { type: array, minItems: 1, items: { type: string } }
+                tagIds: { type: array, items: { type: string } }
+                mode: { type: string, enum: [add, remove, replace], default: add }
+      responses:
         '200': { description: OK }
+        '400': { $ref: '#/components/responses/BadRequest' }
 
   /admin/customers/{id}:
     get:
@@ -1037,10 +1193,35 @@ paths:
         - name: status
           in: query
           schema: { type: string, enum: [PENDING, SHOWN, HIDDEN] }
+        - { name: keyword, in: query, schema: { type: string, description: 评价内容 / 订单号 / 商品标题模糊匹配 } }
+        - { name: rating, in: query, schema: { type: integer, minimum: 1, maximum: 5 } }
+        - { name: startDate, in: query, schema: { type: string, example: 2026-11-01 } }
+        - { name: endDate, in: query, schema: { type: string, example: 2026-11-30 } }
         - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
         - { name: pageSize, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
       responses:
         '200': { description: OK }
+
+  /admin/reviews/batch/moderate:
+    post:
+      tags: [admin-reviews]
+      summary: 批量审核评价：通过展示 / 隐藏
+      security: [{ adminToken: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [ids, action]
+              properties:
+                ids: { type: array, minItems: 1, items: { type: string } }
+                action: { type: string, enum: [show, hide] }
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { description: 角色无权限 }
 
   /admin/reviews/{id}/moderate:
     post:
@@ -1159,12 +1340,17 @@ paths:
   /admin/products:
     get:
       tags: [admin-products]
-      summary: 商品列表（含库存合计与 SKU 数）
+      summary: 商品列表（含库存合计与 SKU 数，分页）
       security: [{ adminToken: [] }]
       parameters:
         - { name: keyword, in: query, schema: { type: string } }
         - { name: status, in: query, schema: { type: string, enum: [ON_SALE, OFF_SHELF, SOLD_OUT] } }
         - { name: categoryId, in: query, schema: { type: string } }
+        - { name: minPriceCents, in: query, schema: { type: integer, minimum: 0 } }
+        - { name: maxPriceCents, in: query, schema: { type: integer, minimum: 0 } }
+        - { name: sort, in: query, schema: { type: string, enum: [newest, price_asc, price_desc, sales] } }
+        - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+        - { name: pageSize, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
       responses:
         '200':
           description: OK
@@ -1176,6 +1362,9 @@ paths:
                   data:
                     type: object
                     properties:
+                      total: { type: integer }
+                      page: { type: integer }
+                      pageSize: { type: integer }
                       items:
                         type: array
                         items: { $ref: '#/components/schemas/AdminProduct' }
@@ -1198,6 +1387,47 @@ paths:
                 properties:
                   data: { $ref: '#/components/schemas/AdminProductDetail' }
         '400': { $ref: '#/components/responses/BadRequest' }
+
+  /admin/products/batch/status:
+    patch:
+      tags: [admin-products]
+      summary: 批量上架 / 下架
+      security: [{ adminToken: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [ids, status]
+              properties:
+                ids: { type: array, minItems: 1, items: { type: string } }
+                status: { type: string, enum: [ON_SALE, OFF_SHELF] }
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { description: 角色无权限 }
+
+  /admin/products/batch/delete:
+    post:
+      tags: [admin-products]
+      summary: 批量删除商品（已产生订单的逐条失败并返回原因）
+      security: [{ adminToken: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [ids]
+              properties:
+                ids: { type: array, minItems: 1, items: { type: string } }
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { description: 角色无权限 }
 
   /admin/products/{id}:
     get:
@@ -1595,6 +1825,25 @@ paths:
       responses:
         '200': { description: OK }
         '409': { $ref: '#/components/responses/Conflict' }
+
+  /admin/assets/batch/delete:
+    post:
+      tags: [admin-assets]
+      summary: 批量删除素材（被引用的逐条失败并返回原因）
+      security: [{ adminToken: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [ids]
+              properties:
+                ids: { type: array, minItems: 1, items: { type: string } }
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/BadRequest' }
 
   /admin/assets/upload:
     post:
@@ -2429,13 +2678,17 @@ paths:
   /admin/stores:
     get:
       tags: [admin-stores]
-      summary: 门店列表（总部全量，门店账号仅授权门店）
+      summary: 门店列表（总部全量，门店账号仅授权门店，分页）
       security: [{ adminToken: [] }]
       parameters:
         - name: status
           in: query
           required: false
           schema: { type: string, enum: [ACTIVE, DISABLED] }
+        - { name: keyword, in: query, schema: { type: string, description: 门店名称 / 编码模糊匹配 } }
+        - { name: capability, in: query, schema: { type: string, enum: [PICKUP, DELIVERY] } }
+        - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+        - { name: pageSize, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
       responses:
         '200':
           description: OK
@@ -2447,6 +2700,9 @@ paths:
                   data:
                     type: object
                     properties:
+                      total: { type: integer }
+                      page: { type: integer }
+                      pageSize: { type: integer }
                       items:
                         type: array
                         items: { $ref: '#/components/schemas/Store' }
@@ -2463,6 +2719,26 @@ paths:
         '201': { description: 创建成功 }
         '400': { $ref: '#/components/responses/BadRequest' }
         '409': { $ref: '#/components/responses/Conflict' }
+
+  /admin/stores/batch/status:
+    post:
+      tags: [admin-stores]
+      summary: 批量启用 / 停用门店（仅总部）
+      security: [{ adminToken: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [ids, status]
+              properties:
+                ids: { type: array, minItems: 1, items: { type: string } }
+                status: { type: string, enum: [ACTIVE, DISABLED] }
+      responses:
+        '200': { description: OK }
+        '403': { description: 角色无权限 }
 
   /admin/stores/{id}:
     get:
@@ -2506,6 +2782,31 @@ paths:
       responses:
         '200': { description: OK }
         '404': { $ref: '#/components/responses/NotFound' }
+
+  /admin/stores/{id}/manager:
+    put:
+      tags: [admin-stores]
+      summary: 关联 / 换绑 / 解绑门店负责人（会员）
+      security: [{ adminToken: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/StoreManagerInput' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/Store' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
 
   /admin/stores/{id}/dashboard:
     get:
@@ -2678,8 +2979,11 @@ paths:
       parameters:
         - { name: status, in: query, schema: { type: string, enum: [pending, verified] } }
         - { name: storeId, in: query, schema: { type: string } }
+        - { name: storeIds, in: query, schema: { type: string, description: 多个门店 ID，逗号分隔 } }
         - { name: keyword, in: query, schema: { type: string } }
         - { name: date, in: query, schema: { type: string, example: 2026-11-08 } }
+        - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+        - { name: pageSize, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
       responses:
         '200':
           description: OK
@@ -2692,6 +2996,8 @@ paths:
                     type: object
                     properties:
                       total: { type: integer }
+                      page: { type: integer }
+                      pageSize: { type: integer }
                       items:
                         type: array
                         items: { type: object, additionalProperties: true }
@@ -2736,7 +3042,10 @@ paths:
       parameters:
         - { name: status, in: query, schema: { type: string, enum: [PENDING, ACCEPTED, DELIVERED, CANCELLED] } }
         - { name: storeId, in: query, schema: { type: string } }
+        - { name: storeIds, in: query, schema: { type: string, description: 多个门店 ID，逗号分隔 } }
         - { name: date, in: query, schema: { type: string, example: 2026-11-08 } }
+        - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+        - { name: pageSize, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
       responses:
         '200':
           description: OK
@@ -2749,9 +3058,32 @@ paths:
                     type: object
                     properties:
                       total: { type: integer }
+                      page: { type: integer }
+                      pageSize: { type: integer }
                       items:
                         type: array
                         items: { $ref: '#/components/schemas/Delivery' }
+
+  /admin/deliveries/batch/accept:
+    post:
+      tags: [admin-deliveries]
+      summary: 批量接单（逐条处理，返回失败明细）
+      security: [{ adminToken: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [ids]
+              properties:
+                ids: { type: array, minItems: 1, items: { type: string } }
+                courierName: { type: string, maxLength: 20 }
+                courierPhone: { type: string, maxLength: 20 }
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/BadRequest' }
 
   /admin/deliveries/{id}/accept:
     post:
@@ -3233,6 +3565,254 @@ paths:
                       noResultKeywords:
                         type: array
                         items: { $ref: '#/components/schemas/SearchKeywordStat' }
+
+  /store-console/context:
+    get:
+      tags: [store-console]
+      summary: 门店中心入口：当前会员是否关联门店
+      security: [{ userToken: [] }]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/StoreConsoleContext' }
+
+  /store-console/summary:
+    get:
+      tags: [store-console]
+      summary: 门店工作台：待办与今日经营
+      security: [{ userToken: [] }]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/StoreConsoleSummary' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /store-console/pickups/verify:
+    post:
+      tags: [store-console]
+      summary: 门店核销自提码（仅本店订单）
+      security: [{ userToken: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [code]
+              properties:
+                code: { type: string, minLength: 8, maxLength: 8 }
+      responses:
+        '200': { description: OK }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /store-console/deliveries:
+    get:
+      tags: [store-console]
+      summary: 本店同城配送单
+      security: [{ userToken: [] }]
+      parameters:
+        - { name: status, in: query, schema: { type: string, enum: [PENDING, ACCEPTED, DELIVERED, CANCELLED] } }
+        - { name: date, in: query, schema: { type: string, example: 2026-11-08 } }
+        - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+        - { name: pageSize, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      total: { type: integer }
+                      page: { type: integer }
+                      pageSize: { type: integer }
+                      items:
+                        type: array
+                        items: { $ref: '#/components/schemas/Delivery' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /store-console/deliveries/{id}/accept:
+    post:
+      tags: [store-console]
+      summary: 门店接单
+      security: [{ userToken: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                courierName: { type: string, maxLength: 20 }
+                courierPhone: { type: string, maxLength: 20 }
+      responses:
+        '200': { description: OK }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /store-console/deliveries/{id}/deliver:
+    post:
+      tags: [store-console]
+      summary: 门店送达
+      security: [{ userToken: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { description: OK }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /store-console/stock:
+    get:
+      tags: [store-console]
+      summary: 本店库存列表（关键词 / 只看预警 / 分页）
+      security: [{ userToken: [] }]
+      parameters:
+        - { name: keyword, in: query, schema: { type: string, description: 商品名称或 SKU 编码 } }
+        - { name: warning, in: query, schema: { type: string, enum: ['1', 'true'], description: 只看可售低于安全库存的商品 } }
+        - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+        - { name: pageSize, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      total: { type: integer }
+                      page: { type: integer }
+                      pageSize: { type: integer }
+                      warnings: { type: integer, description: 当前筛选条件下的预警商品数 }
+                      items:
+                        type: array
+                        items: { $ref: '#/components/schemas/StoreStockItem' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /store-console/stock/{skuId}/adjust:
+    post:
+      tags: [store-console]
+      summary: 调整本店总库存与安全库存
+      security: [{ userToken: [] }]
+      parameters:
+        - { name: skuId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                stock: { type: integer, minimum: 0 }
+                safetyStock: { type: integer, minimum: 0 }
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /store-console/settings:
+    get:
+      tags: [store-console]
+      summary: 本店营业设置
+      security: [{ userToken: [] }]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/Store' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    patch:
+      tags: [store-console]
+      summary: 更新本店营业时间、公告与自提/配送开关
+      security: [{ userToken: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/StoreConsoleSettingsInput' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/Store' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /store-console/dashboard:
+    get:
+      tags: [store-console]
+      summary: 移动端门店看板：今日经营、待履约、配送时效与库存预警
+      security: [{ userToken: [] }]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/StoreDashboard' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /store-console/closure:
+    post:
+      tags: [store-console]
+      summary: 临时打烊 / 恢复营业（最长 7 天，只影响新下单）
+      security: [{ userToken: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                until:
+                  type: string
+                  nullable: true
+                  format: date-time
+                  description: 恢复营业时间；传 null 表示立即恢复
+                note: { type: string, maxLength: 100 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/Store' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
 
 components:
   securitySchemes:
@@ -3958,8 +4538,84 @@ components:
         deliveryRegions:
           type: array
           items: { type: string }
+        temporarilyClosedUntil: { type: string, format: date-time, nullable: true }
+        temporaryClosureNote: { type: string, nullable: true }
+        temporarilyClosed: { type: boolean, description: 是否处于临时打烊中 }
+        managerUserId: { type: string, nullable: true }
+        manager:
+          type: object
+          nullable: true
+          properties:
+            id: { type: string }
+            nickname: { type: string, nullable: true }
+            phone: { type: string, nullable: true }
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
+
+    StoreManagerInput:
+      type: object
+      additionalProperties: false
+      properties:
+        managerUserId: { type: string, nullable: true, description: 关联会员 ID，传 null 解绑 }
+
+    StoreConsoleContext:
+      type: object
+      properties:
+        hasStore: { type: boolean }
+        store:
+          allOf: [{ $ref: '#/components/schemas/Store' }]
+          nullable: true
+
+    StoreConsoleSummary:
+      type: object
+      properties:
+        store: { $ref: '#/components/schemas/Store' }
+        todo:
+          type: object
+          properties:
+            pendingPickup: { type: integer }
+            pendingDelivery: { type: integer }
+            delivering: { type: integer }
+            stockWarnings: { type: integer }
+        today:
+          type: object
+          properties:
+            paidOrders: { type: integer }
+            paidCents: { type: integer }
+
+    StoreStockItem:
+      type: object
+      properties:
+        skuId: { type: string }
+        code: { type: string }
+        title: { type: string }
+        specText: { type: string }
+        imageKey: { type: string, nullable: true }
+        priceCents: { type: integer }
+        stock: { type: integer }
+        reserved: { type: integer }
+        available: { type: integer }
+        safetyStock: { type: integer }
+        warning: { type: boolean }
+        status: { type: string, enum: [ON_SALE, OFF_SHELF] }
+
+    StoreConsoleSettingsInput:
+      type: object
+      additionalProperties: false
+      properties:
+        notice: { type: string, maxLength: 200 }
+        businessHours:
+          type: object
+          description: 按星期配置营业时段，空数组表示休息
+          additionalProperties:
+            type: array
+            items:
+              type: array
+              minItems: 2
+              maxItems: 2
+              items: { type: string, pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$' }
+        pickupEnabled: { type: boolean }
+        deliveryEnabled: { type: boolean }
 
     StoreInput:
       type: object
@@ -3992,6 +4648,7 @@ components:
           type: array
           maxItems: 50
           items: { type: string, minLength: 1, maxLength: 60 }
+        managerUserId: { type: string, nullable: true, description: 关联会员 ID，该会员在小程序可见门店中心 }
 
     StoreUpdateInput:
       type: object
@@ -4023,6 +4680,7 @@ components:
           type: array
           maxItems: 50
           items: { type: string, minLength: 1, maxLength: 60 }
+        managerUserId: { type: string, nullable: true, description: 关联会员 ID，传 null 解绑 }
 
     StoreDashboard:
       type: object

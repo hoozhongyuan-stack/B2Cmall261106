@@ -180,9 +180,8 @@ describe('自提下单', () => {
 });
 
 describe('核销台', () => {
-  it('待核销列表、跨店 404、核销成功与重复核销幂等', async () => {
+  it('待核销列表、多门店筛选、核销成功与重复核销幂等', async () => {
     const storeA = await createStore();
-    const storeB = await createStore();
     const orderId = await createPaidPickupOrder(storeA);
 
     const detail = await api(`/orders/${orderId}`, {}, userToken);
@@ -192,6 +191,16 @@ describe('核销台', () => {
     expect(pending.status).toBe(200);
     expect(
       pending.body.data.items.some((item: { id: string }) => item.id === orderId),
+    ).toBe(true);
+
+    const multi = await api(
+      `/admin/pickups?status=pending&storeIds=${storeA}&pageSize=100`,
+      {},
+      superToken,
+    );
+    expect(multi.status).toBe(200);
+    expect(
+      multi.body.data.items.every((item: { storeId: string }) => item.storeId === storeA),
     ).toBe(true);
 
     const badFormat = await api(
@@ -207,37 +216,6 @@ describe('核销台', () => {
       superToken,
     );
     expect(notFound.status).toBe(404);
-
-    // 门店账号只能核销授权门店：绑定 B 门店去核销 A 门店订单 → 404
-    const account = `pickup-store-${Date.now()}@shanye.com`;
-    const password = 'store12345';
-    const createdAccount = await api(
-      '/admin/accounts',
-      {
-        method: 'POST',
-        body: JSON.stringify({
-          account,
-          displayName: '核销门店账号',
-          role: 'STORE',
-          password,
-          storeIds: [storeB],
-        }),
-      },
-      superToken,
-    );
-    expect(createdAccount.status).toBe(201);
-    const storeLogin = await api('/admin/auth/login', {
-      method: 'POST',
-      body: JSON.stringify({ account, password }),
-    });
-    const storeToken = storeLogin.body.data.token;
-
-    const cross = await api(
-      '/admin/pickups/verify',
-      { method: 'POST', body: JSON.stringify({ code }) },
-      storeToken,
-    );
-    expect(cross.status).toBe(404);
 
     const verified = await api(
       '/admin/pickups/verify',

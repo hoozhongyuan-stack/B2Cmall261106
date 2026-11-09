@@ -1,0 +1,105 @@
+.dash-hero {
+  border-radius: 20px;
+  padding: 24px;
+  background: var(--brand);
+  color: var(--on-brand);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.dash-store {
+  font-size: 30px;
+  font-weight: 700;
+}
+
+.dash-hero-stats {
+  display: flex;
+  gap: 40px;
+}
+
+.dash-hero-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dash-hero-value {
+  font-size: 36px;
+  font-weight: 700;
+}
+
+.dash-hero-label {
+  font-size: 20px;
+  opacity: 0.82;
+}
+
+.dash-title {
+  display: block;
+  font-size: 28px;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+.dash-title--flush {
+  margin-bottom: 0;
+}
+
+.dash-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.dash-grid--3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.dash-cell {
+  background: var(--surface-2);
+  border-radius: 16px;
+  padding: 18px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.dash-cell-value {
+  font-size: 30px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.dash-cell-label {
+  font-size: 20px;
+  color: var(--ink-3);
+}
+
+.dash-warning {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 0;
+  border-bottom: 1px dashed var(--line);
+}
+
+.dash-warning-value {
+  font-size: 26px;
+  font-weight: 600;
+  color: #b26a00;
+  font-variant-numeric: tabular-nums;
+}
+
+.dash-empty {
+  display: block;
+  padding: 12px 0;
+}
+
+.dash-link {
+  margin-top: 16px;
+  color: var(--brand);
+  display: flex;
+  justify-content: flex-end;
+}

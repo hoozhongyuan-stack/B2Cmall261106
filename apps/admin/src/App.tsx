@@ -18,6 +18,7 @@ const AfterSales = lazy(() => import('./pages/AfterSales'));
 const AfterSaleDetail = lazy(() => import('./pages/AfterSaleDetail'));
 const Reviews = lazy(() => import('./pages/Reviews'));
 const Customers = lazy(() => import('./pages/Customers'));
+const UserTags = lazy(() => import('./pages/UserTags'));
 const CustomerDetail = lazy(() => import('./pages/CustomerDetail'));
 const Levels = lazy(() => import('./pages/Levels'));
 const PointsRules = lazy(() => import('./pages/PointsRules'));
@@ -74,6 +75,7 @@ export function App() {
           <Route path="after-sales/:id" element={<AfterSaleDetail />} />
           <Route path="reviews" element={<Reviews />} />
           <Route path="customers" element={<Customers />} />
+          <Route path="user-tags" element={<UserTags />} />
           <Route path="customers/:id" element={<CustomerDetail />} />
           <Route path="levels" element={<Levels />} />
           <Route path="member-commerce" element={<MemberCommerce />} />

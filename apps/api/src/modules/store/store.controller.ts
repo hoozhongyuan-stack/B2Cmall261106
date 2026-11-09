@@ -133,6 +133,11 @@ export class StoreDto {
   @IsString({ each: true })
   @Length(1, 60, { each: true })
   deliveryRegions?: string[];
+
+  /** 关联会员（小程序用户 id），传 null 解绑 */
+  @IsOptional()
+  @IsString()
+  managerUserId?: string | null;
 }
 
 @ApiTags('stores')

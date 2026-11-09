@@ -8,6 +8,7 @@ import {
 
 import { api, ApiError, formatDate, money } from '../api/client';
 import { hasRole } from '../auth';
+import { confirmAction } from '../components/confirm';
 import { toast } from '../components/toast';
 import {
   Button,
@@ -125,7 +126,7 @@ export default function AfterSaleDetail() {
     if (action !== 'reject') {
       const label = action === 'approve_only_refund' ? '同意仅退款' : '同意退货';
       const amount = money(data?.refundCents ?? 0);
-      if (!window.confirm(`确定${label}吗？将立即向买家退款 ${amount}，操作不可撤销。`)) return;
+      if (!(await confirmAction(`确定${label}吗？将立即向买家退款 ${amount}，操作不可撤销。`))) return;
     }
     setWorking(action);
     try {
@@ -145,11 +146,7 @@ export default function AfterSaleDetail() {
 
   async function receive() {
     if (!id) return;
-    if (
-      !window.confirm(
-        `确认已收到退货并退款 ${money(data?.refundCents ?? 0)} 吗？操作不可撤销。`,
-      )
-    ) {
+    if (!(await confirmAction(`确认已收到退货并退款 ${money(data?.refundCents ?? 0)} 吗？操作不可撤销。`))) {
       return;
     }
     setWorking('receive');

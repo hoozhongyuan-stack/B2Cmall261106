@@ -24,6 +24,11 @@ interface ShopInfo {
   servicePhone?: string;
 }
 
+interface StoreContext {
+  hasStore: boolean;
+  store: { id: string; name: string; code: string } | null;
+}
+
 const ORDER_ENTRIES = [
   { label: '全部', status: '', icon: '≡' },
   { label: '待付款', status: 'PENDING_PAYMENT', icon: '¥' },
@@ -35,6 +40,7 @@ const ORDER_ENTRIES = [
 export default function Page() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [shop, setShop] = useState<ShopInfo | null>(null);
+  const [storeCtx, setStoreCtx] = useState<StoreContext | null>(null);
   const [loading, setLoading] = useState(true);
 
   const load = async () => {
@@ -45,6 +51,9 @@ export default function Page() {
       ]);
       setProfile(nextProfile);
       setShop(nextShop);
+      api<StoreContext>('/store-console/context')
+        .then(setStoreCtx)
+        .catch(() => setStoreCtx({ hasStore: false, store: null }));
     } catch (err) {
       showError(err);
     } finally {
@@ -139,6 +148,21 @@ export default function Page() {
             ))}
           </View>
         </View>
+
+        {storeCtx?.hasStore && (
+          <View
+            className="card mine-store-entry"
+            onClick={() => Taro.navigateTo({ url: '/pages/store-console/index' })}
+          >
+            <View className="row-between">
+              <View className="col">
+                <Text className="mine-store-title">门店中心</Text>
+                <Text className="muted tiny">{storeCtx.store?.name ?? ''} · 核销与配送</Text>
+              </View>
+              <Text className="mine-store-arrow">›</Text>
+            </View>
+          </View>
+        )}
 
         <View className="list mine-menu">
           <View

@@ -9,7 +9,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { IsOptional, IsString, Length } from 'class-validator';
+import { ArrayMinSize, IsArray, IsOptional, IsString, Length } from 'class-validator';
 
 import {
   CurrentUser,
@@ -38,6 +38,13 @@ class CancelDeliveryDto {
   reason!: string;
 }
 
+class BatchAcceptDto extends AcceptDeliveryDto {
+  @IsArray()
+  @ArrayMinSize(1)
+  @IsString({ each: true })
+  ids!: string[];
+}
+
 const ALL_ROLES = ['SUPER', 'OPS', 'CS', 'WMS', 'STORE'] as const;
 
 @ApiTags('admin-deliveries')
@@ -49,14 +56,35 @@ export class DeliveryController {
 
   @Get()
   @Roles(...ALL_ROLES)
-  @ApiOperation({ summary: '同城配送单列表：状态/门店/日期筛选' })
+  @ApiOperation({ summary: '同城配送单列表：状态/门店/日期筛选，分页' })
   list(
     @CurrentUser() user: AuthUser,
     @Query('status') status?: string,
     @Query('storeId') storeId?: string,
+    @Query('storeIds') storeIds?: string,
     @Query('date') date?: string,
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
   ) {
-    return this.deliveries.list(user, { status, storeId, date });
+    return this.deliveries.list(user, {
+      status,
+      storeId,
+      storeIds,
+      date,
+      page: Number(page) || 1,
+      pageSize: Number(pageSize) || 20,
+    });
+  }
+
+  @Post('batch/accept')
+  @HttpCode(200)
+  @Roles(...ALL_ROLES)
+  @ApiOperation({ summary: '批量接单（逐条结果，已接单视为成功）' })
+  batchAccept(@CurrentUser() user: AuthUser, @Body() dto: BatchAcceptDto) {
+    return this.deliveries.batchAccept(user, dto.ids, {
+      ...(dto.courierName ? { courierName: dto.courierName } : {}),
+      ...(dto.courierPhone ? { courierPhone: dto.courierPhone } : {}),
+    });
   }
 
   @Post(':id/accept')

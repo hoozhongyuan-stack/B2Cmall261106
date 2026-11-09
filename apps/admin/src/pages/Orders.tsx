@@ -4,9 +4,10 @@ import { ORDER_STATUS_LABEL, type OrderStatus } from '@shanye/shared/src/orderSt
 
 import { api, ApiError, formatDate, money } from '../api/client';
 import { hasRole } from '../auth';
-import { getActiveStoreId, STORE_CHANGED_EVENT } from '../store-context';
+import { StoreFilter, useStoreOptions } from '../components/StoreFilter';
 import { toast } from '../components/toast';
 import {
+  BulkBar,
   Button,
   Card,
   DataTable,
@@ -91,9 +92,13 @@ export default function Orders() {
   const [status, setStatus] = useState(searchParams.get('status') ?? '');
   const [keyword, setKeyword] = useState('');
   const [appliedKeyword, setAppliedKeyword] = useState('');
-  const [storeId, setStoreId] = useState(getActiveStoreId());
+  const [storeIds, setStoreIds] = useState<string[]>([]);
+  const stores = useStoreOptions();
   const [fulfillmentType, setFulfillmentType] = useState('');
-  const [stores, setStores] = useState<{ id: string; name: string }[]>([]);
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [minAmount, setMinAmount] = useState('');
+  const [maxAmount, setMaxAmount] = useState('');
   const [data, setData] = useState<OrderListResult>({
     tabs: [],
     items: [],
@@ -103,29 +108,39 @@ export default function Orders() {
   });
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
+  const [selected, setSelected] = useState<string[]>([]);
   const PAGE_SIZE = 20;
 
   useEffect(() => {
-    let alive = true;
-    api<{ items: { id: string; name: string }[] }>('/admin/stores/mine')
-      .then((result) => {
-        if (alive) setStores(result.items);
-      })
-      .catch(() => undefined);
-    return () => {
-      alive = false;
-    };
-  }, []);
+    setSelected([]);
+  }, [status, appliedKeyword, storeIds, fulfillmentType, startDate, endDate, minAmount, maxAmount, page]);
 
-  useEffect(() => {
-    function onStoreChanged(event: Event) {
-      const next = (event as CustomEvent<string>).detail ?? '';
-      setStoreId(next);
-      setPage(1);
-    }
-    window.addEventListener(STORE_CHANGED_EVENT, onStoreChanged);
-    return () => window.removeEventListener(STORE_CHANGED_EVENT, onStoreChanged);
-  }, []);
+  function exportSelected() {
+    const rows = data.items.filter((row) => selected.includes(row.id));
+    if (!rows.length) return;
+    const header = ['订单号', '状态', '履约方式', '客户', '手机号', '金额', '下单时间', '门店'];
+    const lines = rows.map((row) => [
+      row.orderNo,
+      ORDER_STATUS_LABEL[row.status as OrderStatus] ?? row.status,
+      FULFILLMENT_LABEL[row.fulfillmentType] ?? row.fulfillmentType,
+      row.customer.nickname ?? '',
+      row.customer.phone ?? row.address.phone ?? '',
+      money(row.payableCents),
+      formatDate(row.createdAt),
+      row.storeName ?? '',
+    ]);
+    const content = [header, ...lines]
+      .map((cells) => cells.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+      .join('\n');
+    const blob = new Blob([`\uFEFF${content}`], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `orders-${Date.now()}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+    toast(`已导出 ${rows.length} 笔订单`);
+  }
 
   useEffect(() => {
     let alive = true;
@@ -136,8 +151,12 @@ export default function Orders() {
           query: {
             status,
             keyword: appliedKeyword,
-            storeId,
+            storeIds: storeIds.length ? storeIds.join(',') : undefined,
             fulfillmentType,
+            startDate: startDate || undefined,
+            endDate: endDate || undefined,
+            minCents: minAmount ? Math.round(Number(minAmount) * 100) : undefined,
+            maxCents: maxAmount ? Math.round(Number(maxAmount) * 100) : undefined,
             page,
             pageSize: PAGE_SIZE,
           },
@@ -153,7 +172,7 @@ export default function Orders() {
     return () => {
       alive = false;
     };
-  }, [status, appliedKeyword, storeId, fulfillmentType, page]);
+  }, [status, appliedKeyword, storeIds, fulfillmentType, startDate, endDate, minAmount, maxAmount, page]);
 
   function changeStatus(next: string) {
     setStatus(next);
@@ -282,22 +301,14 @@ export default function Orders() {
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
             />
-            <select
-              className="select"
-              value={storeId}
-              aria-label="按门店筛选"
-              onChange={(e) => {
-                setStoreId(e.target.value);
+            <StoreFilter
+              stores={stores}
+              value={storeIds}
+              onChange={(ids) => {
+                setStoreIds(ids);
                 setPage(1);
               }}
-            >
-              <option value="">全部门店</option>
-              {stores.map((store) => (
-                <option key={store.id} value={store.id}>
-                  {store.name}
-                </option>
-              ))}
-            </select>
+            />
             <select
               className="select"
               value={fulfillmentType}
@@ -312,6 +323,56 @@ export default function Orders() {
               <option value="DELIVERY">同城配送</option>
               <option value="PICKUP">到店自提</option>
             </select>
+            <input
+              className="input"
+              type="date"
+              style={{ width: 148 }}
+              aria-label="下单开始日期"
+              value={startDate}
+              onChange={(e) => {
+                setStartDate(e.target.value);
+                setPage(1);
+              }}
+            />
+            <span className="muted small">至</span>
+            <input
+              className="input"
+              type="date"
+              style={{ width: 148 }}
+              aria-label="下单结束日期"
+              value={endDate}
+              onChange={(e) => {
+                setEndDate(e.target.value);
+                setPage(1);
+              }}
+            />
+            <input
+              className="input"
+              type="number"
+              min="0"
+              style={{ width: 96 }}
+              aria-label="最低实付金额"
+              placeholder="最低金额"
+              value={minAmount}
+              onChange={(e) => {
+                setMinAmount(e.target.value);
+                setPage(1);
+              }}
+            />
+            <span className="muted small">—</span>
+            <input
+              className="input"
+              type="number"
+              min="0"
+              style={{ width: 96 }}
+              aria-label="最高实付金额"
+              placeholder="最高金额"
+              value={maxAmount}
+              onChange={(e) => {
+                setMaxAmount(e.target.value);
+                setPage(1);
+              }}
+            />
             <Button type="submit" variant="ghost">
               搜索
             </Button>
@@ -321,8 +382,12 @@ export default function Orders() {
               onClick={() => {
                 setKeyword('');
                 setAppliedKeyword('');
-                setStoreId('');
+                setStoreIds([]);
                 setFulfillmentType('');
+                setStartDate('');
+                setEndDate('');
+                setMinAmount('');
+                setMaxAmount('');
                 setPage(1);
               }}
             >
@@ -337,6 +402,7 @@ export default function Orders() {
           loading={loading}
           empty="当前筛选下暂无订单"
           onRowClick={(row) => navigate(`/orders/${row.id}`)}
+          selection={{ selected, onChange: setSelected }}
         />
         <Pagination
           page={page}
@@ -345,6 +411,19 @@ export default function Orders() {
           onChange={setPage}
         />
       </Card>
+
+      <BulkBar
+        count={selected.length}
+        onClear={() => setSelected([])}
+        hint={`当前页共 ${data.items.length} 笔`}
+        actions={[
+          { label: '导出选中', onClick: exportSelected },
+          {
+            label: '去批量发货',
+            onClick: () => navigate('/orders/batch-ship'),
+          },
+        ]}
+      />
     </>
   );
 }

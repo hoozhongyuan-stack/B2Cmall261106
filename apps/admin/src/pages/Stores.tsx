@@ -4,12 +4,16 @@ import { api, ApiError, formatDate, money, toCents, toYuan } from '../api/client
 import { hasRole } from '../auth';
 import { toast } from '../components/toast';
 import {
+  BulkBar,
   Button,
   Card,
+  Confirm,
   DataTable,
   Field,
   Modal,
   PageHeader,
+  Pagination,
+  RowActions,
   Stat,
   Tag,
   Toolbar,
@@ -58,6 +62,11 @@ interface StoreRow {
   status: 'ACTIVE' | 'DISABLED';
   sort: number;
   deliveryRegions: string[];
+  temporarilyClosedUntil: string | null;
+  temporaryClosureNote: string | null;
+  temporarilyClosed: boolean;
+  managerUserId: string | null;
+  manager: { id: string; nickname: string | null; phone: string | null } | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -83,6 +92,9 @@ interface StoreFormState {
   notice: string;
   status: 'ACTIVE' | 'DISABLED';
   hours: HoursForm;
+  managerUserId: string;
+  managerName: string;
+  managerPhone: string;
 }
 
 interface StockRow {
@@ -187,6 +199,9 @@ function emptyForm(): StoreFormState {
     notice: '',
     status: 'ACTIVE',
     hours: defaultHours(),
+    managerUserId: '',
+    managerName: '',
+    managerPhone: '',
   };
 }
 
@@ -238,6 +253,9 @@ function formFromStore(store: StoreRow): StoreFormState {
     notice: store.notice ?? '',
     status: store.status,
     hours: parseHours(store.businessHours),
+    managerUserId: store.managerUserId ?? '',
+    managerName: store.manager?.nickname ?? '',
+    managerPhone: store.manager?.phone ?? '',
   };
 }
 
@@ -257,6 +275,7 @@ export default function Stores() {
   const canDisable = hasRole('SUPER');
   const [items, setItems] = useState<StoreRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [disabling, setDisabling] = useState<StoreRow | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<StoreRow | null>(null);
   const [form, setForm] = useState<StoreFormState>(emptyForm());
@@ -284,11 +303,51 @@ export default function Stores() {
   const [dashboard, setDashboard] = useState<StoreDashboard | null>(null);
   const [dashboardLoading, setDashboardLoading] = useState(false);
 
+  const [keyword, setKeyword] = useState('');
+  const [appliedKeyword, setAppliedKeyword] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [capability, setCapability] = useState('');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const [total, setTotal] = useState(0);
+  const [selected, setSelected] = useState<string[]>([]);
+  const [batching, setBatching] = useState(false);
+  const [managerKeyword, setManagerKeyword] = useState('');
+  const [managerOptions, setManagerOptions] = useState<
+    { id: string; nickname: string | null; phone: string | null }[]
+  >([]);
+
+  async function searchManagers() {
+    const keyword = managerKeyword.trim();
+    if (!keyword) {
+      setManagerOptions([]);
+      return;
+    }
+    try {
+      const result = await api<{
+        items: { id: string; nickname: string | null; phone: string | null }[];
+      }>('/admin/customers', { query: { keyword, pageSize: 10 } });
+      setManagerOptions(result.items);
+      if (!result.items.length) toast('没有匹配的会员', 'error');
+    } catch (err) {
+      toast(errorText(err), 'error');
+    }
+  }
+
   async function load() {
     setLoading(true);
     try {
-      const result = await api<{ items: StoreRow[] }>('/admin/stores');
+      const result = await api<{ total: number; items: StoreRow[] }>('/admin/stores', {
+        query: {
+          keyword: appliedKeyword || undefined,
+          status: statusFilter || undefined,
+          capability: capability || undefined,
+          page,
+          pageSize,
+        },
+      });
       setItems(result.items);
+      setTotal(result.total);
     } catch (err) {
       toast(errorText(err), 'error');
     } finally {
@@ -298,7 +357,33 @@ export default function Stores() {
 
   useEffect(() => {
     void load();
-  }, []);
+  }, [appliedKeyword, statusFilter, capability, page, pageSize]);
+
+  useEffect(() => {
+    setSelected([]);
+  }, [appliedKeyword, statusFilter, capability, page]);
+
+  async function batchStatus(status: 'ACTIVE' | 'DISABLED') {
+    setBatching(true);
+    try {
+      const result = await api<{ success: number; failed: number }>('/admin/stores/batch/status', {
+        method: 'POST',
+        body: { ids: selected, status },
+      });
+      toast(
+        `已${status === 'ACTIVE' ? '启用' : '停用'} ${result.success} 个门店${
+          result.failed ? `，${result.failed} 个失败` : ''
+        }`,
+        result.failed ? 'error' : 'success',
+      );
+      setSelected([]);
+      await load();
+    } catch (err) {
+      toast(errorText(err), 'error');
+    } finally {
+      setBatching(false);
+    }
+  }
 
   function openCreate() {
     setEditing(null);
@@ -349,6 +434,7 @@ export default function Stores() {
       notice: form.notice.trim() || undefined,
       status: form.status,
       businessHours: hoursPayload(form.hours),
+      managerUserId: form.managerUserId || null,
     };
 
     setSaving(true);
@@ -369,20 +455,28 @@ export default function Stores() {
   }
 
   async function toggleStatus(store: StoreRow) {
+    if (store.status === 'ACTIVE') {
+      setDisabling(store);
+      return;
+    }
     try {
-      if (store.status === 'ACTIVE') {
-        if (!window.confirm(`确定停用门店「${store.name}」吗？历史订单会保留。`)) return;
-        await api(`/admin/stores/${store.id}`, { method: 'DELETE' });
-      } else {
-        await api(`/admin/stores/${store.id}`, {
-          method: 'PATCH',
-          body: { status: 'ACTIVE' },
-        });
-      }
+      await api(`/admin/stores/${store.id}`, { method: 'PATCH', body: { status: 'ACTIVE' } });
       toast('已更新');
       await load();
     } catch (err) {
       toast(errorText(err), 'error');
+    }
+  }
+
+  async function disableStore(store: StoreRow) {
+    try {
+      await api(`/admin/stores/${store.id}`, { method: 'DELETE' });
+      toast('已停用');
+      await load();
+    } catch (err) {
+      toast(errorText(err), 'error');
+    } finally {
+      setDisabling(null);
     }
   }
 
@@ -541,9 +635,12 @@ export default function Stores() {
     {
       key: 'name',
       title: '门店',
+      minWidth: 150,
       render: (row) => (
         <div>
-          <div>{row.name}</div>
+          <div className="cell-title cell-clip" title={row.name}>
+            {row.name}
+          </div>
           <div className="small muted mono">{row.code}</div>
         </div>
       ),
@@ -551,20 +648,44 @@ export default function Stores() {
     {
       key: 'region',
       title: '区域 / 地址',
+      minWidth: 190,
       render: (row) => (
         <div className="small">
-          <div>{row.region}</div>
-          <div className="muted">{row.address}</div>
+          <div className="cell-clip" title={row.region}>
+            {row.region}
+          </div>
+          <div className="muted cell-clip" title={row.address}>
+            {row.address}
+          </div>
         </div>
       ),
     },
     {
+      key: 'manager',
+      title: '负责人',
+      minWidth: 150,
+      render: (row) =>
+        row.manager ? (
+          <div className="small">
+            <div className="cell-clip">{row.manager.nickname ?? '山野顾客'}</div>
+            <div className="muted cell-clip">{row.manager.phone ?? '—'}</div>
+          </div>
+        ) : (
+          <span className="small muted">未关联</span>
+        ),
+    },
+    {
       key: 'fulfillment',
-      title: '履约能力',
+      title: '履约',
+      minWidth: 140,
       render: (row) => (
         <div className="row" style={{ gap: 6 }}>
           {row.pickupEnabled && <Tag tone="brand">自提</Tag>}
           {row.deliveryEnabled && <Tag tone="ok">配送</Tag>}
+          <Tag tone={row.status === 'ACTIVE' ? 'ok' : 'muted'}>
+            {row.status === 'ACTIVE' ? '启用' : '停用'}
+          </Tag>
+          {row.temporarilyClosed && <Tag tone="muted">临时打烊</Tag>}
           {!row.pickupEnabled && !row.deliveryEnabled && <Tag>未开通</Tag>}
         </div>
       ),
@@ -572,58 +693,56 @@ export default function Stores() {
     {
       key: 'delivery',
       title: '配送规则',
-      render: (row) => (
-        <div className="small">
-          <div>配送费 {toYuan(row.deliveryFeeCents)} 元</div>
-          <div className="muted">
-            满 {toYuan(row.freeDeliveryThresholdCents)} 元免配送费
-            {row.deliveryCutoff ? ` · ${row.deliveryCutoff} 截单` : ''}
+      minWidth: 230,
+      render: (row) => {
+        const summary = row.deliveryEnabled
+          ? `¥${toYuan(row.deliveryFeeCents)} · 满 ¥${toYuan(row.freeDeliveryThresholdCents)} 免`
+          : '未开通配送';
+        const detail = row.deliveryEnabled
+          ? `${row.deliveryCutoff ? `${row.deliveryCutoff} 截单 · ` : ''}${
+              row.deliverySlots.join('、') || '未设置时段'
+            }`
+          : '';
+        return (
+          <div className="small">
+            <div className="cell-clip" title={summary}>
+              {summary}
+            </div>
+            <div className="muted cell-clip" title={detail}>
+              {detail || '—'}
+            </div>
           </div>
-          <div className="muted">{row.deliverySlots.join('、') || '未设置时段'}</div>
-        </div>
-      ),
+        );
+      },
     },
     {
       key: 'pickup',
-      title: '自提',
+      title: '自提时效',
+      minWidth: 90,
       render: (row) => (
-        <span className="small">
-          {row.pickupEnabled ? `${row.pickupCompleteDays} 天未取自动完成` : '未开通'}
+        <span className="small" title={row.pickupEnabled ? `${row.pickupCompleteDays} 天未取自动完成` : ''}>
+          {row.pickupEnabled ? `${row.pickupCompleteDays} 天` : '—'}
         </span>
-      ),
-    },
-    {
-      key: 'status',
-      title: '状态',
-      render: (row) => (
-        <Tag tone={row.status === 'ACTIVE' ? 'ok' : 'muted'}>
-          {row.status === 'ACTIVE' ? '启用' : '停用'}
-        </Tag>
       ),
     },
     {
       key: 'actions',
       title: '操作',
       align: 'right',
+      minWidth: 128,
       render: (row) => (
-        <div className="row" style={{ justifyContent: 'flex-end', gap: 6 }}>
-          <Button size="sm" variant="ghost" onClick={() => void openDashboard(row)}>
-            看板
-          </Button>
-          {canWrite && (
-            <Button size="sm" variant="ghost" onClick={() => openEdit(row)}>
-              编辑
-            </Button>
-          )}
-          <Button size="sm" variant="ghost" onClick={() => openStock(row)}>
-            库存
-          </Button>
-          {(canWrite || canDisable) && (
-            <Button size="sm" variant="plain" onClick={() => void toggleStatus(row)}>
-              {row.status === 'ACTIVE' ? '停用' : '启用'}
-            </Button>
-          )}
-        </div>
+        <RowActions
+          primary={{ label: '看板', onClick: () => void openDashboard(row) }}
+          actions={[
+            { label: '编辑', onClick: () => openEdit(row), hidden: !canWrite },
+            { label: '库存', onClick: () => openStock(row) },
+            {
+              label: row.status === 'ACTIVE' ? '停用' : '启用',
+              onClick: () => void toggleStatus(row),
+              hidden: !(canWrite || canDisable),
+            },
+          ]}
+        />
       ),
     },
   ];
@@ -772,8 +891,95 @@ export default function Stores() {
       />
 
       <Card>
-        <DataTable columns={columns} rows={items} loading={loading} empty="还没有门店" />
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            setAppliedKeyword(keyword.trim());
+            setPage(1);
+          }}
+        >
+          <Toolbar>
+            <input
+              className="input"
+              style={{ width: 240 }}
+              aria-label="搜索门店名称或编码"
+              placeholder="搜索门店名称 / 编码 / 区域…"
+              value={keyword}
+              onChange={(event) => setKeyword(event.target.value)}
+            />
+            <select
+              className="select"
+              aria-label="门店状态"
+              value={statusFilter}
+              onChange={(event) => {
+                setStatusFilter(event.target.value);
+                setPage(1);
+              }}
+            >
+              <option value="">全部状态</option>
+              <option value="ACTIVE">启用</option>
+              <option value="DISABLED">停用</option>
+            </select>
+            <select
+              className="select"
+              aria-label="履约能力"
+              value={capability}
+              onChange={(event) => {
+                setCapability(event.target.value);
+                setPage(1);
+              }}
+            >
+              <option value="">全部履约能力</option>
+              <option value="PICKUP">支持自提</option>
+              <option value="DELIVERY">支持配送</option>
+            </select>
+            <div className="toolbar-actions">
+              <Button
+                type="button"
+                variant="plain"
+                onClick={() => {
+                  setKeyword('');
+                  setAppliedKeyword('');
+                  setStatusFilter('');
+                  setCapability('');
+                  setPage(1);
+                }}
+              >
+                重置
+              </Button>
+              <Button type="submit" variant="ghost">
+                搜索
+              </Button>
+            </div>
+          </Toolbar>
+        </form>
+        <DataTable
+          columns={columns}
+          rows={items}
+          loading={loading}
+          empty="还没有门店"
+          selection={canDisable ? { selected, onChange: setSelected } : undefined}
+        />
+        <Pagination
+          page={page}
+          total={total}
+          pageSize={pageSize}
+          onChange={setPage}
+          onPageSizeChange={(size) => {
+            setPageSize(size);
+            setPage(1);
+          }}
+        />
       </Card>
+
+      <BulkBar
+        count={selected.length}
+        onClear={() => setSelected([])}
+        actions={[
+          { label: '批量启用', onClick: () => void batchStatus('ACTIVE'), disabled: batching },
+          { label: '批量停用', onClick: () => void batchStatus('DISABLED'), disabled: batching },
+        ]}
+      />
 
       <Modal
         open={formOpen}
@@ -857,6 +1063,80 @@ export default function Stores() {
               />
             </Field>
           </div>
+
+          <Field
+            label="关联会员（门店负责人）"
+            hint="该会员登录小程序后，个人中心会出现「门店中心」；需已绑定手机号"
+          >
+            {form.managerUserId ? (
+              <div className="row" style={{ gap: 8 }}>
+                <span className="small">
+                  {form.managerName || form.managerUserId}
+                  {form.managerPhone ? ` · ${form.managerPhone}` : ''}
+                </span>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={() =>
+                    setForm((prev) => ({
+                      ...prev,
+                      managerUserId: '',
+                      managerName: '',
+                      managerPhone: '',
+                    }))
+                  }
+                >
+                  更换
+                </Button>
+              </div>
+            ) : (
+              <>
+                <div className="row" style={{ gap: 8 }}>
+                  <input
+                    className="input"
+                    style={{ width: 240 }}
+                    aria-label="搜索关联会员"
+                    placeholder="输入手机号 / 昵称搜索会员"
+                    value={managerKeyword}
+                    onChange={(e) => setManagerKeyword(e.target.value)}
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => void searchManagers()}
+                  >
+                    搜索
+                  </Button>
+                </div>
+                {managerOptions.length > 0 && (
+                  <div className="manager-options">
+                    {managerOptions.map((item) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        className="manager-option"
+                        onClick={() => {
+                          setForm((prev) => ({
+                            ...prev,
+                            managerUserId: item.id,
+                            managerName: item.nickname ?? '山野顾客',
+                            managerPhone: item.phone ?? '',
+                          }));
+                          setManagerOptions([]);
+                          setManagerKeyword('');
+                        }}
+                      >
+                        <span>{item.nickname ?? '山野顾客'}</span>
+                        <span className="muted tiny">{item.phone ?? '未绑定手机号'}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+          </Field>
 
           <div className="row" style={{ gap: 20 }}>
             <label className="row" style={{ gap: 6 }}>
@@ -1257,6 +1537,17 @@ export default function Stores() {
           empty="暂无库存流水"
         />
       </Modal>
+      <Confirm
+        open={Boolean(disabling)}
+        title="停用门店"
+        danger
+        confirmText="停用"
+        text={`确定停用门店「${disabling?.name ?? ''}」吗？历史订单会保留。`}
+        onCancel={() => setDisabling(null)}
+        onConfirm={() => {
+          if (disabling) void disableStore(disabling);
+        }}
+      />
     </>
   );
 }

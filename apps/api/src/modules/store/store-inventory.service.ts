@@ -55,6 +55,9 @@ export class StoreInventoryService {
     if (!store || store.status !== 'ACTIVE') {
       throw new BadRequestException('门店不存在或已停用');
     }
+    if (store.temporarilyClosedUntil && store.temporarilyClosedUntil > new Date()) {
+      throw new BadRequestException('该门店临时打烊中，请稍后再试或切换门店');
+    }
     if (type === 'PICKUP' && !store.pickupEnabled) {
       throw new BadRequestException('该门店暂不支持自提');
     }

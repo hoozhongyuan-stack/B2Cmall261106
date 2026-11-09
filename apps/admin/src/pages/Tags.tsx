@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 
 import { api, ApiError } from '../api/client';
 import { hasRole } from '../auth';
+import { confirmAction } from '../components/confirm';
 import { toast } from '../components/toast';
 import {
   Button,
@@ -83,7 +84,7 @@ export default function Tags() {
   }
 
   async function remove(row: TagRow) {
-    if (!window.confirm(`确定删除标签「${row.name}」吗？`)) return;
+    if (!(await confirmAction(`确定删除标签「${row.name}」吗？`))) return;
     try {
       await api(`/admin/tags/${row.id}`, { method: 'DELETE' });
       toast('已删除');

@@ -50,30 +50,90 @@ export class DeliveryService {
 
   async list(
     user: AuthUser,
-    query: { status?: string; storeId?: string; date?: string },
+    query: {
+      status?: string;
+      storeId?: string;
+      storeIds?: string;
+      date?: string;
+      page?: number;
+      pageSize?: number;
+    },
   ) {
     const scope = await this.scopes.resolve(user);
-    if (query.storeId) this.scopes.assertAccess(scope, query.storeId);
+    const picked = [
+      ...(query.storeId ? [query.storeId] : []),
+      ...(query.storeIds ?? '')
+        .split(',')
+        .map((item) => item.trim())
+        .filter(Boolean),
+    ];
+    const uniqueIds = [...new Set(picked)];
+    if (uniqueIds.length && !scope.all && uniqueIds.some((id) => !scope.storeIds.includes(id))) {
+      throw new NotFoundException('门店不存在');
+    }
 
-    const storeWhere = query.storeId
-      ? { storeId: query.storeId }
+    const storeWhere = uniqueIds.length
+      ? { storeId: { in: uniqueIds } }
       : scope.all
         ? {}
         : { storeId: { in: scope.storeIds } };
+    return this.listByWhere(query, storeWhere);
+  }
+
+  /** 门店小程序：只看自己门店的配送单 */
+  async listForStore(
+    storeId: string,
+    query: { status?: string; date?: string; page?: number; pageSize?: number },
+  ) {
+    return this.listByWhere(query, { storeId });
+  }
+
+  private async listByWhere(
+    query: { status?: string; date?: string; page?: number; pageSize?: number },
+    storeWhere: Record<string, unknown>,
+  ) {
     const dateRange = this.dateRange(query.date);
+    const page = Math.max(query.page ?? 1, 1);
+    const pageSize = Math.min(Math.max(query.pageSize ?? 20, 1), 100);
+    const where = {
+      ...storeWhere,
+      ...(query.status ? { status: query.status } : {}),
+      ...(dateRange ? { createdAt: dateRange } : {}),
+    };
 
-    const deliveries = await this.prisma.delivery.findMany({
-      where: {
-        ...storeWhere,
-        ...(query.status ? { status: query.status } : {}),
-        ...(dateRange ? { createdAt: dateRange } : {}),
-      },
-      include: this.includeRow(),
-      orderBy: { createdAt: 'desc' },
-      take: 100,
-    });
+    const [deliveries, total] = await Promise.all([
+      this.prisma.delivery.findMany({
+        where,
+        include: this.includeRow(),
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      this.prisma.delivery.count({ where }),
+    ]);
 
-    return { total: deliveries.length, items: deliveries.map((row) => this.view(row)) };
+    return { total, page, pageSize, items: deliveries.map((row) => this.view(row)) };
+  }
+
+  /** 批量接单：逐条执行，已接单视为成功，失败项返回原因 */
+  async batchAccept(
+    user: AuthUser,
+    ids: string[],
+    input: { courierName?: string; courierPhone?: string },
+  ) {
+    const unique = [...new Set(ids.filter(Boolean))];
+    if (!unique.length) throw new BadRequestException('请选择配送单');
+    const errors: { id: string; message: string }[] = [];
+    let success = 0;
+    for (const id of unique) {
+      try {
+        await this.accept(user, id, input);
+        success += 1;
+      } catch (error) {
+        errors.push({ id, message: error instanceof Error ? error.message : '接单失败' });
+      }
+    }
+    return { total: unique.length, success, failed: errors.length, errors };
   }
 
   /** 接单：PENDING → ACCEPTED，同时订单 PAID → SHIPPED */
@@ -81,8 +141,9 @@ export class DeliveryService {
     user: AuthUser,
     id: string,
     input: { courierName?: string; courierPhone?: string },
+    options: { storeId?: string } = {},
   ) {
-    const detail = await this.load(user, id);
+    const detail = await this.load(user, id, options.storeId);
     if (detail.status === 'ACCEPTED') {
       return { alreadyAccepted: true, delivery: this.view(detail) };
     }
@@ -126,12 +187,12 @@ export class DeliveryService {
     } catch (err) {
       this.logger.warn(`配送接单通知入队失败 delivery=${id}`, err as Error);
     }
-    return { alreadyAccepted: false, delivery: this.view(await this.load(user, id)) };
+    return { alreadyAccepted: false, delivery: this.view(await this.load(user, id, options.storeId)) };
   }
 
   /** 送达：ACCEPTED → DELIVERED，同时订单 SHIPPED → COMPLETED */
-  async deliver(user: AuthUser, id: string) {
-    const detail = await this.load(user, id);
+  async deliver(user: AuthUser, id: string, options: { storeId?: string } = {}) {
+    const detail = await this.load(user, id, options.storeId);
     if (detail.status === 'DELIVERED') {
       return { alreadyDelivered: true, delivery: this.view(detail) };
     }
@@ -167,7 +228,7 @@ export class DeliveryService {
     } catch (err) {
       this.logger.warn(`配送完成通知入队失败 delivery=${id}`, err as Error);
     }
-    return { alreadyDelivered: false, delivery: this.view(await this.load(user, id)) };
+    return { alreadyDelivered: false, delivery: this.view(await this.load(user, id, options.storeId)) };
   }
 
   /** 取消：仅待接单/配送中，需填写原因；订单状态不回退，由售后处理 */
@@ -196,12 +257,17 @@ export class DeliveryService {
     } as const;
   }
 
-  private async load(user: AuthUser, id: string): Promise<DeliveryRow> {
+  private async load(user: AuthUser, id: string, storeId?: string): Promise<DeliveryRow> {
     const detail = await this.prisma.delivery.findUnique({
       where: { id },
       include: this.includeRow(),
     });
     if (!detail) throw new NotFoundException('配送单不存在');
+
+    if (storeId) {
+      if (detail.storeId !== storeId) throw new NotFoundException('配送单不存在');
+      return detail as DeliveryRow;
+    }
 
     const scope = await this.scopes.resolve(user);
     this.scopes.assertAccess(scope, detail.storeId);
@@ -238,6 +304,7 @@ export class DeliveryService {
       phone: address.phone ?? null,
       address: address.region ? `${address.region} ${address.detail ?? ''}`.trim() : null,
       payableCents: row.order.payableCents,
+      slot: (row.order as { deliverySlot?: string | null }).deliverySlot ?? null,
       items: row.order.items.map((item) => ({
         title: item.title,
         specText: item.specText,

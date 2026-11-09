@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { ForbiddenException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../../prisma/prisma.module';
 import { verifyPassword } from '../../common/password';
@@ -41,6 +41,11 @@ export class AdminAuthService {
       where: { id: admin.id },
       data: { failCount: 0, lockedUntil: null, lastLoginAt: new Date() },
     });
+
+    // 门店业务已迁移到小程序「我的 → 门店中心」，PC 不再接受门店账号登录
+    if (admin.role === 'STORE') {
+      throw new ForbiddenException('门店操作请使用小程序「我的 → 门店中心」，PC 后台不再支持门店账号登录');
+    }
 
     const payload = {
       sub: admin.id,

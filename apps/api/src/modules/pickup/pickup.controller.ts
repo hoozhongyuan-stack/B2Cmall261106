@@ -38,15 +38,26 @@ export class PickupController {
 
   @Get()
   @Roles(...ALL_ROLES)
-  @ApiOperation({ summary: '自提待核销 / 核销记录' })
+  @ApiOperation({ summary: '自提待核销 / 核销记录（分页）' })
   list(
     @CurrentUser() user: AuthUser,
     @Query('status') status?: string,
     @Query('storeId') storeId?: string,
+    @Query('storeIds') storeIds?: string,
     @Query('keyword') keyword?: string,
     @Query('date') date?: string,
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
   ) {
-    return this.pickups.list(user, { status, storeId, keyword, date });
+    return this.pickups.list(user, {
+      status,
+      storeId,
+      storeIds,
+      keyword,
+      date,
+      page: Number(page) || 1,
+      pageSize: Number(pageSize) || 20,
+    });
   }
 
   @Post('verify')

@@ -1,0 +1,107 @@
+.verify-input {
+  margin: 12px 0 16px;
+  height: 56px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 0 16px;
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: 8px;
+  text-align: center;
+}
+
+.verify-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 46px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
+  font-size: 15px;
+  color: var(--ink);
+}
+
+.verify-btn--primary {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: var(--on-brand);
+}
+
+.verify-btn.is-disabled {
+  opacity: 0.6;
+}
+
+.verify-scan {
+  margin-top: 16px;
+  height: 88px;
+  border-radius: var(--radius-md);
+  border: 1px dashed var(--brand);
+  color: var(--brand);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  font-size: 15px;
+}
+
+.verify-scan-icon {
+  font-size: 24px;
+}
+
+.verify-note {
+  display: block;
+  margin-top: 16px;
+  line-height: 1.7;
+}
+
+.verify-result {
+  border-radius: var(--radius-lg);
+  padding: 24px 16px;
+  background: var(--brand-soft);
+  color: var(--brand);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.verify-result.is-dup {
+  background: var(--warn-soft, #fff6e5);
+  color: #b26a00;
+}
+
+.verify-result-title {
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.verify-order-no {
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+.verify-amount {
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.verify-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px dashed var(--line);
+}
+
+.verify-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.verify-actions .verify-btn {
+  flex: 1;
+}

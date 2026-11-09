@@ -95,6 +95,26 @@
   margin-bottom: 24px;
 }
 
+.mine-store-entry {
+  margin-bottom: 24px;
+  background: linear-gradient(135deg, var(--brand) 0%, #4a6b3c 100%);
+  color: var(--surface);
+}
+
+.mine-store-title {
+  font-size: 30px;
+  font-weight: 600;
+}
+
+.mine-store-entry .muted {
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.mine-store-arrow {
+  font-size: 32px;
+  color: rgba(255, 255, 255, 0.86);
+}
+
 .mine-shop {
   display: block;
   text-align: center;

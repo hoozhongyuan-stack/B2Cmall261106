@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
   Param,
   Patch,
   Post,
@@ -14,6 +15,7 @@ import { Type } from 'class-transformer';
 import {
   ArrayMinSize,
   IsArray,
+  IsIn,
   IsInt,
   IsObject,
   IsOptional,
@@ -158,6 +160,23 @@ class UpdateTagsDto {
   tagIds!: string[];
 }
 
+class BatchStatusDto {
+  @IsArray()
+  @ArrayMinSize(1)
+  @IsString({ each: true })
+  ids!: string[];
+
+  @IsIn(['ON_SALE', 'OFF_SHELF'])
+  status!: 'ON_SALE' | 'OFF_SHELF';
+}
+
+class BatchIdsDto {
+  @IsArray()
+  @ArrayMinSize(1)
+  @IsString({ each: true })
+  ids!: string[];
+}
+
 @ApiTags('admin-products')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -167,13 +186,27 @@ export class AdminProductController {
 
   @Get()
   @Roles('SUPER', 'OPS', 'CS', 'WMS')
-  @ApiOperation({ summary: '商品列表：关键词 / 状态 / 分类筛选' })
+  @ApiOperation({ summary: '商品列表：关键词 / 状态 / 分类 / 价格区间筛选，支持排序与分页' })
   list(
     @Query('keyword') keyword?: string,
     @Query('status') status?: string,
     @Query('categoryId') categoryId?: string,
+    @Query('minPriceCents') minPriceCents?: string,
+    @Query('maxPriceCents') maxPriceCents?: string,
+    @Query('sort') sort?: string,
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
   ) {
-    return this.service.listAdmin({ keyword, status, categoryId });
+    return this.service.listAdmin({
+      keyword,
+      status,
+      categoryId,
+      minPriceCents: minPriceCents === undefined ? undefined : Number(minPriceCents),
+      maxPriceCents: maxPriceCents === undefined ? undefined : Number(maxPriceCents),
+      sort,
+      page: Number(page) || 1,
+      pageSize: Number(pageSize) || 20,
+    });
   }
 
   @Post()
@@ -181,6 +214,21 @@ export class AdminProductController {
   @ApiOperation({ summary: '新建商品（同时创建 SKU）' })
   create(@Body() dto: CreateProductDto) {
     return this.service.create(dto);
+  }
+
+  @Patch('batch/status')
+  @Roles('SUPER', 'OPS')
+  @ApiOperation({ summary: '批量上架 / 下架' })
+  batchStatus(@Body() dto: BatchStatusDto) {
+    return this.service.batchStatus(dto.ids, dto.status);
+  }
+
+  @Post('batch/delete')
+  @HttpCode(200)
+  @Roles('SUPER', 'OPS')
+  @ApiOperation({ summary: '批量删除商品（有订单的逐条失败并返回原因）' })
+  batchRemove(@Body() dto: BatchIdsDto) {
+    return this.service.batchRemove(dto.ids);
   }
 
   @Get(':id')

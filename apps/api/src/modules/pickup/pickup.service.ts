@@ -21,45 +21,70 @@ export class PickupService {
 
   async list(
     user: AuthUser,
-    query: { status?: string; storeId?: string; keyword?: string; date?: string },
+    query: {
+      status?: string;
+      storeId?: string;
+      storeIds?: string;
+      keyword?: string;
+      date?: string;
+      page?: number;
+      pageSize?: number;
+    },
   ) {
     const scope = await this.scopes.resolve(user);
-    if (query.storeId && !scope.all && !scope.storeIds.includes(query.storeId)) {
+    const picked = [
+      ...(query.storeId ? [query.storeId] : []),
+      ...(query.storeIds ?? '')
+        .split(',')
+        .map((item) => item.trim())
+        .filter(Boolean),
+    ];
+    const uniqueIds = [...new Set(picked)];
+    if (uniqueIds.length && !scope.all && uniqueIds.some((id) => !scope.storeIds.includes(id))) {
       throw new NotFoundException('门店不存在');
     }
-    const storeWhere = query.storeId
-      ? { storeId: query.storeId }
+    const storeWhere = uniqueIds.length
+      ? { storeId: { in: uniqueIds } }
       : scope.all
         ? {}
         : { storeId: { in: scope.storeIds } };
     const keyword = query.keyword?.trim();
     const dateRange = this.dateRange(query.date);
+    const page = Math.max(query.page ?? 1, 1);
+    const pageSize = Math.min(Math.max(query.pageSize ?? 20, 1), 100);
 
     if (query.status === 'verified') {
-      const records = await this.prisma.pickupVerification.findMany({
-        where: {
-          ...storeWhere,
-          ...(dateRange ? { verifiedAt: dateRange } : {}),
-          ...(keyword
-            ? {
-                order: {
-                  OR: [
-                    { orderNo: { contains: keyword, mode: 'insensitive' } },
-                    { pickupCode: { contains: keyword } },
-                  ],
-                },
-              }
-            : {}),
-        },
-        include: {
-          order: { include: { store: { select: { name: true } }, items: true } },
-        },
-        orderBy: { verifiedAt: 'desc' },
-        take: 100,
-      });
+      const where = {
+        ...storeWhere,
+        ...(dateRange ? { verifiedAt: dateRange } : {}),
+        ...(keyword
+          ? {
+              order: {
+                OR: [
+                  { orderNo: { contains: keyword, mode: 'insensitive' as const } },
+                  { pickupCode: { contains: keyword } },
+                ],
+              },
+            }
+          : {}),
+      };
+      const [records, total] = await Promise.all([
+        this.prisma.pickupVerification.findMany({
+          where,
+          include: {
+            order: { include: { store: { select: { name: true } }, items: true } },
+          },
+          orderBy: { verifiedAt: 'desc' },
+          skip: (page - 1) * pageSize,
+          take: pageSize,
+        }),
+        this.prisma.pickupVerification.count({ where }),
+      ]);
 
       return {
-        total: records.length,
+        total,
+        page,
+        pageSize,
         items: records.map((record) => ({
           id: record.id,
           orderId: record.orderId,
@@ -80,32 +105,39 @@ export class PickupService {
       };
     }
 
-    const orders = await this.prisma.order.findMany({
-      where: {
-        ...storeWhere,
-        fulfillmentType: 'PICKUP',
-        status: 'PAID',
-        pickupCode: { not: null },
-        ...(dateRange ? { pickupAt: dateRange } : {}),
-        ...(keyword
-          ? {
-              OR: [
-                { orderNo: { contains: keyword, mode: 'insensitive' } },
-                { pickupCode: { contains: keyword } },
-              ],
-            }
-          : {}),
-      },
-      include: {
-        store: { select: { name: true, address: true, phone: true } },
-        items: true,
-      },
-      orderBy: { pickupCodeExpiresAt: 'asc' },
-      take: 100,
-    });
+    const orderWhere = {
+      ...storeWhere,
+      fulfillmentType: 'PICKUP',
+      status: 'PAID' as const,
+      pickupCode: { not: null },
+      ...(dateRange ? { pickupAt: dateRange } : {}),
+      ...(keyword
+        ? {
+            OR: [
+              { orderNo: { contains: keyword, mode: 'insensitive' as const } },
+              { pickupCode: { contains: keyword } },
+            ],
+          }
+        : {}),
+    };
+    const [orders, total] = await Promise.all([
+      this.prisma.order.findMany({
+        where: orderWhere,
+        include: {
+          store: { select: { name: true, address: true, phone: true } },
+          items: true,
+        },
+        orderBy: { pickupCodeExpiresAt: 'asc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      this.prisma.order.count({ where: orderWhere }),
+    ]);
 
     return {
-      total: orders.length,
+      total,
+      page,
+      pageSize,
       items: orders.map((order) => ({
         id: order.id,
         orderNo: order.orderNo,
@@ -128,6 +160,23 @@ export class PickupService {
   }
 
   async verify(user: AuthUser, code: string) {
+    const scope = await this.scopes.resolve(user);
+    return this.doVerify(code, scope.all ? null : scope.storeIds, {
+      id: user.sub,
+      name: user.name,
+    });
+  }
+
+  /** 门店小程序：负责人直接核销自己门店的订单 */
+  async verifyForStore(storeId: string, code: string, actor: { id: string; name: string }) {
+    return this.doVerify(code, [storeId], actor);
+  }
+
+  private async doVerify(
+    code: string,
+    allowedStoreIds: string[] | null,
+    actor: { id: string; name: string },
+  ) {
     const normalized = code.trim();
     if (!/^\d{8}$/.test(normalized)) throw new NotFoundException('核销码不存在');
 
@@ -144,8 +193,7 @@ export class PickupService {
       throw new BadRequestException('该订单不是自提订单');
     }
 
-    const scope = await this.scopes.resolve(user);
-    if (!scope.all && !scope.storeIds.includes(order.storeId)) {
+    if (allowedStoreIds && !allowedStoreIds.includes(order.storeId)) {
       throw new NotFoundException('核销码不存在');
     }
 
@@ -191,7 +239,7 @@ export class PickupService {
             orderId: order.id,
             storeId: order.storeId!,
             method: 'CODE',
-            verifiedBy: user.sub,
+            verifiedBy: actor.id,
             note: null,
           },
         });
@@ -217,8 +265,8 @@ export class PickupService {
       },
     });
     await this.logs.record({
-      actorId: user.sub,
-      actorName: user.name,
+      actorId: actor.id,
+      actorName: actor.name,
       action: 'PICKUP_VERIFY',
       targetType: 'Order',
       targetId: order.id,

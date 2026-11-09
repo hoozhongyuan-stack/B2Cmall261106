@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 
 import { api, ApiError, formatDate } from '../api/client';
 import { hasRole } from '../auth';
+import { confirmAction } from '../components/confirm';
 import { toast } from '../components/toast';
 import { Button, Card, Field, PageHeader, Tag } from '../components/ui';
 
@@ -260,7 +261,7 @@ export default function IntegrationSettings() {
   }
 
   async function handleRemoveSecret(field: SecretField, label: string) {
-    if (!window.confirm(`确定删除已上传的${label}吗？删除后相关能力将不可用。`)) return;
+    if (!(await confirmAction(`确定删除已上传的${label}吗？删除后相关能力将不可用。`))) return;
     try {
       await api(`/admin/integration/secrets/${field}`, { method: 'DELETE' });
       toast('已删除');
@@ -271,7 +272,7 @@ export default function IntegrationSettings() {
   }
 
   async function clearAppSecret() {
-    if (!window.confirm('确定清除已保存的 AppSecret 吗？清除后小程序登录会回到本地模拟。')) return;
+    if (!(await confirmAction('确定清除已保存的 AppSecret 吗？清除后小程序登录会回到本地模拟。'))) return;
     try {
       await api('/admin/integration', {
         method: 'PATCH',

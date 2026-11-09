@@ -10,6 +10,7 @@ import {
   Field,
   Modal,
   PageHeader,
+  Pagination,
   Tag,
   type Column,
 } from '../components/ui';
@@ -89,7 +90,14 @@ export default function MemberCommerce() {
   const [accounts, setAccounts] = useState<PageResult<AccountRow> | null>(null);
   const [ledger, setLedger] = useState<PageResult<LedgerRow> | null>(null);
   const [keyword, setKeyword] = useState('');
+  const [appliedKeyword, setAppliedKeyword] = useState('');
+  const [accountPage, setAccountPage] = useState(1);
+  const [accountPageSize, setAccountPageSize] = useState(20);
+  const [ledgerPage, setLedgerPage] = useState(1);
+  const [ledgerPageSize, setLedgerPageSize] = useState(20);
   const [loading, setLoading] = useState(true);
+  const [accountLoading, setAccountLoading] = useState(true);
+  const [ledgerLoading, setLedgerLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
   const [cardForm, setCardForm] = useState({
@@ -104,23 +112,15 @@ export default function MemberCommerce() {
   const [adjustTarget, setAdjustTarget] = useState<AccountRow | null>(null);
   const [adjustForm, setAdjustForm] = useState({ delta: '', reason: '' });
 
-  async function load() {
+  async function loadPlans() {
     setLoading(true);
     try {
-      const [plans, recharges, accountPage, ledgerPage] = await Promise.all([
+      const [plans, recharges] = await Promise.all([
         api<{ items: CardPlan[] }>('/admin/member-card-plans'),
         api<{ items: RechargePlan[] }>('/admin/recharge-plans'),
-        api<PageResult<AccountRow>>('/admin/stored-value/accounts', {
-          query: { keyword, page: 1, pageSize: 20 },
-        }),
-        api<PageResult<LedgerRow>>('/admin/stored-value/ledger', {
-          query: { page: 1, pageSize: 20 },
-        }),
       ]);
       setCardPlans(plans.items);
       setRechargePlans(recharges.items);
-      setAccounts(accountPage);
-      setLedger(ledgerPage);
     } catch (err) {
       toast(errorText(err), 'error');
     } finally {
@@ -128,9 +128,45 @@ export default function MemberCommerce() {
     }
   }
 
+  async function loadAccounts() {
+    setAccountLoading(true);
+    try {
+      const result = await api<PageResult<AccountRow>>('/admin/stored-value/accounts', {
+        query: { keyword: appliedKeyword, page: accountPage, pageSize: accountPageSize },
+      });
+      setAccounts(result);
+    } catch (err) {
+      toast(errorText(err), 'error');
+    } finally {
+      setAccountLoading(false);
+    }
+  }
+
+  async function loadLedger() {
+    setLedgerLoading(true);
+    try {
+      const result = await api<PageResult<LedgerRow>>('/admin/stored-value/ledger', {
+        query: { page: ledgerPage, pageSize: ledgerPageSize },
+      });
+      setLedger(result);
+    } catch (err) {
+      toast(errorText(err), 'error');
+    } finally {
+      setLedgerLoading(false);
+    }
+  }
+
   useEffect(() => {
-    void load();
+    void loadPlans();
   }, []);
+
+  useEffect(() => {
+    void loadAccounts();
+  }, [appliedKeyword, accountPage, accountPageSize]);
+
+  useEffect(() => {
+    void loadLedger();
+  }, [ledgerPage, ledgerPageSize]);
 
   async function createCardPlan() {
     if (!canWrite) return;
@@ -149,7 +185,7 @@ export default function MemberCommerce() {
       });
       toast('已新增会员卡方案');
       setCardForm({ name: '', price: '', days: '30', discount: '0.95', pointsRate: '1.5', freeShipping: false });
-      await load();
+      await loadPlans();
     } catch (err) {
       toast(errorText(err), 'error');
     } finally {
@@ -163,7 +199,7 @@ export default function MemberCommerce() {
         method: 'PATCH',
         body: { enabled: !plan.enabled },
       });
-      await load();
+      await loadPlans();
     } catch (err) {
       toast(errorText(err), 'error');
     }
@@ -182,7 +218,7 @@ export default function MemberCommerce() {
       });
       toast('已新增充值套餐');
       setRechargeForm({ amount: '', bonus: '' });
-      await load();
+      await loadPlans();
     } catch (err) {
       toast(errorText(err), 'error');
     } finally {
@@ -196,7 +232,7 @@ export default function MemberCommerce() {
         method: 'PATCH',
         body: { enabled: !plan.enabled },
       });
-      await load();
+      await loadPlans();
     } catch (err) {
       toast(errorText(err), 'error');
     }
@@ -217,7 +253,7 @@ export default function MemberCommerce() {
       toast('已调整并记入流水');
       setAdjustTarget(null);
       setAdjustForm({ delta: '', reason: '' });
-      await load();
+      await Promise.all([loadAccounts(), loadLedger()]);
     } catch (err) {
       toast(errorText(err), 'error');
     } finally {
@@ -497,10 +533,20 @@ export default function MemberCommerce() {
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === 'Enter') void load();
+                if (e.key === 'Enter') {
+                  setAccountPage(1);
+                  setAppliedKeyword(keyword.trim());
+                }
               }}
             />
-            <Button size="sm" variant="ghost" onClick={() => void load()}>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => {
+                setAccountPage(1);
+                setAppliedKeyword(keyword.trim());
+              }}
+            >
               搜索
             </Button>
           </div>
@@ -509,8 +555,18 @@ export default function MemberCommerce() {
         <DataTable
           columns={accountColumns}
           rows={(accounts?.items ?? []).map((item): AccountRow => ({ ...item, id: item.userId }))}
-          loading={loading}
+          loading={accountLoading}
           empty="暂无储值账户"
+        />
+        <Pagination
+          page={accountPage}
+          total={accounts?.total ?? 0}
+          pageSize={accountPageSize}
+          onChange={setAccountPage}
+          onPageSizeChange={(size) => {
+            setAccountPageSize(size);
+            setAccountPage(1);
+          }}
         />
       </Card>
 
@@ -518,8 +574,18 @@ export default function MemberCommerce() {
         <DataTable
           columns={ledgerColumns}
           rows={ledger?.items ?? []}
-          loading={loading}
+          loading={ledgerLoading}
           empty="暂无流水"
+        />
+        <Pagination
+          page={ledgerPage}
+          total={ledger?.total ?? 0}
+          pageSize={ledgerPageSize}
+          onChange={setLedgerPage}
+          onPageSizeChange={(size) => {
+            setLedgerPageSize(size);
+            setLedgerPage(1);
+          }}
         />
       </Card>
 

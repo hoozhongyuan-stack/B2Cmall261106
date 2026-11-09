@@ -907,7 +907,12 @@ export interface paths {
                     status?: string;
                     keyword?: string;
                     storeId?: string;
+                    storeIds?: string;
                     fulfillmentType?: "EXPRESS" | "DELIVERY" | "PICKUP";
+                    startDate?: string;
+                    endDate?: string;
+                    minCents?: number;
+                    maxCents?: number;
                     page?: number;
                     pageSize?: number;
                 };
@@ -1612,10 +1617,16 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 优惠券列表（含已领取数） */
+        /** 优惠券列表（含已领取数，分页） */
         get: {
             parameters: {
-                query?: never;
+                query?: {
+                    enabled?: boolean;
+                    keyword?: string;
+                    type?: "THRESHOLD" | "NO_THRESHOLD";
+                    page?: number;
+                    pageSize?: number;
+                };
                 header?: never;
                 path?: never;
                 cookie?: never;
@@ -1627,7 +1638,18 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": {
+                            data?: {
+                                total?: number;
+                                page?: number;
+                                pageSize?: number;
+                                items?: {
+                                    [key: string]: unknown;
+                                }[];
+                            };
+                        };
+                    };
                 };
                 /** @description 角色无权限 */
                 403: {
@@ -1971,22 +1993,95 @@ export interface paths {
         };
         trace?: never;
     };
-    "/admin/customers": {
+    "/admin/user-tags": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** 客户列表：消费统计、等级与积分（分页） */
+        /** 用户标签树（两级，含覆盖客户数） */
         get: {
             parameters: {
-                query?: {
-                    keyword?: string;
-                    levelId?: string;
-                    page?: number;
-                    pageSize?: number;
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: {
+                                total?: number;
+                                items?: {
+                                    id?: string;
+                                    name?: string;
+                                    parentId?: string | null;
+                                    sort?: number;
+                                    userCount?: number;
+                                    children?: {
+                                        [key: string]: unknown;
+                                    }[];
+                                }[];
+                            };
+                        };
+                    };
                 };
+            };
+        };
+        put?: never;
+        /** 新建一级 / 二级标签（最多两级） */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        name: string;
+                        /** @description 传一级标签 id 即创建二级标签 */
+                        parentId?: string | null;
+                    };
+                };
+            };
+            responses: {
+                /** @description 创建成功 */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                400: components["responses"]["BadRequest"];
+                409: components["responses"]["Conflict"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/user-tags/options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 用户标签扁平选项（供筛选与打标选择） */
+        get: {
+            parameters: {
+                query?: never;
                 header?: never;
                 path?: never;
                 cookie?: never;
@@ -2004,6 +2099,174 @@ export interface paths {
         };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/user-tags/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** 删除标签（级联删除二级标签与用户绑定） */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                404: components["responses"]["NotFound"];
+            };
+        };
+        options?: never;
+        head?: never;
+        /** 重命名或调整排序 */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        name?: string;
+                        sort?: number;
+                    };
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                404: components["responses"]["NotFound"];
+                409: components["responses"]["Conflict"];
+            };
+        };
+        trace?: never;
+    };
+    "/admin/customers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 客户列表：消费统计、等级、标签与积分（分页） */
+        get: {
+            parameters: {
+                query?: {
+                    keyword?: string;
+                    levelId?: string;
+                    tagId?: string;
+                    startDate?: string;
+                    endDate?: string;
+                    minSpentCents?: number;
+                    maxSpentCents?: number;
+                    page?: number;
+                    pageSize?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: {
+                                total?: number;
+                                page?: number;
+                                pageSize?: number;
+                                items?: {
+                                    [key: string]: unknown;
+                                }[];
+                            };
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/customers/batch/tags": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 批量打标签：add 追加 / remove 移除 / replace 覆盖 */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        userIds: string[];
+                        tagIds?: string[];
+                        /**
+                         * @default add
+                         * @enum {string}
+                         */
+                        mode?: "add" | "remove" | "replace";
+                    };
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                400: components["responses"]["BadRequest"];
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -2321,6 +2584,10 @@ export interface paths {
             parameters: {
                 query?: {
                     status?: "PENDING" | "SHOWN" | "HIDDEN";
+                    keyword?: string;
+                    rating?: number;
+                    startDate?: string;
+                    endDate?: string;
                     page?: number;
                     pageSize?: number;
                 };
@@ -2341,6 +2608,56 @@ export interface paths {
         };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/reviews/batch/moderate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 批量审核评价：通过展示 / 隐藏 */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        ids: string[];
+                        /** @enum {string} */
+                        action: "show" | "hide";
+                    };
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                400: components["responses"]["BadRequest"];
+                /** @description 角色无权限 */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -2610,13 +2927,18 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 商品列表（含库存合计与 SKU 数） */
+        /** 商品列表（含库存合计与 SKU 数，分页） */
         get: {
             parameters: {
                 query?: {
                     keyword?: string;
                     status?: "ON_SALE" | "OFF_SHELF" | "SOLD_OUT";
                     categoryId?: string;
+                    minPriceCents?: number;
+                    maxPriceCents?: number;
+                    sort?: "newest" | "price_asc" | "price_desc" | "sales";
+                    page?: number;
+                    pageSize?: number;
                 };
                 header?: never;
                 path?: never;
@@ -2632,6 +2954,9 @@ export interface paths {
                     content: {
                         "application/json": {
                             data?: {
+                                total?: number;
+                                page?: number;
+                                pageSize?: number;
                                 items?: components["schemas"]["AdminProduct"][];
                             };
                         };
@@ -2666,6 +2991,104 @@ export interface paths {
                     };
                 };
                 400: components["responses"]["BadRequest"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/products/batch/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** 批量上架 / 下架 */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        ids: string[];
+                        /** @enum {string} */
+                        status: "ON_SALE" | "OFF_SHELF";
+                    };
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                400: components["responses"]["BadRequest"];
+                /** @description 角色无权限 */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/admin/products/batch/delete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 批量删除商品（已产生订单的逐条失败并返回原因） */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        ids: string[];
+                    };
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                400: components["responses"]["BadRequest"];
+                /** @description 角色无权限 */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
             };
         };
         delete?: never;
@@ -3447,6 +3870,47 @@ export interface paths {
                 409: components["responses"]["Conflict"];
             };
         };
+        trace?: never;
+    };
+    "/admin/assets/batch/delete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 批量删除素材（被引用的逐条失败并返回原因） */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        ids: string[];
+                    };
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                400: components["responses"]["BadRequest"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/admin/assets/upload": {
@@ -5000,11 +5464,15 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 门店列表（总部全量，门店账号仅授权门店） */
+        /** 门店列表（总部全量，门店账号仅授权门店，分页） */
         get: {
             parameters: {
                 query?: {
                     status?: "ACTIVE" | "DISABLED";
+                    keyword?: string;
+                    capability?: "PICKUP" | "DELIVERY";
+                    page?: number;
+                    pageSize?: number;
                 };
                 header?: never;
                 path?: never;
@@ -5020,6 +5488,9 @@ export interface paths {
                     content: {
                         "application/json": {
                             data?: {
+                                total?: number;
+                                page?: number;
+                                pageSize?: number;
                                 items?: components["schemas"]["Store"][];
                             };
                         };
@@ -5051,6 +5522,55 @@ export interface paths {
                 };
                 400: components["responses"]["BadRequest"];
                 409: components["responses"]["Conflict"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/stores/batch/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 批量启用 / 停用门店（仅总部） */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        ids: string[];
+                        /** @enum {string} */
+                        status: "ACTIVE" | "DISABLED";
+                    };
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description 角色无权限 */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
             };
         };
         delete?: never;
@@ -5146,6 +5666,53 @@ export interface paths {
                 409: components["responses"]["Conflict"];
             };
         };
+        trace?: never;
+    };
+    "/admin/stores/{id}/manager": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** 关联 / 换绑 / 解绑门店负责人（会员） */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["StoreManagerInput"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: components["schemas"]["Store"];
+                        };
+                    };
+                };
+                400: components["responses"]["BadRequest"];
+                404: components["responses"]["NotFound"];
+                409: components["responses"]["Conflict"];
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/admin/stores/{id}/dashboard": {
@@ -5451,8 +6018,11 @@ export interface paths {
                 query?: {
                     status?: "pending" | "verified";
                     storeId?: string;
+                    storeIds?: string;
                     keyword?: string;
                     date?: string;
+                    page?: number;
+                    pageSize?: number;
                 };
                 header?: never;
                 path?: never;
@@ -5469,6 +6039,8 @@ export interface paths {
                         "application/json": {
                             data?: {
                                 total?: number;
+                                page?: number;
+                                pageSize?: number;
                                 items?: {
                                     [key: string]: unknown;
                                 }[];
@@ -5551,7 +6123,10 @@ export interface paths {
                 query?: {
                     status?: "PENDING" | "ACCEPTED" | "DELIVERED" | "CANCELLED";
                     storeId?: string;
+                    storeIds?: string;
                     date?: string;
+                    page?: number;
+                    pageSize?: number;
                 };
                 header?: never;
                 path?: never;
@@ -5568,6 +6143,8 @@ export interface paths {
                         "application/json": {
                             data?: {
                                 total?: number;
+                                page?: number;
+                                pageSize?: number;
                                 items?: components["schemas"]["Delivery"][];
                             };
                         };
@@ -5577,6 +6154,49 @@ export interface paths {
         };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/deliveries/batch/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 批量接单（逐条处理，返回失败明细） */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        ids: string[];
+                        courierName?: string;
+                        courierPhone?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                400: components["responses"]["BadRequest"];
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -6676,6 +7296,509 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/store-console/context": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 门店中心入口：当前会员是否关联门店 */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: components["schemas"]["StoreConsoleContext"];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/store-console/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 门店工作台：待办与今日经营 */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: components["schemas"]["StoreConsoleSummary"];
+                        };
+                    };
+                };
+                404: components["responses"]["NotFound"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/store-console/pickups/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 门店核销自提码（仅本店订单） */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        code: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                404: components["responses"]["NotFound"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/store-console/deliveries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 本店同城配送单 */
+        get: {
+            parameters: {
+                query?: {
+                    status?: "PENDING" | "ACCEPTED" | "DELIVERED" | "CANCELLED";
+                    date?: string;
+                    page?: number;
+                    pageSize?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: {
+                                total?: number;
+                                page?: number;
+                                pageSize?: number;
+                                items?: components["schemas"]["Delivery"][];
+                            };
+                        };
+                    };
+                };
+                404: components["responses"]["NotFound"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/store-console/deliveries/{id}/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 门店接单 */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        courierName?: string;
+                        courierPhone?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                404: components["responses"]["NotFound"];
+                409: components["responses"]["Conflict"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/store-console/deliveries/{id}/deliver": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 门店送达 */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                404: components["responses"]["NotFound"];
+                409: components["responses"]["Conflict"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/store-console/stock": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 本店库存列表（关键词 / 只看预警 / 分页） */
+        get: {
+            parameters: {
+                query?: {
+                    keyword?: string;
+                    warning?: "1" | "true";
+                    page?: number;
+                    pageSize?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: {
+                                total?: number;
+                                page?: number;
+                                pageSize?: number;
+                                /** @description 当前筛选条件下的预警商品数 */
+                                warnings?: number;
+                                items?: components["schemas"]["StoreStockItem"][];
+                            };
+                        };
+                    };
+                };
+                404: components["responses"]["NotFound"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/store-console/stock/{skuId}/adjust": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 调整本店总库存与安全库存 */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    skuId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        stock?: number;
+                        safetyStock?: number;
+                    };
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                400: components["responses"]["BadRequest"];
+                404: components["responses"]["NotFound"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/store-console/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 本店营业设置 */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: components["schemas"]["Store"];
+                        };
+                    };
+                };
+                404: components["responses"]["NotFound"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** 更新本店营业时间、公告与自提/配送开关 */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["StoreConsoleSettingsInput"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: components["schemas"]["Store"];
+                        };
+                    };
+                };
+                400: components["responses"]["BadRequest"];
+                404: components["responses"]["NotFound"];
+            };
+        };
+        trace?: never;
+    };
+    "/store-console/dashboard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 移动端门店看板：今日经营、待履约、配送时效与库存预警 */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: components["schemas"]["StoreDashboard"];
+                        };
+                    };
+                };
+                404: components["responses"]["NotFound"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/store-console/closure": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 临时打烊 / 恢复营业（最长 7 天，只影响新下单） */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /**
+                         * Format: date-time
+                         * @description 恢复营业时间；传 null 表示立即恢复
+                         */
+                        until?: string | null;
+                        note?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: components["schemas"]["Store"];
+                        };
+                    };
+                };
+                400: components["responses"]["BadRequest"];
+                404: components["responses"]["NotFound"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -7295,9 +8418,65 @@ export interface components {
             sort?: number;
             deliveryRegions?: string[];
             /** Format: date-time */
+            temporarilyClosedUntil?: string | null;
+            temporaryClosureNote?: string | null;
+            /** @description 是否处于临时打烊中 */
+            temporarilyClosed?: boolean;
+            managerUserId?: string | null;
+            manager?: {
+                id?: string;
+                nickname?: string | null;
+                phone?: string | null;
+            } | null;
+            /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string;
+        };
+        StoreManagerInput: {
+            /** @description 关联会员 ID，传 null 解绑 */
+            managerUserId?: string | null;
+        };
+        StoreConsoleContext: {
+            hasStore?: boolean;
+            store?: components["schemas"]["Store"] | null;
+        };
+        StoreConsoleSummary: {
+            store?: components["schemas"]["Store"];
+            todo?: {
+                pendingPickup?: number;
+                pendingDelivery?: number;
+                delivering?: number;
+                stockWarnings?: number;
+            };
+            today?: {
+                paidOrders?: number;
+                paidCents?: number;
+            };
+        };
+        StoreStockItem: {
+            skuId?: string;
+            code?: string;
+            title?: string;
+            specText?: string;
+            imageKey?: string | null;
+            priceCents?: number;
+            stock?: number;
+            reserved?: number;
+            available?: number;
+            safetyStock?: number;
+            warning?: boolean;
+            /** @enum {string} */
+            status?: "ON_SALE" | "OFF_SHELF";
+        };
+        StoreConsoleSettingsInput: {
+            notice?: string;
+            /** @description 按星期配置营业时段，空数组表示休息 */
+            businessHours?: {
+                [key: string]: string[][];
+            };
+            pickupEnabled?: boolean;
+            deliveryEnabled?: boolean;
         };
         StoreInput: {
             code: string;
@@ -7323,6 +8502,8 @@ export interface components {
             status?: "ACTIVE" | "DISABLED";
             sort?: number;
             deliveryRegions?: string[];
+            /** @description 关联会员 ID，该会员在小程序可见门店中心 */
+            managerUserId?: string | null;
         };
         StoreUpdateInput: {
             code?: string;
@@ -7348,6 +8529,8 @@ export interface components {
             status?: "ACTIVE" | "DISABLED";
             sort?: number;
             deliveryRegions?: string[];
+            /** @description 关联会员 ID，传 null 解绑 */
+            managerUserId?: string | null;
         };
         StoreDashboard: {
             store?: {

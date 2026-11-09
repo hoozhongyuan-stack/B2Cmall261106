@@ -8,6 +8,8 @@ import { AdminMemberLevelController, MemberController } from './member/member.co
 import { LoyaltyService } from './member/loyalty.service';
 import { AdminCustomerController } from './customer/customer.controller';
 import { CustomerService } from './customer/customer.service';
+import { AdminUserTagController } from './customer/user-tag.controller';
+import { UserTagService } from './customer/user-tag.service';
 import {
   AdminReviewController,
   ProductReviewController,
@@ -40,6 +42,7 @@ import { UserJwtGuard } from '../common/user-auth.guard';
     MemberController,
     AdminMemberLevelController,
     AdminCustomerController,
+    AdminUserTagController,
     ReviewController,
     ProductReviewController,
     AdminReviewController,
@@ -48,6 +51,7 @@ import { UserJwtGuard } from '../common/user-auth.guard';
     CouponService,
     LoyaltyService,
     CustomerService,
+    UserTagService,
     ReviewService,
     UserJwtGuard,
     JwtAuthGuard,

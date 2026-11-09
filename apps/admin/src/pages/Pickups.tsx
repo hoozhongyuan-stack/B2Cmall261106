@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
 
 import { api, ApiError, formatDate, money } from '../api/client';
+import { StoreFilter, useStoreOptions } from '../components/StoreFilter';
 import { toast } from '../components/toast';
 import {
   Button,
   Card,
   DataTable,
   PageHeader,
+  Pagination,
   Tag,
   Toolbar,
   type Column,
@@ -47,34 +49,42 @@ interface VerifiedPickup {
   items: PickupItem[];
 }
 
-interface StoreOption {
-  id: string;
-  name: string;
-}
-
 function errorText(err: unknown): string {
   return err instanceof ApiError ? err.message : '操作失败';
 }
 
 export default function Pickups() {
   const [tab, setTab] = useState<'pending' | 'verified'>('pending');
-  const [stores, setStores] = useState<StoreOption[]>([]);
-  const [storeId, setStoreId] = useState('');
+  const stores = useStoreOptions();
+  const [storeIds, setStoreIds] = useState<string[]>([]);
   const [keyword, setKeyword] = useState('');
   const [code, setCode] = useState('');
   const [pending, setPending] = useState<PendingPickup[]>([]);
   const [verified, setVerified] = useState<VerifiedPickup[]>([]);
   const [loading, setLoading] = useState(true);
   const [verifying, setVerifying] = useState(false);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const [total, setTotal] = useState(0);
 
   async function load() {
     setLoading(true);
     try {
-      const result = await api<{ items: PendingPickup[] | VerifiedPickup[] }>('/admin/pickups', {
-        query: { status: tab, storeId, keyword },
-      });
+      const result = await api<{ total: number; items: PendingPickup[] | VerifiedPickup[] }>(
+        '/admin/pickups',
+        {
+          query: {
+            status: tab,
+            storeIds: storeIds.length ? storeIds.join(',') : undefined,
+            keyword,
+            page,
+            pageSize,
+          },
+        },
+      );
       if (tab === 'pending') setPending(result.items as PendingPickup[]);
       else setVerified(result.items as VerifiedPickup[]);
+      setTotal(result.total);
     } catch (err) {
       toast(errorText(err), 'error');
     } finally {
@@ -83,14 +93,8 @@ export default function Pickups() {
   }
 
   useEffect(() => {
-    api<{ items: StoreOption[] }>('/admin/stores/mine')
-      .then((result) => setStores(result.items))
-      .catch(() => undefined);
-  }, []);
-
-  useEffect(() => {
     void load();
-  }, [tab, storeId]);
+  }, [tab, storeIds, page, pageSize]);
 
   async function verify(input?: string) {
     const value = (input ?? code).trim();
@@ -249,24 +253,22 @@ export default function Pickups() {
             className="select"
             value={tab}
             aria-label="核销状态"
-            onChange={(e) => setTab(e.target.value as 'pending' | 'verified')}
+            onChange={(e) => {
+              setTab(e.target.value as 'pending' | 'verified');
+              setPage(1);
+            }}
           >
             <option value="pending">待核销</option>
             <option value="verified">核销记录</option>
           </select>
-          <select
-            className="select"
-            value={storeId}
-            aria-label="门店筛选"
-            onChange={(e) => setStoreId(e.target.value)}
-          >
-            <option value="">全部门店</option>
-            {stores.map((store) => (
-              <option key={store.id} value={store.id}>
-                {store.name}
-              </option>
-            ))}
-          </select>
+          <StoreFilter
+            stores={stores}
+            value={storeIds}
+            onChange={(ids) => {
+              setStoreIds(ids);
+              setPage(1);
+            }}
+          />
           <input
             className="input"
             style={{ width: 220 }}
@@ -294,6 +296,16 @@ export default function Pickups() {
             empty="暂无核销记录"
           />
         )}
+        <Pagination
+          page={page}
+          total={total}
+          pageSize={pageSize}
+          onChange={setPage}
+          onPageSizeChange={(size) => {
+            setPageSize(size);
+            setPage(1);
+          }}
+        />
       </Card>
     </>
   );

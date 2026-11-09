@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 
 import { api, ApiError } from '../api/client';
 import { hasRole } from '../auth';
+import { confirmAction } from '../components/confirm';
 import { toast } from '../components/toast';
 import {
   Button,
@@ -151,7 +152,7 @@ export default function Categories() {
   }
 
   async function remove(row: FlatRow) {
-    if (!window.confirm(`确定删除分类「${row.name}」吗？`)) return;
+    if (!(await confirmAction(`确定删除分类「${row.name}」吗？`))) return;
     try {
       await api(`/admin/categories/${row.id}`, { method: 'DELETE' });
       toast('已删除');

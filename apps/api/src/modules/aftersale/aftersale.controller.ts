@@ -98,13 +98,22 @@ export class AdminAfterSaleController {
 
   @Get()
   @Roles('SUPER', 'OPS', 'CS', 'WMS')
-  @ApiOperation({ summary: '售后列表（含各状态数量，分页）' })
+  @ApiOperation({ summary: '售后列表（含各状态数量，分页，可关键词 / 类型 / 时间筛选）' })
   list(
     @Query('status') status?: string,
     @Query('page') page?: string,
     @Query('pageSize') pageSize?: string,
+    @Query('keyword') keyword?: string,
+    @Query('type') type?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
   ) {
-    return this.service.listAdmin(status, Number(page) || 1, Number(pageSize) || 20);
+    return this.service.listAdmin(status, Number(page) || 1, Number(pageSize) || 20, {
+      keyword,
+      type,
+      startDate,
+      endDate,
+    });
   }
 
   @Get(':id')

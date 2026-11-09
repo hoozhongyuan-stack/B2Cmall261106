@@ -105,6 +105,15 @@ export class ProductReviewController {
   }
 }
 
+class BatchModerateDto {
+  @IsArray()
+  @IsString({ each: true })
+  ids!: string[];
+
+  @IsIn(['show', 'hide'])
+  action!: 'show' | 'hide';
+}
+
 @ApiTags('admin-reviews')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -114,13 +123,30 @@ export class AdminReviewController {
 
   @Get()
   @Roles('SUPER', 'OPS', 'CS')
-  @ApiOperation({ summary: '评价列表（含各状态数量，分页）' })
+  @ApiOperation({ summary: '评价列表（含各状态数量，分页，可关键词 / 评分 / 时间筛选）' })
   list(
     @Query('status') status?: string,
     @Query('page') page?: string,
     @Query('pageSize') pageSize?: string,
+    @Query('keyword') keyword?: string,
+    @Query('rating') rating?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
   ) {
-    return this.reviews.listAdmin(status, Number(page) || 1, Number(pageSize) || 20);
+    return this.reviews.listAdmin(status, Number(page) || 1, Number(pageSize) || 20, {
+      keyword,
+      rating: rating ? Number(rating) : undefined,
+      startDate,
+      endDate,
+    });
+  }
+
+  @Post('batch/moderate')
+  @HttpCode(200)
+  @Roles('SUPER', 'CS')
+  @ApiOperation({ summary: '批量审核评价：通过展示 / 隐藏' })
+  batchModerate(@Body() dto: BatchModerateDto) {
+    return this.reviews.batchModerate(dto.ids, dto.action);
   }
 
   @Post(':id/moderate')

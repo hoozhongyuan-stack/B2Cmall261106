@@ -173,8 +173,8 @@ describe('门店契约', () => {
   });
 });
 
-describe('门店账号数据范围', () => {
-  it('只返回授权门店，越权访问 404，不能新建门店', async () => {
+describe('门店账号与多门店筛选', () => {
+  it('STORE 账号禁止登录 PC；总部可用 storeIds 多选筛选门店', async () => {
     const first = await api(
       '/admin/stores',
       { method: 'POST', body: JSON.stringify(storeBody(uniqueCode('A'))) },
@@ -211,29 +211,17 @@ describe('门店账号数据范围', () => {
       method: 'POST',
       body: JSON.stringify({ account, password }),
     });
-    expect(login.status).toBe(200);
-    const storeToken = login.body.data.token;
+    expect(login.status).toBe(403);
+    expect(login.body.message).toContain('门店中心');
 
-    const mine = await api('/admin/stores/mine', {}, storeToken);
-    expect(mine.status).toBe(200);
-    expect(mine.body.data.items.map((item: { id: string }) => item.id)).toEqual([
-      first.body.data.id,
-    ]);
-
-    const list = await api('/admin/stores', {}, storeToken);
-    expect(list.body.data.items.map((item: { id: string }) => item.id)).toEqual([
-      first.body.data.id,
-    ]);
-
-    const denied = await api(`/admin/stores/${second.body.data.id}`, {}, storeToken);
-    expect(denied.status).toBe(404);
-
-    const createDenied = await api(
-      '/admin/stores',
-      { method: 'POST', body: JSON.stringify(storeBody(uniqueCode('C'))) },
-      storeToken,
+    const filtered = await api(
+      `/admin/stores?keyword=${first.body.data.code}&pageSize=100`,
+      {},
+      superToken,
     );
-    expect(createDenied.status).toBe(403);
+    expect(filtered.status).toBe(200);
+    expect(filtered.body.data.total).toBe(1);
+    expect(filtered.body.data.items[0].id).toBe(first.body.data.id);
   });
 
   it('非门店账号绑定门店返回 400', async () => {
@@ -466,52 +454,31 @@ describe('订单归属与后台筛选', () => {
       hqExpress.body.data.items.map((item: { id: string }) => item.id),
     ).not.toContain(firstOrderId);
 
-    const account = `order-store-${Date.now()}@shanye.com`;
-    const password = 'store12345';
-    const createdAccount = await api(
-      '/admin/accounts',
-      {
-        method: 'POST',
-        body: JSON.stringify({
-          account,
-          displayName: '订单门店账号',
-          role: 'STORE',
-          password,
-          storeIds: [firstStoreId],
-        }),
-      },
+    // 总部可多选门店筛选（逗号分隔）
+    const multi = await api(
+      `/admin/orders?storeIds=${firstStoreId},${secondStoreId}&pageSize=100`,
+      {},
       superToken,
     );
-    expect(createdAccount.status).toBe(201);
-    const login = await api('/admin/auth/login', {
-      method: 'POST',
-      body: JSON.stringify({ account, password }),
-    });
-    const storeToken = login.body.data.token;
+    expect(multi.status).toBe(200);
+    const multiIds = multi.body.data.items.map((item: { id: string }) => item.id);
+    expect(multiIds).toContain(firstOrderId);
+    expect(multiIds).toContain(secondOrderId);
 
-    const scopedList = await api('/admin/orders?pageSize=100', {}, storeToken);
-    expect(scopedList.status).toBe(200);
-    expect(
-      scopedList.body.data.items.every(
-        (item: { storeId: string }) => item.storeId === firstStoreId,
-      ),
-    ).toBe(true);
-    expect(scopedList.body.data.items.map((item: { id: string }) => item.id)).toContain(
-      firstOrderId,
+    // 只选一个门店时另一个不出现
+    const onlyFirst = await api(
+      `/admin/orders?storeIds=${firstStoreId}&pageSize=100`,
+      {},
+      superToken,
     );
-    expect(scopedList.body.data.items.map((item: { id: string }) => item.id)).not.toContain(
+    expect(onlyFirst.status).toBe(200);
+    expect(onlyFirst.body.data.items.map((item: { id: string }) => item.id)).not.toContain(
       secondOrderId,
     );
 
-    const ownDetail = await api(`/admin/orders/${firstOrderId}`, {}, storeToken);
+    const ownDetail = await api(`/admin/orders/${firstOrderId}`, {}, superToken);
     expect(ownDetail.status).toBe(200);
     expect(ownDetail.body.data.store.name).toBeTruthy();
-
-    const crossDetail = await api(`/admin/orders/${secondOrderId}`, {}, storeToken);
-    expect(crossDetail.status).toBe(404);
-
-    const crossFilter = await api(`/admin/orders?storeId=${secondStoreId}`, {}, storeToken);
-    expect(crossFilter.status).toBe(404);
   }, 60_000);
 });
 
@@ -563,42 +530,5 @@ describe('门店看板', () => {
     expect(dashboard.body.data.pending.pickupOrders).toBeGreaterThanOrEqual(1);
     expect(dashboard.body.data.stock.warningCount).toBeGreaterThanOrEqual(1);
     expect(dashboard.body.data.stock.warnings[0].available).toBeLessThanOrEqual(5);
-
-    const account = `dashboard-store-${Date.now()}@shanye.com`;
-    const password = 'store12345';
-    await api(
-      '/admin/accounts',
-      {
-        method: 'POST',
-        body: JSON.stringify({
-          account,
-          displayName: '看板门店账号',
-          role: 'STORE',
-          password,
-          storeIds: [storeId],
-        }),
-      },
-      superToken,
-    );
-    const login = await api('/admin/auth/login', {
-      method: 'POST',
-      body: JSON.stringify({ account, password }),
-    });
-    const storeToken = login.body.data.token;
-
-    const own = await api(`/admin/stores/${storeId}/dashboard`, {}, storeToken);
-    expect(own.status).toBe(200);
-
-    const another = await api(
-      '/admin/stores',
-      { method: 'POST', body: JSON.stringify(storeBody(uniqueCode('J'))) },
-      superToken,
-    );
-    const cross = await api(
-      `/admin/stores/${another.body.data.id}/dashboard`,
-      {},
-      storeToken,
-    );
-    expect(cross.status).toBe(404);
   }, 60_000);
 });

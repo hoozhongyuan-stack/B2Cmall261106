@@ -25,6 +25,12 @@ export default defineAppConfig({
     'pages/coupon/index',
     'pages/address/list/index',
     'pages/address/edit/index',
+    'pages/store-console/index',
+    'pages/store-console/verify',
+    'pages/store-console/deliveries',
+    'pages/store-console/stock',
+    'pages/store-console/settings',
+    'pages/store-console/dashboard',
   ],
   window: {
     backgroundTextStyle: 'light',

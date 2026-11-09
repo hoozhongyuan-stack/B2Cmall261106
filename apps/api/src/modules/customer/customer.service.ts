@@ -7,12 +7,54 @@ import { PrismaService } from '../../prisma/prisma.module';
 export class CustomerService {
   constructor(private readonly prisma: PrismaService) {}
 
-  /** 客户列表：订单数、实付、退款与最近下单时间一次性聚合（分页） */
-  async list(input: { keyword?: string; levelId?: string; page?: number; pageSize?: number }) {
+  /** 客户列表：订单数、实付、退款与最近下单时间一次性聚合（分页），支持按标签筛选 */
+  async list(input: {
+    keyword?: string;
+    levelId?: string;
+    tagId?: string;
+    startDate?: string;
+    endDate?: string;
+    minSpentCents?: number;
+    maxSpentCents?: number;
+    page?: number;
+    pageSize?: number;
+  }) {
     const currentPage = Math.max(input.page ?? 1, 1);
     const size = Math.min(Math.max(input.pageSize ?? 20, 1), 100);
+
+    let tagIds: string[] = [];
+    if (input.tagId) {
+      const children = await this.prisma.userTag.findMany({
+        where: { parentId: input.tagId },
+        select: { id: true },
+      });
+      tagIds = [input.tagId, ...children.map((item) => item.id)];
+    }
+
+    const createdAt =
+      input.startDate || input.endDate
+        ? {
+            ...(input.startDate
+              ? { gte: new Date(`${input.startDate}T00:00:00.000+08:00`) }
+              : {}),
+            ...(input.endDate
+              ? { lte: new Date(`${input.endDate}T23:59:59.999+08:00`) }
+              : {}),
+          }
+        : undefined;
+
     const where = {
       ...(input.levelId ? { levelId: input.levelId } : {}),
+      ...(tagIds.length ? { tags: { some: { tagId: { in: tagIds } } } } : {}),
+      ...(createdAt ? { createdAt } : {}),
+      ...(input.minSpentCents !== undefined || input.maxSpentCents !== undefined
+        ? {
+            totalSpentCents: {
+              ...(input.minSpentCents !== undefined ? { gte: input.minSpentCents } : {}),
+              ...(input.maxSpentCents !== undefined ? { lte: input.maxSpentCents } : {}),
+            },
+          }
+        : {}),
       ...(input.keyword
         ? {
             OR: [
@@ -27,7 +69,10 @@ export class CustomerService {
     const [users, total] = await Promise.all([
       this.prisma.user.findMany({
         where,
-        include: { level: true },
+        include: {
+          level: true,
+          tags: { include: { tag: { include: { parent: { select: { name: true } } } } } },
+        },
         orderBy: { createdAt: 'desc' },
         skip: (currentPage - 1) * size,
         take: size,
@@ -66,6 +111,12 @@ export class CustomerService {
           netCents: paidCents - refundedCents,
           lastOrderAt: stat?._max.createdAt ?? null,
           createdAt: u.createdAt,
+          tags: u.tags.map((link) => ({
+            id: link.tag.id,
+            name: link.tag.name,
+            parentId: link.tag.parentId,
+            parentName: link.tag.parent?.name ?? null,
+          })),
         };
       }),
     };
@@ -73,7 +124,13 @@ export class CustomerService {
 
   /** 客户详情：资产、消费统计、最近订单与积分流水 */
   async detail(id: string) {
-    const user = await this.prisma.user.findUnique({ where: { id }, include: { level: true } });
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+      include: {
+        level: true,
+        tags: { include: { tag: { include: { parent: { select: { name: true } } } } } },
+      },
+    });
     if (!user) throw new NotFoundException('客户不存在');
 
     const [agg, orders, ledger, levels, couponClaims] = await Promise.all([
@@ -116,6 +173,12 @@ export class CustomerService {
       createdAt: user.createdAt,
       points: user.points,
       totalSpentCents: user.totalSpentCents,
+      tags: user.tags.map((link) => ({
+        id: link.tag.id,
+        name: link.tag.name,
+        parentId: link.tag.parentId,
+        parentName: link.tag.parent?.name ?? null,
+      })),
       level: current
         ? { name: current.name, discountRate: current.discountRate, thresholdCents: current.thresholdCents }
         : null,

@@ -14,7 +14,7 @@ import {
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { IsInt, IsOptional, IsString, Length, Min } from 'class-validator';
+import { IsArray, IsInt, IsOptional, IsString, Length, Min } from 'class-validator';
 
 import { AssetService, type UploadedImage } from './asset.service';
 import { JwtAuthGuard, Roles, RolesGuard } from '../../common/auth.guards';
@@ -47,6 +47,12 @@ class MoveAssetDto {
   @IsOptional()
   @IsString()
   folderId?: string | null;
+}
+
+class BatchIdsDto {
+  @IsArray()
+  @IsString({ each: true })
+  ids!: string[];
 }
 
 @ApiTags('admin-assets')
@@ -119,6 +125,14 @@ export class AdminAssetController {
   @ApiOperation({ summary: '移动素材到文件夹' })
   move(@Param('id') id: string, @Body() dto: MoveAssetDto) {
     return this.assets.move(id, dto.folderId);
+  }
+
+  @Post('batch/delete')
+  @HttpCode(200)
+  @Roles('SUPER', 'OPS')
+  @ApiOperation({ summary: '批量删除素材（被引用的逐条失败并返回原因）' })
+  batchRemove(@Body() dto: BatchIdsDto) {
+    return this.assets.batchRemove(dto.ids);
   }
 
   @Delete(':id')

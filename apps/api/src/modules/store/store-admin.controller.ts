@@ -7,11 +7,13 @@ import {
   Param,
   Patch,
   Post,
+  Put,
   Query,
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { IsIn, IsOptional } from 'class-validator';
+import { Type } from 'class-transformer';
+import { ArrayMinSize, IsArray, IsIn, IsInt, IsOptional, IsString } from 'class-validator';
 
 import {
   CurrentUser,
@@ -27,9 +29,44 @@ class AdminStoreQuery {
   @IsOptional()
   @IsIn(['ACTIVE', 'DISABLED'])
   status?: 'ACTIVE' | 'DISABLED';
+
+  @IsOptional()
+  @IsString()
+  keyword?: string;
+
+  @IsOptional()
+  @IsIn(['PICKUP', 'DELIVERY'])
+  capability?: 'PICKUP' | 'DELIVERY';
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  page?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  pageSize?: number;
 }
 
-const ALL_ROLES = ['SUPER', 'OPS', 'CS', 'WMS', 'STORE'] as const;
+class BatchStoreStatusDto {
+  @IsArray()
+  @ArrayMinSize(1)
+  @IsString({ each: true })
+  ids!: string[];
+
+  @IsIn(['ACTIVE', 'DISABLED'])
+  status!: 'ACTIVE' | 'DISABLED';
+}
+
+const ALL_ROLES = ['SUPER', 'OPS', 'CS', 'WMS'] as const;
+
+class BindManagerDto {
+  /** 会员 id；传 null 表示解绑 */
+  @IsOptional()
+  @IsString()
+  managerUserId?: string | null;
+}
 
 @ApiTags('admin-stores')
 @ApiBearerAuth()
@@ -47,9 +84,17 @@ export class StoreAdminController {
 
   @Get()
   @Roles(...ALL_ROLES)
-  @ApiOperation({ summary: '门店列表（总部全量，门店账号仅授权门店）' })
+  @ApiOperation({ summary: '门店列表（总部全量，门店账号仅授权门店；支持筛选与分页）' })
   list(@CurrentUser() user: AuthUser, @Query() query: AdminStoreQuery) {
-    return this.stores.listAdmin(user, query.status);
+    return this.stores.listAdmin(user, query);
+  }
+
+  @Post('batch/status')
+  @HttpCode(200)
+  @Roles('SUPER')
+  @ApiOperation({ summary: '批量启用 / 停用门店' })
+  batchStatus(@Body() dto: BatchStoreStatusDto) {
+    return this.stores.batchStatus(dto.ids, dto.status);
   }
 
   @Get(':id/dashboard')
@@ -78,6 +123,13 @@ export class StoreAdminController {
   @ApiOperation({ summary: '修改门店配置、配送范围与履约能力' })
   update(@Param('id') id: string, @Body() dto: StoreDto) {
     return this.stores.update(id, dto);
+  }
+
+  @Put(':id/manager')
+  @Roles('SUPER', 'OPS')
+  @ApiOperation({ summary: '更换 / 解绑门店负责人（小程序会员）' })
+  bindManager(@Param('id') id: string, @Body() dto: BindManagerDto) {
+    return this.stores.bindManager(id, dto.managerUserId ?? null);
   }
 
   @Delete(':id')

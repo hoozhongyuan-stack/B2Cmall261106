@@ -235,6 +235,23 @@ export class AssetService {
     return { deleted: true };
   }
 
+  /** 批量删除：被引用的素材逐条失败并返回原因 */
+  async batchRemove(ids: string[]) {
+    const unique = [...new Set(ids.filter(Boolean))];
+    if (!unique.length) throw new BadRequestException('请选择素材');
+    const errors: { id: string; message: string }[] = [];
+    let success = 0;
+    for (const id of unique) {
+      try {
+        await this.remove(id);
+        success += 1;
+      } catch (error) {
+        errors.push({ id, message: error instanceof Error ? error.message : '删除失败' });
+      }
+    }
+    return { total: unique.length, success, failed: errors.length, errors };
+  }
+
   /**
    * 业务侧引用校验：图片只能来自素材库。
    * 历史静态素材（如 products/honey.jpg）继续兼容，外链一律拒绝。

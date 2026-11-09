@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 
 import { api, ApiError, money, toCents, toYuan } from '../api/client';
 import { hasRole } from '../auth';
+import { confirmAction } from '../components/confirm';
 import { toast } from '../components/toast';
 import {
   Button,
@@ -115,7 +116,7 @@ export default function Freight() {
   }
 
   async function removeRegion(row: RegionRow) {
-    if (!window.confirm(`确定删除「${row.regionName}」的运费规则吗？`)) return;
+    if (!(await confirmAction(`确定删除「${row.regionName}」的运费规则吗？`))) return;
     try {
       await api(`/admin/shop/regions/${row.id}`, { method: 'DELETE' });
       toast('已删除');

@@ -108,9 +108,21 @@ export class AdminCouponController {
 
   @Get()
   @Roles('SUPER', 'OPS', 'CS')
-  @ApiOperation({ summary: '优惠券列表（含领取数）' })
-  list() {
-    return this.coupons.listAdmin();
+  @ApiOperation({ summary: '优惠券列表（含领取数，分页，可关键词 / 类型 / 状态筛选）' })
+  list(
+    @Query('enabled') enabled?: string,
+    @Query('keyword') keyword?: string,
+    @Query('type') type?: string,
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
+  ) {
+    return this.coupons.listAdmin({
+      enabled,
+      keyword,
+      type,
+      page: Number(page) || 1,
+      pageSize: Number(pageSize) || 20,
+    });
   }
 
   @Post()

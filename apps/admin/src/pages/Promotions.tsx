@@ -90,7 +90,7 @@ export default function Promotions() {
     try {
       const [promotions, productResult, categoryResult] = await Promise.all([
         api<{ items: PromotionRow[] }>('/admin/promotions'),
-        api<{ items: ProductOption[] }>('/admin/products'),
+        api<{ items: ProductOption[] }>('/admin/products', { query: { pageSize: 100 } }),
         api<CategoryOption[]>('/categories'),
       ]);
       setItems(promotions.items);

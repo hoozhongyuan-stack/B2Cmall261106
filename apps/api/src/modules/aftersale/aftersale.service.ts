@@ -209,10 +209,40 @@ export class AfterSaleService {
 
   /* ---------------- 后台 ---------------- */
 
-  async listAdmin(status?: string, page = 1, pageSize = 20) {
+  async listAdmin(
+    status?: string,
+    page = 1,
+    pageSize = 20,
+    filters: { keyword?: string; type?: string; startDate?: string; endDate?: string } = {},
+  ) {
     const currentPage = Math.max(page, 1);
     const size = Math.min(Math.max(pageSize, 1), 100);
-    const where = status ? { status: status as AfterSaleStatus } : {};
+    const search = filters.keyword?.trim();
+    const createdAt =
+      filters.startDate || filters.endDate
+        ? {
+            ...(filters.startDate
+              ? { gte: new Date(`${filters.startDate}T00:00:00.000+08:00`) }
+              : {}),
+            ...(filters.endDate
+              ? { lte: new Date(`${filters.endDate}T23:59:59.999+08:00`) }
+              : {}),
+          }
+        : undefined;
+    const where = {
+      ...(status ? { status: status as AfterSaleStatus } : {}),
+      ...(filters.type ? { type: filters.type as never } : {}),
+      ...(createdAt ? { createdAt } : {}),
+      ...(search
+        ? {
+            OR: [
+              { afterSaleNo: { contains: search, mode: 'insensitive' as const } },
+              { order: { orderNo: { contains: search, mode: 'insensitive' as const } } },
+              { orderItem: { title: { contains: search, mode: 'insensitive' as const } } },
+            ],
+          }
+        : {}),
+    };
 
     const [list, total, counts] = await Promise.all([
       this.prisma.afterSale.findMany({

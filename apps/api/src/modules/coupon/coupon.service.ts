@@ -126,13 +126,37 @@ export class CouponService {
 
   /* ---------------- 后台 ---------------- */
 
-  async listAdmin() {
-    const coupons = await this.prisma.coupon.findMany({
-      orderBy: { createdAt: 'desc' },
-      take: 100,
-      include: { _count: { select: { claims: true } } },
-    });
+  async listAdmin(
+    query: {
+      enabled?: string;
+      keyword?: string;
+      type?: string;
+      page?: number;
+      pageSize?: number;
+    } = {},
+  ) {
+    const page = Math.max(query.page ?? 1, 1);
+    const pageSize = Math.min(Math.max(query.pageSize ?? 20, 1), 100);
+    const keyword = query.keyword?.trim();
+    const where = {
+      ...(query.enabled === 'true' ? { enabled: true } : query.enabled === 'false' ? { enabled: false } : {}),
+      ...(query.type ? { type: query.type as never } : {}),
+      ...(keyword ? { name: { contains: keyword, mode: 'insensitive' as const } } : {}),
+    };
+    const [coupons, total] = await Promise.all([
+      this.prisma.coupon.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+        include: { _count: { select: { claims: true } } },
+      }),
+      this.prisma.coupon.count({ where }),
+    ]);
     return {
+      total,
+      page,
+      pageSize,
       items: coupons.map((c) => ({
         id: c.id,
         name: c.name,

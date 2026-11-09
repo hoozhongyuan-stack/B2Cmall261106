@@ -340,45 +340,29 @@ describe('配送状态、门店权限与取消', () => {
     expect(again.status).toBe(409);
   }, 60_000);
 
-  it('门店账号只能看到/操作授权门店配送单；配送订单不能走快递发货', async () => {
+  it('总部可按多门店筛选配送单；配送订单不能走快递发货', async () => {
     const storeA = await createStore();
     const storeB = await createStore();
     const { orderId, deliveryId } = await createPaidDelivery(storeA.id);
+    const other = await createPaidDelivery(storeB.id);
 
-    const account = `delivery-contract-${Date.now()}@shanye.com`;
-    const password = 'store12345';
-    const createdAccount = await api(
-      '/admin/accounts',
-      {
-        method: 'POST',
-        body: JSON.stringify({
-          account,
-          displayName: '配送契约门店账号',
-          role: 'STORE',
-          password,
-          storeIds: [storeB.id],
-        }),
-      },
+    const both = await api(
+      `/admin/deliveries?storeIds=${storeA.id},${storeB.id}&pageSize=100`,
+      {},
       superToken,
     );
-    expect(createdAccount.status).toBe(201);
-    const login = await api('/admin/auth/login', {
-      method: 'POST',
-      body: JSON.stringify({ account, password }),
-    });
-    const storeToken = login.body.data.token;
+    expect(both.status).toBe(200);
+    const bothIds = both.body.data.items.map((row: { id: string }) => row.id);
+    expect(bothIds).toContain(deliveryId);
+    expect(bothIds).toContain(other.deliveryId);
 
-    const denied = await api(
-      `/admin/deliveries/${deliveryId}/accept`,
-      { method: 'POST', body: JSON.stringify({ courierName: '越权' }) },
-      storeToken,
-    );
-    expect(denied.status).toBe(404);
-
-    const scopedList = await api('/admin/deliveries', {}, storeToken);
-    expect(scopedList.status).toBe(200);
-    expect(scopedList.body.data.items.every((row: { storeId: string }) => row.storeId === storeB.id)).toBe(
+    const onlyA = await api(`/admin/deliveries?storeIds=${storeA.id}&pageSize=100`, {}, superToken);
+    expect(onlyA.status).toBe(200);
+    expect(onlyA.body.data.items.every((row: { storeId: string }) => row.storeId === storeA.id)).toBe(
       true,
+    );
+    expect(onlyA.body.data.items.map((row: { id: string }) => row.id)).not.toContain(
+      other.deliveryId,
     );
 
     const ship = await api(

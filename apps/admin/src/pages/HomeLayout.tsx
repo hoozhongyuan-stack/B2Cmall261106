@@ -168,7 +168,7 @@ export default function HomeLayout() {
     try {
       const [layout, productResult, categoryResult] = await Promise.all([
         api<LayoutResponse>('/admin/home-layout'),
-        api<{ items: ProductOption[] }>('/admin/products'),
+        api<{ items: ProductOption[] }>('/admin/products', { query: { pageSize: 100 } }),
         api<CategoryOption[]>('/categories'),
       ]);
       setBanners(layout.banners.map((item) => ({ ...item, draftId: newId() })));

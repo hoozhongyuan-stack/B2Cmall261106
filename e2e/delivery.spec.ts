@@ -184,8 +184,8 @@ test('配送后台：接单、送达与取消', async ({ page, request }) => {
   const acceptedRow = page.locator('tr', { hasText: first.orderNo });
   await expect(acceptedRow).toBeVisible();
   await expect(acceptedRow.getByText('E2E 骑手')).toBeVisible();
-  page.once('dialog', (dialog) => void dialog.accept());
   await acceptedRow.getByRole('button', { name: '送达' }).click();
+  await page.locator('.modal').getByRole('button', { name: '确定' }).click();
   await expect(page.locator('.toast').filter({ hasText: '已送达' })).toBeVisible();
 
   // 已送达
@@ -218,7 +218,8 @@ test('配送后台：接单、送达与取消', async ({ page, request }) => {
   await expect(page.locator('tr', { hasText: second.orderNo })).toBeVisible();
 
   // 超时 tab + 门店筛选：已送达/已取消不计入超时
-  await page.getByLabel('门店筛选').selectOption({ label: first.storeName });
+  await page.getByLabel('按门店筛选').click();
+  await page.locator('.filter-option', { hasText: first.storeName }).click();
   await page.getByRole('button', { name: '超时' }).click();
   await expect(page.getByText('暂无超时配送单')).toBeVisible();
 });
@@ -274,8 +275,8 @@ test('H5 同城配送：选择门店与时段，详情展示配送员并支持�
   await adminPage.getByRole('button', { name: '配送中' }).click();
   const acceptedRow = adminPage.locator('tr', { hasText: orderNo });
   await expect(acceptedRow.getByText('H5 骑手')).toBeVisible();
-  adminPage.once('dialog', (dialog) => void dialog.accept());
   await acceptedRow.getByRole('button', { name: '送达' }).click();
+  await adminPage.locator('.modal').getByRole('button', { name: '确定' }).click();
   await expect(adminPage.locator('.toast').filter({ hasText: '已送达' })).toBeVisible();
   await adminPage.close();
 

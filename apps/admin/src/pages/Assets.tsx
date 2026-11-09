@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 
 import {
   assetPreviewUrl,
+  batchDeleteAssets,
   createAssetFolder,
   deleteAsset,
   deleteAssetFolder,
@@ -16,8 +17,19 @@ import {
 } from '../api/assets';
 import { ApiError, formatDate } from '../api/client';
 import { hasRole } from '../auth';
+import { confirmAction } from '../components/confirm';
 import { toast } from '../components/toast';
-import { Button, Card, Empty, Field, Modal, PageHeader, Pagination, Tag } from '../components/ui';
+import {
+  BulkBar,
+  Button,
+  Card,
+  Empty,
+  Field,
+  Modal,
+  PageHeader,
+  Pagination,
+  Tag,
+} from '../components/ui';
 
 const PAGE_SIZE = 30;
 
@@ -33,10 +45,13 @@ export default function Assets() {
   const [keyword, setKeyword] = useState('');
   const [applied, setApplied] = useState('');
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(PAGE_SIZE);
   const [items, setItems] = useState<AssetItem[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
+  const [selected, setSelected] = useState<string[]>([]);
+  const [batching, setBatching] = useState(false);
   const [folderModal, setFolderModal] = useState<{
     mode: 'create' | 'rename';
     id?: string;
@@ -63,7 +78,7 @@ export default function Assets() {
         folderId: folder === 'all' ? undefined : folder,
         keyword: applied || undefined,
         page,
-        pageSize: PAGE_SIZE,
+        pageSize,
       });
       setItems(result.items);
       setTotal(result.total);
@@ -80,7 +95,45 @@ export default function Assets() {
 
   useEffect(() => {
     void loadAssets();
+  }, [folder, applied, page, pageSize]);
+
+  useEffect(() => {
+    setSelected([]);
   }, [folder, applied, page]);
+
+  function toggleSelect(id: string) {
+    setSelected((prev) => (prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]));
+  }
+
+  function selectAllPage() {
+    const keys = items.filter((item) => item.refCount === 0).map((item) => item.id);
+    const allSelected = keys.length > 0 && keys.every((key) => selected.includes(key));
+    setSelected(allSelected ? [] : keys);
+  }
+
+  async function batchRemoveSelected() {
+    const ok = await confirmAction(
+      `确定删除选中的 ${selected.length} 张图片吗？已被引用的图片会跳过。`,
+      { confirmText: '删除' },
+    );
+    if (!ok) return;
+    setBatching(true);
+    try {
+      const result = await batchDeleteAssets(selected);
+      toast(
+        result.failed
+          ? `已删除 ${result.success} 张，${result.failed} 张失败：${result.errors?.[0]?.message ?? ''}`
+          : `已删除 ${result.success} 张图片`,
+        result.failed ? 'error' : 'success',
+      );
+      setSelected([]);
+      await Promise.all([loadAssets(), loadFolders()]);
+    } catch (err) {
+      toast(errorText(err), 'error');
+    } finally {
+      setBatching(false);
+    }
+  }
 
   function switchFolder(next: string) {
     setFolder(next);
@@ -146,7 +199,7 @@ export default function Assets() {
 
   async function removeFolder(item: AssetFolder) {
     if (!canWrite) return;
-    if (!window.confirm(`确定删除文件夹「${item.name}」吗？仅空文件夹可删除。`)) return;
+    if (!(await confirmAction(`确定删除文件夹「${item.name}」吗？仅空文件夹可删除。`))) return;
     try {
       await deleteAssetFolder(item.id);
       toast('已删除');
@@ -169,7 +222,7 @@ export default function Assets() {
 
   async function remove(item: AssetItem) {
     if (!canWrite) return;
-    if (!window.confirm(`确定删除图片「${item.originalName ?? item.key}」吗？`)) return;
+    if (!(await confirmAction(`确定删除图片「${item.originalName ?? item.key}」吗？`))) return;
     try {
       await deleteAsset(item.id);
       toast('已删除');
@@ -308,6 +361,13 @@ export default function Assets() {
                 重置
               </Button>
             )}
+            {canWrite && (
+              <div className="toolbar-actions">
+                <Button type="button" variant="plain" size="sm" onClick={selectAllPage}>
+                  {selected.length ? '取消本页选择' : '全选本页'}
+                </Button>
+              </div>
+            )}
           </form>
 
           {loading ? (
@@ -334,6 +394,21 @@ export default function Assets() {
                     gap: 8,
                   }}
                 >
+                  {canWrite && (
+                    <label className="asset-check">
+                      <input
+                        type="checkbox"
+                        className="checkbox"
+                        checked={selected.includes(item.id)}
+                        disabled={item.refCount > 0}
+                        aria-label={item.refCount > 0 ? '已被引用，不可批量删除' : '选择该图片'}
+                        onChange={() => toggleSelect(item.id)}
+                      />
+                      <span className="tiny muted">
+                        {item.refCount > 0 ? '已引用' : selected.includes(item.id) ? '已选' : '选择'}
+                      </span>
+                    </label>
+                  )}
                   <img
                     src={assetPreviewUrl(item.key)}
                     alt={item.originalName ?? item.key}
@@ -388,9 +463,31 @@ export default function Assets() {
             </div>
           )}
 
-          <Pagination page={page} total={total} pageSize={PAGE_SIZE} onChange={setPage} />
+          <Pagination
+            page={page}
+            total={total}
+            pageSize={pageSize}
+            onChange={setPage}
+            onPageSizeChange={(size) => {
+              setPageSize(size);
+              setPage(1);
+            }}
+          />
         </Card>
       </div>
+
+      <BulkBar
+        count={selected.length}
+        onClear={() => setSelected([])}
+        actions={[
+          {
+            label: '批量删除',
+            danger: true,
+            disabled: batching,
+            onClick: () => void batchRemoveSelected(),
+          },
+        ]}
+      />
 
       <Modal
         open={folderModal !== null}

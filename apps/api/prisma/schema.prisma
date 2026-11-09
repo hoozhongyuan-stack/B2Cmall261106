@@ -461,8 +461,39 @@ model User {
   memberCards        MemberCard[]
   rechargeOrders     RechargeOrder[]
   storedValueAccount StoredValueAccount?
+  tags               UserTagLink[]
+  managedStore       Store?
 
   @@index([levelId])
+}
+
+/// 用户标签：仅支持两级（parentId 为空为一级标签）
+model UserTag {
+  id        String   @id @default(cuid())
+  name      String
+  parentId  String?
+  sort      Int      @default(0)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  parent   UserTag?      @relation("UserTagTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children UserTag[]     @relation("UserTagTree")
+  users    UserTagLink[]
+
+  @@index([parentId, sort])
+}
+
+/// 用户与标签的多对多关系
+model UserTagLink {
+  userId    String
+  tagId     String
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+
+  user User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tag  UserTag @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([userId, tagId])
+  @@index([tagId])
 }
 
 model Address {
@@ -888,9 +919,16 @@ model Store {
   notice                     String?
   status                     String   @default("ACTIVE")
   sort                       Int      @default(0)
+  /// 临时打烊：截止时间之前不接受新订单（为空表示正常营业）
+  temporarilyClosedUntil     DateTime? @db.Timestamptz(3)
+  /// 临时打烊原因，展示在门店中心
+  temporaryClosureNote       String?
+  /// 关联会员（小程序 User）：绑定后该会员在小程序可见「门店中心」
+  managerUserId              String?  @unique
   createdAt                  DateTime @default(now()) @db.Timestamptz(3)
   updatedAt                  DateTime @updatedAt @db.Timestamptz(3)
 
+  manager             User?               @relation(fields: [managerUserId], references: [id], onDelete: SetNull)
   adminStores         AdminStore[]
   skus                StoreSku[]
   deliveryRegions     StoreDeliveryRegion[]

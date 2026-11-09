@@ -92,13 +92,18 @@ export class AdminOrderController {
 
   @Get()
   @Roles('SUPER', 'OPS', 'CS', 'WMS', 'STORE')
-  @ApiOperation({ summary: '订单列表：状态 / 门店 / 履约方式筛选与关键词搜索' })
+  @ApiOperation({ summary: '订单列表：状态 / 门店 / 履约方式 / 时间与金额区间筛选，支持关键词' })
   async list(
     @CurrentUser() user: AuthUser,
     @Query('status') status?: string,
     @Query('keyword') keyword?: string,
     @Query('storeId') storeId?: string,
+    @Query('storeIds') storeIds?: string,
     @Query('fulfillmentType') fulfillmentType?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('minCents') minCents?: string,
+    @Query('maxCents') maxCents?: string,
     @Query('page') page?: string,
     @Query('pageSize') pageSize?: string,
   ) {
@@ -112,18 +117,43 @@ export class AdminOrderController {
     const currentPage = Math.max(Number(page) || 1, 1);
     const size = Math.min(Math.max(Number(pageSize) || 20, 1), 100);
     const scope = await this.storeScope.resolve(user);
-    if (storeId && !scope.all && !scope.storeIds.includes(storeId)) {
-      throw new NotFoundException('门店不存在');
-    }
-    const scopeWhere = storeId
-      ? { storeId }
+    const pickedStoreIds = [
+      ...(storeId ? [storeId] : []),
+      ...(storeIds ?? '')
+        .split(',')
+        .map((item) => item.trim())
+        .filter(Boolean),
+    ];
+    const uniqueStoreIds = [...new Set(pickedStoreIds)];
+    const unauthorized = uniqueStoreIds.find(
+      (id) => !scope.all && !scope.storeIds.includes(id),
+    );
+    if (unauthorized) throw new NotFoundException('门店不存在');
+    const scopeWhere = uniqueStoreIds.length
+      ? { storeId: { in: uniqueStoreIds } }
       : scope.all
         ? {}
         : { storeId: { in: scope.storeIds } };
+    const createdAt =
+      startDate || endDate
+        ? {
+            ...(startDate ? { gte: new Date(`${startDate}T00:00:00.000+08:00`) } : {}),
+            ...(endDate ? { lte: new Date(`${endDate}T23:59:59.999+08:00`) } : {}),
+          }
+        : undefined;
+    const payableCents =
+      minCents !== undefined || maxCents !== undefined
+        ? {
+            ...(minCents !== undefined ? { gte: Number(minCents) } : {}),
+            ...(maxCents !== undefined ? { lte: Number(maxCents) } : {}),
+          }
+        : undefined;
     const where = {
       ...scopeWhere,
       ...(status ? { status: status as never } : {}),
       ...(fulfillmentType ? { fulfillmentType } : {}),
+      ...(createdAt ? { createdAt } : {}),
+      ...(payableCents ? { payableCents } : {}),
       ...(keyword
         ? {
             OR: [

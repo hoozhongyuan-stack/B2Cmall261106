@@ -4,6 +4,7 @@ import { api, ApiError, formatDate } from '../api/client';
 import { hasRole } from '../auth';
 import { toast } from '../components/toast';
 import {
+  BulkBar,
   Button,
   Card,
   DataTable,
@@ -13,6 +14,7 @@ import {
   Pagination,
   Tabs,
   Tag,
+  Toolbar,
   type Column,
 } from '../components/ui';
 
@@ -70,13 +72,28 @@ export default function Reviews() {
   const [replyContent, setReplyContent] = useState('');
   const [saving, setSaving] = useState(false);
   const [page, setPage] = useState(1);
+  const [keyword, setKeyword] = useState('');
+  const [appliedKeyword, setAppliedKeyword] = useState('');
+  const [rating, setRating] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [selected, setSelected] = useState<string[]>([]);
+  const [batching, setBatching] = useState(false);
   const PAGE_SIZE = 20;
 
   async function load() {
     setLoading(true);
     try {
       const result = await api<ReviewResult>('/admin/reviews', {
-        query: { status, page, pageSize: PAGE_SIZE },
+        query: {
+          status,
+          page,
+          pageSize: PAGE_SIZE,
+          keyword: appliedKeyword || undefined,
+          rating: rating || undefined,
+          startDate: startDate || undefined,
+          endDate: endDate || undefined,
+        },
       });
       setData(result);
     } catch (err) {
@@ -88,7 +105,33 @@ export default function Reviews() {
 
   useEffect(() => {
     void load();
-  }, [status, page]);
+  }, [status, page, appliedKeyword, rating, startDate, endDate]);
+
+  useEffect(() => {
+    setSelected([]);
+  }, [status, page, appliedKeyword, rating, startDate, endDate]);
+
+  async function batchModerate(action: 'show' | 'hide') {
+    setBatching(true);
+    try {
+      const result = await api<{ success: number; failed: number }>('/admin/reviews/batch/moderate', {
+        method: 'POST',
+        body: { ids: selected, action },
+      });
+      toast(
+        `已${action === 'show' ? '通过' : '隐藏'} ${result.success} 条评价${
+          result.failed ? `，${result.failed} 条失败` : ''
+        }`,
+        result.failed ? 'error' : 'success',
+      );
+      setSelected([]);
+      await load();
+    } catch (err) {
+      toast(errorText(err), 'error');
+    } finally {
+      setBatching(false);
+    }
+  }
 
   async function moderate(row: ReviewRow, action: 'show' | 'hide') {
     try {
@@ -245,6 +288,82 @@ export default function Reviews() {
       <PageHeader title="评价管理" desc="先审后显：待审核评价通过后才会展示给买家" />
 
       <Card>
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            setAppliedKeyword(keyword.trim());
+            setPage(1);
+          }}
+        >
+          <Toolbar>
+            <input
+              className="input"
+              style={{ width: 260 }}
+              aria-label="搜索评价内容或订单号"
+              placeholder="搜索评价内容 / 订单号 / 商品…"
+              value={keyword}
+              onChange={(event) => setKeyword(event.target.value)}
+            />
+            <select
+              className="select"
+              aria-label="按评分筛选"
+              value={rating}
+              onChange={(event) => {
+                setRating(event.target.value);
+                setPage(1);
+              }}
+            >
+              <option value="">全部评分</option>
+              {[5, 4, 3, 2, 1].map((value) => (
+                <option key={value} value={String(value)}>
+                  {value} 星
+                </option>
+              ))}
+            </select>
+            <input
+              className="input"
+              type="date"
+              style={{ width: 148 }}
+              aria-label="评价开始日期"
+              value={startDate}
+              onChange={(event) => {
+                setStartDate(event.target.value);
+                setPage(1);
+              }}
+            />
+            <span className="muted small">至</span>
+            <input
+              className="input"
+              type="date"
+              style={{ width: 148 }}
+              aria-label="评价结束日期"
+              value={endDate}
+              onChange={(event) => {
+                setEndDate(event.target.value);
+                setPage(1);
+              }}
+            />
+            <div className="toolbar-actions">
+              <Button
+                type="button"
+                variant="plain"
+                onClick={() => {
+                  setKeyword('');
+                  setAppliedKeyword('');
+                  setRating('');
+                  setStartDate('');
+                  setEndDate('');
+                  setPage(1);
+                }}
+              >
+                重置
+              </Button>
+              <Button type="submit" variant="ghost">
+                搜索
+              </Button>
+            </div>
+          </Toolbar>
+        </form>
         <Tabs
           items={tabs}
           value={status}
@@ -253,7 +372,13 @@ export default function Reviews() {
             setPage(1);
           }}
         />
-        <DataTable columns={columns} rows={data.items} loading={loading} empty="当前筛选下暂无评价" />
+        <DataTable
+          columns={columns}
+          rows={data.items}
+          loading={loading}
+          empty="当前筛选下暂无评价"
+          selection={canModerate ? { selected, onChange: setSelected } : undefined}
+        />
         <Pagination
           page={page}
           total={data.total ?? data.items.length}
@@ -261,6 +386,15 @@ export default function Reviews() {
           onChange={setPage}
         />
       </Card>
+
+      <BulkBar
+        count={selected.length}
+        onClear={() => setSelected([])}
+        actions={[
+          { label: '通过展示', onClick: () => void batchModerate('show'), disabled: batching },
+          { label: '隐藏', onClick: () => void batchModerate('hide'), disabled: batching },
+        ]}
+      />
 
       <Modal
         open={Boolean(replyTarget)}

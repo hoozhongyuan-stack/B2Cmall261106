@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 
 import { api, ApiError, formatDate } from '../api/client';
 import { hasRole } from '../auth';
+import { confirmAction } from '../components/confirm';
 import { toast } from '../components/toast';
 import { Button, Card, Field, Modal, PageHeader, Tag } from '../components/ui';
 
@@ -115,7 +116,7 @@ export default function MiniappRelease() {
       toast('请先在集成配置中完成 AppID 与代码上传密钥', 'error');
       return;
     }
-    if (!window.confirm(`确定构建并上传 ${form.version} 吗？过程中约需 1-2 分钟。`)) return;
+    if (!(await confirmAction(`确定构建并上传 ${form.version} 吗？过程中约需 1-2 分钟。`))) return;
 
     setCreating(true);
     try {
@@ -154,7 +155,7 @@ export default function MiniappRelease() {
   }
 
   async function markReleased(id: string) {
-    if (!window.confirm('确认该版本已在微信后台审核通过并发布？将只更新这里的记录状态。')) return;
+    if (!(await confirmAction('确认该版本已在微信后台审核通过并发布？将只更新这里的记录状态。'))) return;
     try {
       await api(`/admin/miniapp/releases/${id}/released`, { method: 'POST' });
       toast('已标记为已发布');

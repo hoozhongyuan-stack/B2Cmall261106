@@ -1,14 +1,18 @@
 import { useEffect, useState } from 'react';
 
 import { api, ApiError, formatDate, money } from '../api/client';
+import { confirmAction } from '../components/confirm';
+import { StoreFilter, useStoreOptions } from '../components/StoreFilter';
 import { toast } from '../components/toast';
 import {
+  BulkBar,
   Button,
   Card,
   DataTable,
   Field,
   Modal,
   PageHeader,
+  Pagination,
   Tabs,
   Tag,
   Toolbar,
@@ -45,11 +49,6 @@ interface DeliveryRow {
   items: DeliveryItem[];
 }
 
-interface StoreOption {
-  id: string;
-  name: string;
-}
-
 /** 超时口径由服务端统一判定（待接单 15 分钟 / 配送中 60 分钟） */
 
 const STATUS_LABEL: Record<string, string> = {
@@ -73,11 +72,16 @@ function errorText(err: unknown): string {
 export default function Deliveries() {
   const [tab, setTab] = useState<DeliveryTab>('PENDING');
   const [rows, setRows] = useState<DeliveryRow[]>([]);
-  const [stores, setStores] = useState<StoreOption[]>([]);
-  const [storeId, setStoreId] = useState('');
+  const stores = useStoreOptions();
+  const [storeIds, setStoreIds] = useState<string[]>([]);
   const [date, setDate] = useState('');
   const [loading, setLoading] = useState(true);
   const [acting, setActing] = useState(false);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const [total, setTotal] = useState(0);
+  const [selected, setSelected] = useState<string[]>([]);
+  const [batchOpen, setBatchOpen] = useState(false);
 
   const [acceptTarget, setAcceptTarget] = useState<DeliveryRow | null>(null);
   const [courierName, setCourierName] = useState('');
@@ -88,10 +92,17 @@ export default function Deliveries() {
   async function load() {
     setLoading(true);
     try {
-      const result = await api<{ items: DeliveryRow[] }>('/admin/deliveries', {
-        query: { status: tab === 'OVERDUE' ? undefined : tab, storeId, date },
+      const result = await api<{ total: number; items: DeliveryRow[] }>('/admin/deliveries', {
+        query: {
+          status: tab === 'OVERDUE' ? undefined : tab,
+          storeIds: storeIds.length ? storeIds.join(',') : undefined,
+          date: date || undefined,
+          page: tab === 'OVERDUE' ? 1 : page,
+          pageSize: tab === 'OVERDUE' ? 100 : pageSize,
+        },
       });
       setRows(tab === 'OVERDUE' ? result.items.filter((item) => item.overdue) : result.items);
+      setTotal(tab === 'OVERDUE' ? result.items.filter((item) => item.overdue).length : result.total);
     } catch (err) {
       toast(errorText(err), 'error');
     } finally {
@@ -100,14 +111,40 @@ export default function Deliveries() {
   }
 
   useEffect(() => {
-    api<{ items: StoreOption[] }>('/admin/stores/mine')
-      .then((result) => setStores(result.items))
-      .catch(() => undefined);
-  }, []);
+    void load();
+  }, [tab, storeIds, date, page, pageSize]);
 
   useEffect(() => {
-    void load();
-  }, [tab, storeId, date]);
+    setSelected([]);
+  }, [tab, storeIds, date, page]);
+
+  async function submitBatchAccept() {
+    setActing(true);
+    try {
+      const result = await api<{ success: number; failed: number }>(
+        '/admin/deliveries/batch/accept',
+        {
+          method: 'POST',
+          body: {
+            ids: selected,
+            ...(courierName.trim() ? { courierName: courierName.trim() } : {}),
+            ...(courierPhone.trim() ? { courierPhone: courierPhone.trim() } : {}),
+          },
+        },
+      );
+      toast(
+        `已接单 ${result.success} 单${result.failed ? `，${result.failed} 单失败` : ''}`,
+        result.failed ? 'error' : 'success',
+      );
+      setSelected([]);
+      setBatchOpen(false);
+      await load();
+    } catch (err) {
+      toast(errorText(err), 'error');
+    } finally {
+      setActing(false);
+    }
+  }
 
   async function submitAccept() {
     if (!acceptTarget) return;
@@ -133,7 +170,7 @@ export default function Deliveries() {
   }
 
   async function submitDeliver(row: DeliveryRow) {
-    if (!window.confirm(`确认订单 ${row.orderNo} 已送达？`)) return;
+    if (!(await confirmAction(`确认订单 ${row.orderNo} 已送达？`))) return;
     setActing(true);
     try {
       await api(`/admin/deliveries/${row.id}/deliver`, { method: 'POST' });
@@ -295,7 +332,10 @@ export default function Deliveries() {
       <Card>
         <Tabs
           value={tab}
-          onChange={setTab}
+          onChange={(next) => {
+            setTab(next);
+            setPage(1);
+          }}
           items={[
             { value: 'PENDING', label: '待接单' },
             { value: 'ACCEPTED', label: '配送中' },
@@ -305,25 +345,23 @@ export default function Deliveries() {
           ]}
         />
         <Toolbar>
-          <select
-            className="select"
-            value={storeId}
-            aria-label="门店筛选"
-            onChange={(e) => setStoreId(e.target.value)}
-          >
-            <option value="">全部门店</option>
-            {stores.map((store) => (
-              <option key={store.id} value={store.id}>
-                {store.name}
-              </option>
-            ))}
-          </select>
+          <StoreFilter
+            stores={stores}
+            value={storeIds}
+            onChange={(ids) => {
+              setStoreIds(ids);
+              setPage(1);
+            }}
+          />
           <input
             className="input"
             type="date"
             aria-label="日期筛选"
             value={date}
-            onChange={(e) => setDate(e.target.value)}
+            onChange={(e) => {
+              setDate(e.target.value);
+              setPage(1);
+            }}
           />
           <Button variant="ghost" onClick={() => void load()}>
             查询
@@ -337,8 +375,77 @@ export default function Deliveries() {
           empty={
             tab === 'OVERDUE' ? '暂无超时配送单' : '暂无配送单'
           }
+          selection={
+            tab === 'PENDING'
+              ? {
+                  selected,
+                  onChange: setSelected,
+                  isDisabled: (row) => row.status !== 'PENDING',
+                }
+              : undefined
+          }
         />
+        {tab !== 'OVERDUE' && (
+          <Pagination
+            page={page}
+            total={total}
+            pageSize={pageSize}
+            onChange={setPage}
+            onPageSizeChange={(size) => {
+              setPageSize(size);
+              setPage(1);
+            }}
+          />
+        )}
       </Card>
+
+      <BulkBar
+        count={selected.length}
+        onClear={() => setSelected([])}
+        actions={[
+          {
+            label: '批量接单',
+            onClick: () => {
+              setCourierName('');
+              setCourierPhone('');
+              setBatchOpen(true);
+            },
+          },
+        ]}
+      />
+
+      <Modal
+        open={batchOpen}
+        title={`批量接单（${selected.length} 单）`}
+        onClose={() => setBatchOpen(false)}
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setBatchOpen(false)}>
+              取消
+            </Button>
+            <Button loading={acting} onClick={() => void submitBatchAccept()}>
+              确认接单
+            </Button>
+          </>
+        }
+      >
+        <div className="form-grid">
+          <Field label="配送员姓名" hint="选填，填写后展示在订单详情">
+            <input
+              className="input"
+              value={courierName}
+              onChange={(e) => setCourierName(e.target.value)}
+            />
+          </Field>
+          <Field label="配送员电话" hint="选填">
+            <input
+              className="input"
+              value={courierPhone}
+              onChange={(e) => setCourierPhone(e.target.value)}
+            />
+          </Field>
+        </div>
+      </Modal>
 
       <Modal
         open={Boolean(acceptTarget)}

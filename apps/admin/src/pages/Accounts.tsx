@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 
 import { api, ApiError, formatDate } from '../api/client';
 import { hasRole, ROLE_LABEL, type AdminRole } from '../auth';
+import { confirmAction } from '../components/confirm';
 import { toast } from '../components/toast';
 import {
   Button,
@@ -11,6 +12,7 @@ import {
   Modal,
   PageHeader,
   Tag,
+  Toolbar,
   type Column,
 } from '../components/ui';
 
@@ -32,7 +34,7 @@ interface StoreOption {
   name: string;
 }
 
-const ROLES: AdminRole[] = ['SUPER', 'OPS', 'CS', 'WMS', 'STORE'];
+const ROLES: AdminRole[] = ['SUPER', 'OPS', 'CS', 'WMS'];
 const EMPTY_CREATE = {
   account: '',
   displayName: '',
@@ -50,6 +52,7 @@ export default function Accounts() {
   const [items, setItems] = useState<AccountRow[]>([]);
   const [stores, setStores] = useState<StoreOption[]>([]);
   const [loading, setLoading] = useState(true);
+  const [keyword, setKeyword] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
   const [createForm, setCreateForm] = useState(EMPTY_CREATE);
   const [creating, setCreating] = useState(false);
@@ -66,7 +69,9 @@ export default function Accounts() {
       const [result, storeResult] = await Promise.all([
         api<{ items: AccountRow[] }>('/admin/accounts'),
         canWrite
-          ? api<{ items: StoreOption[] }>('/admin/stores', { query: { status: 'ACTIVE' } })
+          ? api<{ items: StoreOption[] }>('/admin/stores', {
+              query: { status: 'ACTIVE', pageSize: 200 },
+            })
           : Promise.resolve({ items: [] as StoreOption[] }),
       ]);
       setItems(result.items);
@@ -126,7 +131,7 @@ export default function Accounts() {
   async function toggleStatus(row: AccountRow) {
     const next = row.status === 'ACTIVE' ? 'DISABLED' : 'ACTIVE';
     const label = next === 'ACTIVE' ? '启用' : '停用';
-    if (!window.confirm(`确定${label}账号「${row.account}」吗？`)) return;
+    if (!(await confirmAction(`确定${label}账号「${row.account}」吗？`))) return;
     try {
       await api(`/admin/accounts/${row.id}/status`, { method: 'POST', body: { status: next } });
       toast('已保存');
@@ -273,6 +278,15 @@ export default function Accounts() {
     },
   ];
 
+  const applied = keyword.trim().toLowerCase();
+  const filteredItems = applied
+    ? items.filter(
+        (item) =>
+          item.account.toLowerCase().includes(applied) ||
+          item.displayName.toLowerCase().includes(applied),
+      )
+    : items;
+
   return (
     <>
       <PageHeader
@@ -282,7 +296,22 @@ export default function Accounts() {
       />
 
       <Card>
-        <DataTable columns={columns} rows={items} loading={loading} empty="还没有子账号" />
+        <Toolbar>
+          <input
+            className="input"
+            style={{ width: 240 }}
+            aria-label="搜索子账号"
+            placeholder="搜索账号 / 姓名…"
+            value={keyword}
+            onChange={(event) => setKeyword(event.target.value)}
+          />
+          {keyword && (
+            <Button size="sm" variant="ghost" onClick={() => setKeyword('')}>
+              清空
+            </Button>
+          )}
+        </Toolbar>
+        <DataTable columns={columns} rows={filteredItems} loading={loading} empty="还没有子账号" />
       </Card>
 
       <Modal

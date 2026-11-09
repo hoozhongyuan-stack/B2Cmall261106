@@ -17,6 +17,7 @@ export interface StockAdjustInput {
 export interface StockListQuery {
   skuIds?: string;
   keyword?: string;
+  warning?: boolean;
   page?: string;
   pageSize?: string;
 }
@@ -36,7 +37,15 @@ export class StoreStockService {
 
   async list(user: AuthUser, storeId: string, query: StockListQuery) {
     await this.assertStore(user, storeId);
+    return this.doList(storeId, query);
+  }
 
+  /** 门店小程序：负责人直接查看本店库存，不需要 AdminStore 授权 */
+  async listForStore(storeId: string, query: StockListQuery) {
+    return this.doList(storeId, query);
+  }
+
+  private async doList(storeId: string, query: StockListQuery) {
     const skuIds = (query.skuIds ?? '')
       .split(',')
       .map((item) => item.trim())
@@ -45,20 +54,46 @@ export class StoreStockService {
     const pageSize = Math.min(Math.max(Number(query.pageSize) || 20, 1), 100);
     const keyword = (query.keyword ?? '').trim();
 
+    const keywordWhere = keyword
+      ? {
+          sku: {
+            OR: [
+              { code: { contains: keyword, mode: 'insensitive' as const } },
+              { product: { title: { contains: keyword, mode: 'insensitive' as const } } },
+            ],
+          },
+        }
+      : {};
+
     const where = {
       storeId,
       ...(skuIds.length ? { skuId: { in: skuIds } } : {}),
-      ...(keyword
-        ? {
-            sku: {
-              OR: [
-                { code: { contains: keyword, mode: 'insensitive' as const } },
-                { product: { title: { contains: keyword, mode: 'insensitive' as const } } },
-              ],
-            },
-          }
-        : {}),
+      ...keywordWhere,
     };
+
+    const warnings = await this.warningSkuIds(where);
+
+    // 预警筛选无法在数据库层比较 stock-reserved 与 safetyStock，先过滤再分页
+    if (query.warning) {
+      const ids = warnings.slice((page - 1) * pageSize, page * pageSize);
+      const rows = ids.length
+        ? await this.prisma.storeSku.findMany({
+            where: { storeId, skuId: { in: ids } },
+            include: { sku: { include: { product: { select: { title: true, mainImageKey: true } } } } },
+          })
+        : [];
+      const bySku = new Map(rows.map((row) => [row.skuId, row]));
+      return {
+        total: warnings.length,
+        page,
+        pageSize,
+        warnings: warnings.length,
+        items: ids
+          .map((id) => bySku.get(id))
+          .filter((row): row is NonNullable<typeof row> => Boolean(row))
+          .map((row) => this.viewStock(row)),
+      };
+    }
 
     const [items, total] = await this.prisma.$transaction([
       this.prisma.storeSku.findMany({
@@ -79,19 +114,52 @@ export class StoreStockService {
       total,
       page,
       pageSize,
-      items: items.map((item) => ({
-        skuId: item.skuId,
-        code: item.sku.code,
-        title: item.sku.product.title,
-        specText: Object.values(item.sku.specJson as Record<string, string>).join(' / '),
-        imageKey: item.sku.product.mainImageKey,
-        priceCents: item.sku.priceCents,
-        stock: item.stock,
-        reserved: item.reserved,
-        available: Math.max(item.stock - item.reserved, 0),
-        safetyStock: item.safetyStock,
-        status: item.status,
-      })),
+      warnings: warnings.length,
+      items: items.map((item) => this.viewStock(item)),
+    };
+  }
+
+  private async warningSkuIds(where: {
+    storeId: string;
+    skuId?: { in: string[] };
+    sku?: unknown;
+  }): Promise<string[]> {
+    const rows = await this.prisma.storeSku.findMany({
+      where: where as never,
+      select: { skuId: true, stock: true, reserved: true, safetyStock: true },
+      orderBy: { sku: { code: 'asc' } },
+    });
+    return rows
+      .filter((row) => Math.max(row.stock - row.reserved, 0) <= row.safetyStock)
+      .map((row) => row.skuId);
+  }
+
+  private viewStock(item: {
+    skuId: string;
+    stock: number;
+    reserved: number;
+    safetyStock: number;
+    status: string;
+    sku: {
+      code: string;
+      priceCents: number;
+      specJson: unknown;
+      product: { title: string; mainImageKey: string | null };
+    };
+  }) {
+    return {
+      skuId: item.skuId,
+      code: item.sku.code,
+      title: item.sku.product.title,
+      specText: Object.values(item.sku.specJson as Record<string, string>).join(' / '),
+      imageKey: item.sku.product.mainImageKey,
+      priceCents: item.sku.priceCents,
+      stock: item.stock,
+      reserved: item.reserved,
+      available: Math.max(item.stock - item.reserved, 0),
+      safetyStock: item.safetyStock,
+      warning: Math.max(item.stock - item.reserved, 0) <= item.safetyStock,
+      status: item.status,
     };
   }
 
@@ -156,6 +224,13 @@ export class StoreStockService {
     await this.assertStore(user, storeId);
     return this.prisma.$transaction((tx) =>
       this.adjustInTx(tx, storeId, skuId, input, user.sub),
+    );
+  }
+
+  /** 门店小程序：负责人调整本店库存与安全库存 */
+  async adjustForStore(storeId: string, skuId: string, input: StockAdjustInput, operatorId: string) {
+    return this.prisma.$transaction((tx) =>
+      this.adjustInTx(tx, storeId, skuId, input, operatorId),
     );
   }
 

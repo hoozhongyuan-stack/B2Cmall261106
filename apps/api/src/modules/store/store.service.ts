@@ -31,6 +31,8 @@ export interface StoreInput {
   status?: 'ACTIVE' | 'DISABLED';
   sort?: number;
   deliveryRegions?: string[];
+  /** 关联会员（小程序用户），传 null 解绑 */
+  managerUserId?: string | null;
 }
 
 const STORE_SELECT = {
@@ -54,6 +56,10 @@ const STORE_SELECT = {
   notice: true,
   status: true,
   sort: true,
+  temporarilyClosedUntil: true,
+  temporaryClosureNote: true,
+  managerUserId: true,
+  manager: { select: { id: true, nickname: true, phone: true } },
   createdAt: true,
   updatedAt: true,
   deliveryRegions: {
@@ -73,9 +79,12 @@ export class StoreService {
 
   /** 小程序：启用中的门店，可按区域与履约能力筛选 */
   async listPublic(input: { region?: string; capability?: 'PICKUP' | 'DELIVERY' }) {
+    const now = new Date();
     const items = await this.prisma.store.findMany({
       where: {
         status: 'ACTIVE',
+        // 临时打烊中的门店不从下单选店列表暴露
+        OR: [{ temporarilyClosedUntil: null }, { temporarilyClosedUntil: { lte: now } }],
         ...(input.region?.trim() ? { region: { contains: input.region.trim() } } : {}),
         ...(input.capability === 'PICKUP' ? { pickupEnabled: true } : {}),
         ...(input.capability === 'DELIVERY' ? { deliveryEnabled: true } : {}),
@@ -95,23 +104,63 @@ export class StoreService {
     return this.view(store);
   }
 
-  /** 后台：总部全量，门店账号只返回授权门店 */
-  async listAdmin(user: AuthUser, status?: string) {
+  /** 后台：总部全量，门店账号只返回授权门店；支持关键词/状态筛选与分页 */
+  async listAdmin(
+    user: AuthUser,
+    options: {
+      status?: string;
+      keyword?: string;
+      capability?: 'PICKUP' | 'DELIVERY';
+      page?: number;
+      pageSize?: number;
+    } = {},
+  ) {
     const scope = await this.scopes.resolve(user);
+    const keyword = options.keyword?.trim();
+    const page = Math.max(options.page ?? 1, 1);
+    const pageSize = Math.min(Math.max(options.pageSize ?? 20, 1), 200);
     const where = {
       ...(scope.all ? {} : { id: { in: scope.storeIds } }),
-      ...(status ? { status } : {}),
+      ...(options.status ? { status: options.status } : {}),
+      ...(options.capability === 'PICKUP' ? { pickupEnabled: true } : {}),
+      ...(options.capability === 'DELIVERY' ? { deliveryEnabled: true } : {}),
+      ...(keyword
+        ? {
+            OR: [
+              { name: { contains: keyword, mode: 'insensitive' as const } },
+              { code: { contains: keyword, mode: 'insensitive' as const } },
+              { region: { contains: keyword, mode: 'insensitive' as const } },
+            ],
+          }
+        : {}),
     };
-    const items = await this.prisma.store.findMany({
-      where,
-      select: STORE_SELECT,
-      orderBy: [{ sort: 'asc' }, { createdAt: 'asc' }],
+    const [items, total] = await Promise.all([
+      this.prisma.store.findMany({
+        where,
+        select: STORE_SELECT,
+        orderBy: [{ sort: 'asc' }, { createdAt: 'asc' }],
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      this.prisma.store.count({ where }),
+    ]);
+    return { total, page, pageSize, items: items.map((item) => this.view(item)) };
+  }
+
+  /** 批量启用 / 停用门店 */
+  async batchStatus(ids: string[], status: 'ACTIVE' | 'DISABLED') {
+    const unique = [...new Set(ids.filter(Boolean))];
+    if (!unique.length) throw new BadRequestException('请选择门店');
+    const result = await this.prisma.store.updateMany({
+      where: { id: { in: unique } },
+      data: { status },
     });
-    return { items: items.map((item) => this.view(item)) };
+    return { total: unique.length, success: result.count, failed: unique.length - result.count };
   }
 
   async mine(user: AuthUser) {
-    return this.listAdmin(user, 'ACTIVE');
+    const result = await this.listAdmin(user, { status: 'ACTIVE', pageSize: 200 });
+    return { items: result.items };
   }
 
   async detailAdmin(user: AuthUser, id: string) {
@@ -147,6 +196,7 @@ export class StoreService {
           notice: this.optionalText(input.notice, '门店公告', 200),
           status: input.status ?? 'ACTIVE',
           sort: this.nonNegative(input.sort, '排序'),
+          managerUserId: await this.managerId(input.managerUserId),
           deliveryRegions: {
             create: deliveryRegions.map((regionName) => ({ regionName })),
           },
@@ -216,6 +266,9 @@ export class StoreService {
             : {}),
           ...(input.status !== undefined ? { status: input.status } : {}),
           ...(input.sort !== undefined ? { sort: this.nonNegative(input.sort, '排序') } : {}),
+          ...(input.managerUserId !== undefined
+            ? { managerUserId: await this.managerId(input.managerUserId, id) }
+            : {}),
           ...(deliveryRegions !== null
             ? {
                 deliveryRegions: {
@@ -234,11 +287,31 @@ export class StoreService {
     }
   }
 
+  /** 更换 / 解绑门店负责人（小程序会员） */
+  async bindManager(id: string, managerUserId: string | null) {
+    await this.findOne(id);
+    const value = await this.managerId(managerUserId, id);
+    const store = await this.prisma.store.update({
+      where: { id },
+      data: { managerUserId: value },
+      select: STORE_SELECT,
+    });
+    return this.view(store);
+  }
+
   /** 门店看板 v1：今日经营、待履约与库存预警 */
   async dashboard(user: AuthUser, id: string) {
     const scope = await this.scopes.resolve(user);
     this.scopes.assertAccess(scope, id);
+    return this.buildDashboard(id);
+  }
 
+  /** 门店小程序：负责人直接看本店看板 */
+  async dashboardForStore(id: string) {
+    return this.buildDashboard(id);
+  }
+
+  private async buildDashboard(id: string) {
     const store = await this.prisma.store.findUnique({
       where: { id },
       select: { id: true, name: true, status: true },
@@ -370,15 +443,68 @@ export class StoreService {
     return { disabled: true };
   }
 
+  /**
+   * 临时打烊：until 为恢复营业时间，传 null 表示立即恢复。
+   * 只影响新下单，已支付订单仍可核销/配送。
+   */
+  async temporaryClosure(id: string, until: Date | null, note?: string | null) {
+    await this.findOne(id);
+    if (until) {
+      const now = Date.now();
+      if (until.getTime() <= now) throw new BadRequestException('恢复营业时间需晚于当前时间');
+      if (until.getTime() - now > 7 * 24 * 60 * 60 * 1000) {
+        throw new BadRequestException('临时打烊最长 7 天，请使用停用门店');
+      }
+    }
+    const store = await this.prisma.store.update({
+      where: { id },
+      data: {
+        temporarilyClosedUntil: until,
+        temporaryClosureNote: until ? (note?.trim() || null) : null,
+      },
+      select: STORE_SELECT,
+    });
+    return this.view(store);
+  }
+
   private async findOne(id: string) {
     const store = await this.prisma.store.findUnique({ where: { id }, select: STORE_SELECT });
     if (!store) throw new NotFoundException('门店不存在');
     return this.view(store);
   }
 
-  private view<T extends { deliveryRegions: { regionName: string }[] }>(row: T) {
+  private view<
+    T extends {
+      deliveryRegions: { regionName: string }[];
+      temporarilyClosedUntil?: Date | null;
+    },
+  >(row: T) {
     const { deliveryRegions, ...rest } = row;
-    return { ...rest, deliveryRegions: deliveryRegions.map((item) => item.regionName) };
+    return {
+      ...rest,
+      deliveryRegions: deliveryRegions.map((item) => item.regionName),
+      temporarilyClosed: Boolean(row.temporarilyClosedUntil && row.temporarilyClosedUntil > new Date()),
+    };
+  }
+
+  /**
+   * 校验「关联会员」：必须存在且已绑定手机号；一个会员只能关联一家门店。
+   * 传空值表示解绑，返回 null。
+   */
+  private async managerId(userId?: string | null, storeId?: string): Promise<string | null> {
+    if (!userId) return null;
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, phone: true },
+    });
+    if (!user) throw new NotFoundException('关联会员不存在');
+    if (!user.phone) throw new BadRequestException('该会员未绑定手机号，无法关联为门店负责人');
+    const bound = await this.prisma.store.findFirst({
+      where: { managerUserId: userId, ...(storeId ? { id: { not: storeId } } : {}) },
+      select: { name: true },
+    });
+    if (bound) throw new ConflictException(`该会员已关联门店「${bound.name}」`);
+    return user.id;
   }
 
   private code(value?: string): string {
