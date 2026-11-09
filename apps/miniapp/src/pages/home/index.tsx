@@ -71,7 +71,7 @@ interface HomeData {
 }
 
 export default function Page() {
-  const { data, loading } = useRequest(() => api<HomeData>('/home'));
+  const { data, loading } = useRequest(() => api<HomeData>('/home', { auth: 'optional' }));
 
   const goSearch = () => {
     void Taro.navigateTo({ url: '/pages/search/index' });

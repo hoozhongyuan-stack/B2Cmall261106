@@ -1,8 +1,9 @@
 import { Text, View } from '@tarojs/components';
 import Taro, { useDidShow } from '@tarojs/taro';
+import { tokens } from '@shanye/tokens';
 import { useState } from 'react';
 
-import { api, showError } from '../../api/client';
+import { api, clearConsent, clearToken, showError } from '../../api/client';
 import { Loading } from '../../components/common';
 import { money } from '../../utils/format';
 
@@ -77,6 +78,19 @@ export default function Page() {
       return;
     }
     await Taro.makePhoneCall({ phoneNumber: shop.servicePhone });
+  };
+
+  const logout = async () => {
+    const confirmed = await Taro.showModal({
+      title: '退出登录',
+      content: '退出后需要重新同意协议并授权登录。',
+      confirmText: '退出登录',
+      confirmColor: tokens.color.danger,
+    });
+    if (!confirmed.confirm) return;
+    clearToken();
+    clearConsent();
+    await Taro.reLaunch({ url: '/pages/home/index' });
   };
 
   if (loading && !profile) return <Loading />;
@@ -203,6 +217,12 @@ export default function Page() {
           <View className="list-item" onClick={callService}>
             <Text className="grow small">联系客服</Text>
             <Text className="muted tiny">{shop?.servicePhone ?? '未配置'} ›</Text>
+          </View>
+        </View>
+
+        <View className="list mine-menu mine-logout">
+          <View className="list-item" onClick={() => void logout()}>
+            <Text className="grow small mine-logout-text">退出登录</Text>
           </View>
         </View>
 

@@ -13,6 +13,7 @@ import { load } from 'js-yaml';
 import OpenApiResponseValidatorModule from 'openapi-response-validator';
 import { PrismaClient } from '@prisma/client';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { AGREEMENT_VERSIONS } from '@shanye/shared';
 
 const OpenApiResponseValidator =
   (OpenApiResponseValidatorModule as unknown as { default?: typeof OpenApiResponseValidatorModule })
@@ -64,7 +65,7 @@ beforeAll(async () => {
 
   const login = await api('/auth/wechat-login', {
     method: 'POST',
-    body: JSON.stringify({ code: 'seed_user' }),
+    body: JSON.stringify({ code: 'seed_user', agreed: true, agreementVersion: AGREEMENT_VERSIONS.terms, privacyVersion: AGREEMENT_VERSIONS.privacy }),
   });
   if (login.status !== 200) {
     throw new Error(`登录失败：${login.status} ${JSON.stringify(login.body)}`);

@@ -1,4 +1,6 @@
-import { expect, test, type APIRequestContext, type Page } from '@playwright/test';
+import { expect, test, type APIRequestContext } from '@playwright/test';
+
+import { CONSENT, injectSession } from './session';
 
 const H5 = 'http://127.0.0.1:8080';
 const API = 'http://127.0.0.1:3000/api';
@@ -24,7 +26,7 @@ async function adminToken(request: APIRequestContext): Promise<string> {
 async function loginSeedMember(
   request: APIRequestContext,
 ): Promise<{ token: string; id: string; nickname: string }> {
-  const res = await request.post(`${API}/auth/wechat-login`, { data: { code: 'seed_user' } });
+  const res = await request.post(`${API}/auth/wechat-login`, { data: { code: 'seed_user', ...CONSENT } });
   expect(res.ok(), `会员登录失败：${res.status()}`).toBeTruthy();
   const data = unwrap<{ token: string; user: { id: string; nickname: string } }>(await res.json());
   return { token: data.token, id: data.user.id, nickname: data.user.nickname };
@@ -71,13 +73,6 @@ async function clearBinding(
     if (page * 100 >= data.total) return;
     page += 1;
   }
-}
-
-async function injectToken(page: Page, token: string): Promise<void> {
-  await page.addInitScript(
-    (value) => localStorage.setItem('shanye_token', JSON.stringify({ data: value })),
-    token,
-  );
 }
 
 test('门店中心：关联会员的小程序个人中心可见入口，可工作台核销', async ({ page, request }) => {
@@ -148,7 +143,7 @@ test('门店中心：关联会员的小程序个人中心可见入口，可工�
   const pickupCode = unwrap<{ pickupCode: string | null }>(await detail.json()).pickupCode;
   expect(pickupCode).toMatch(/^\d{8}$/);
 
-  await injectToken(page, member.token);
+  await injectSession(page, member.token);
 
   // 个人中心出现「门店中心」入口，展示关联门店名
   await page.goto(`${H5}/#/pages/mine/index`);
@@ -218,7 +213,7 @@ test('门店中心：库存预警筛选、库存调整与营业设置', async ({
   });
   expect(stock.ok(), await stock.text()).toBeTruthy();
 
-  await injectToken(page, member.token);
+  await injectSession(page, member.token);
 
   // 工作台库存预警入口 → 只看预警列表
   await page.goto(`${H5}/#/pages/store-console/index`);
@@ -288,7 +283,7 @@ test('门店中心：临时打烊与移动端看板', async ({ page, request }) 
   });
   expect(stock.ok(), await stock.text()).toBeTruthy();
 
-  await injectToken(page, member.token);
+  await injectSession(page, member.token);
 
   // 营业设置页：选择 1 小时后恢复并立即打烊
   await page.goto(`${H5}/#/pages/store-console/settings`);
@@ -327,10 +322,10 @@ test('门店中心：临时打烊与移动端看板', async ({ page, request }) 
 
 test('门店中心：未关联门店的会员看不到入口', async ({ page }) => {
   const res = await page.request.post(`${API}/auth/wechat-login`, {
-    data: { code: 'dev_miniapp_user' },
+    data: { code: 'dev_miniapp_user', ...CONSENT },
   });
   const token = unwrap<{ token: string }>(await res.json()).token;
-  await injectToken(page, token);
+  await injectSession(page, token);
 
   await page.goto(`${H5}/#/pages/mine/index`);
   await expect(page.getByText('我的优惠券')).toBeVisible({ timeout: 30_000 });

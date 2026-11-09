@@ -7,16 +7,23 @@ export interface StoreOption {
   name: string;
 }
 
-/** 门店下拉数据：总部页面共用，一次加载全量门店 */
+/** 门店下拉数据：总部页面共用，翻页加载全量门店（单页上限 200） */
 export function useStoreOptions() {
   const [stores, setStores] = useState<StoreOption[]>([]);
   useEffect(() => {
     let alive = true;
-    api<{ items: StoreOption[] }>('/admin/stores', { query: { pageSize: 200 } })
-      .then((result) => {
-        if (alive) setStores(result.items);
-      })
-      .catch(() => undefined);
+    async function load() {
+      const all: StoreOption[] = [];
+      for (let page = 1; ; page += 1) {
+        const result = await api<{ items: StoreOption[]; total: number }>('/admin/stores', {
+          query: { pageSize: 200, page },
+        });
+        all.push(...result.items);
+        if (!result.items.length || all.length >= result.total) break;
+      }
+      if (alive) setStores(all);
+    }
+    load().catch(() => undefined);
     return () => {
       alive = false;
     };

@@ -1,0 +1,39 @@
+.agreement-page {
+  padding-bottom: 80px;
+}
+
+.agreement-title {
+  display: block;
+  font-size: 40px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.agreement-meta {
+  display: block;
+  margin-bottom: 32px;
+}
+
+.agreement-section {
+  margin-bottom: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.agreement-heading {
+  font-size: 28px;
+  font-weight: 600;
+}
+
+.agreement-paragraph {
+  font-size: 25px;
+  line-height: 1.8;
+  color: var(--ink-2);
+}
+
+.agreement-foot {
+  display: block;
+  margin-top: 16px;
+  line-height: 1.7;
+}

@@ -3,6 +3,8 @@ import { tokens } from '@shanye/tokens';
 export default defineAppConfig({
   pages: [
     'pages/home/index',
+    'pages/login/index',
+    'pages/agreement/index',
     'pages/category/index',
     'pages/search/index',
     'pages/product/index',

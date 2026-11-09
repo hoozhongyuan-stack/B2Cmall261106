@@ -1,5 +1,7 @@
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test';
 
+import { CONSENT, injectSession } from './session';
+
 const ADMIN = 'http://127.0.0.1:5173';
 const H5 = 'http://127.0.0.1:8080';
 const API = 'http://127.0.0.1:3000/api';
@@ -23,7 +25,7 @@ async function adminToken(request: APIRequestContext): Promise<string> {
 
 async function loginMiniapp(request: APIRequestContext): Promise<string> {
   const res = await request.post(`${API}/auth/wechat-login`, {
-    data: { code: 'dev_miniapp_user' },
+    data: { code: 'dev_miniapp_user', ...CONSENT },
   });
   expect(res.ok(), `小程序登录失败：${res.status()}`).toBeTruthy();
   return unwrap<{ token: string }>(await res.json()).token;
@@ -229,6 +231,7 @@ test('H5 同城配送：选择门店与时段，详情展示配送员并支持�
   const user = await loginMiniapp(request);
   const ctx = await setupDeliveryContext(request, admin, user);
 
+  await injectSession(page, user);
   await page.goto(`${H5}/#/pages/product/index?id=${ctx.productId}`);
   await expect(page.getByText('立即购买')).toBeVisible();
   await page.getByText('立即购买').click();

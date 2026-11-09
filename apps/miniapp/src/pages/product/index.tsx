@@ -67,9 +67,9 @@ export default function Page() {
     data: product,
     loading,
     reload: reloadProduct,
-  } = useRequest(() => api<ProductDetail>(`/products/${id}`), [id]);
+  } = useRequest(() => api<ProductDetail>(`/products/${id}`, { auth: 'optional' }), [id]);
   const { data: reviewData, reload: reloadReviews } = useRequest(
-    () => api<ReviewList>(`/products/${id}/reviews`),
+    () => api<ReviewList>(`/products/${id}/reviews`, { auth: 'optional' }),
     [id],
   );
   const [skuId, setSkuId] = useState('');

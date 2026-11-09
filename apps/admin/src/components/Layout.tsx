@@ -12,8 +12,8 @@ type IconName =
   | 'order'
   | 'customer'
   | 'promotion'
-  | 'fulfillment'
   | 'store'
+  | 'decoration'
   | 'settings';
 
 interface MenuItem {
@@ -79,17 +79,21 @@ const MENU: MenuGroup[] = [
     ],
   },
   {
-    group: '履约',
-    icon: 'fulfillment',
+    group: '门店履约',
+    icon: 'store',
     items: [
+      { to: '/settings/stores', label: '门店管理', roles: ALL },
       { to: '/fulfillment/pickups', label: '自提核销', roles: ALL },
       { to: '/fulfillment/deliveries', label: '同城配送', roles: ALL },
     ],
   },
   {
-    group: '门店',
-    icon: 'store',
-    items: [{ to: '/settings/stores', label: '门店管理', roles: ALL }],
+    group: '装修',
+    icon: 'decoration',
+    items: [
+      { to: '/settings/home', label: '首页运营位', roles: ['SUPER', 'OPS'] },
+      { to: '/assets', label: '素材库', roles: ['SUPER', 'OPS'] },
+    ],
   },
   {
     group: '设置',
@@ -101,9 +105,7 @@ const MENU: MenuGroup[] = [
       { to: '/settings/freight', label: '运费模板', roles: ALL },
       { to: '/settings/payment', label: '支付设置', roles: ['SUPER'] },
       { to: '/settings/system', label: '系统状态', roles: ['SUPER', 'OPS'] },
-      { to: '/settings/home', label: '首页运营位', roles: ['SUPER', 'OPS'] },
       { to: '/settings/express', label: '物流公司', roles: ALL },
-      { to: '/assets', label: '素材库', roles: ['SUPER', 'OPS'] },
       { to: '/accounts', label: '子账号', roles: ['SUPER'] },
       { to: '/logs', label: '操作日志', roles: ['SUPER', 'OPS', 'CS'] },
     ],
@@ -122,8 +124,8 @@ const ICON_PATHS: Record<IconName, string[]> = {
     'M17 11a2.5 2.5 0 1 0 0-5',
   ],
   promotion: ['M4 12l8-8 6 6-8 8H4v-6z', 'M15 7.5h.01'],
-  fulfillment: ['M3 7h11v9H3z', 'M14 10h4l3 3v3h-7z', 'M7 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4z', 'M17 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4z'],
   store: ['M4 9l1-5h14l1 5', 'M4 9h16v11H4z', 'M9 20v-6h6v6'],
+  decoration: ['M4 4h16v16H4z', 'M4 9h16', 'M9 20V9', 'M13 13h4', 'M13 16h4'],
   settings: ['M4 7h10', 'M18 7h2', 'M14 7a2 2 0 1 0 0 .01', 'M4 17h2', 'M10 17h10', 'M8 17a2 2 0 1 0 0 .01'],
 };
 

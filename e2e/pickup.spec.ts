@@ -1,5 +1,7 @@
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test';
 
+import { CONSENT, injectSession } from './session';
+
 const ADMIN = 'http://127.0.0.1:5173';
 const H5 = 'http://127.0.0.1:8080';
 const API = 'http://127.0.0.1:3000/api';
@@ -23,7 +25,7 @@ async function adminToken(request: APIRequestContext): Promise<string> {
 
 async function loginMiniapp(request: APIRequestContext): Promise<string> {
   const res = await request.post(`${API}/auth/wechat-login`, {
-    data: { code: 'dev_miniapp_user' },
+    data: { code: 'dev_miniapp_user', ...CONSENT },
   });
   expect(res.ok(), `小程序登录失败：${res.status()}`).toBeTruthy();
   return unwrap<{ token: string }>(await res.json()).token;
@@ -129,6 +131,7 @@ test('自提：小程序展示核销码，后台核销后订单完成', async ({
   expect(order.pickupCode).toMatch(/^\d{8}$/);
 
   // 小程序订单详情：核销码、门店与待自提状态
+  await injectSession(page, userToken);
   await page.goto(`${H5}/#/pages/order-detail/index?id=${orderId}`);
   await expect(page.getByText('自提核销码')).toBeVisible({ timeout: 30_000 });
   await expect(page.getByText(order.pickupCode)).toBeVisible();
@@ -161,9 +164,11 @@ test('自提：小程序展示核销码，后台核销后订单完成', async ({
 
 test('H5 结算：切换到店自提、选择门店与时段，支付后展示核销码', async ({ page, request }) => {
   const token = await adminToken(request);
+  const userToken = await loginMiniapp(request);
   const { productId, skuId } = await firstSku(request);
   const store = await createPickupStore(request, token, skuId);
 
+  await injectSession(page, userToken);
   await page.goto(`${H5}/#/pages/product/index?id=${productId}`);
   await expect(page.getByText('立即购买')).toBeVisible();
   await page.getByText('立即购买').click();

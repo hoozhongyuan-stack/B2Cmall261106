@@ -119,3 +119,12 @@
   display: block;
   text-align: center;
 }
+
+.mine-logout {
+  margin-bottom: 24px;
+}
+
+.mine-logout-text {
+  color: var(--danger, #b3261e);
+  text-align: center;
+}

@@ -83,16 +83,16 @@ export default function Page() {
   const [tagId, setTagId] = useState('');
   const [priceKey, setPriceKey] = useState('');
   const seq = useRef(0);
-  const { data: home } = useRequest(() => api<HomeData>('/home'));
+  const { data: home } = useRequest(() => api<HomeData>('/home', { auth: 'optional' }));
 
   // 筛选栏数据：分类、标签与聚合热词
   useEffect(() => {
     void (async () => {
       try {
         const [cats, tagList, hotList] = await Promise.all([
-          api<Category[]>('/categories'),
-          api<Tag[]>('/tags'),
-          api<string[]>('/search/hot'),
+          api<Category[]>('/categories', { auth: 'optional' }),
+          api<Tag[]>('/tags', { auth: 'optional' }),
+          api<string[]>('/search/hot', { auth: 'optional' }),
         ]);
         setCategories(cats);
         setTags(tagList);
@@ -125,6 +125,7 @@ export default function Page() {
           priceMinCents: range?.min,
           priceMaxCents: range?.max,
         },
+        auth: 'optional',
       });
       if (current !== seq.current) return;
       setTotal(res.total);
@@ -166,6 +167,7 @@ export default function Page() {
             sort: 'sales',
             categoryId: categoryId || undefined,
           },
+          auth: 'optional',
         });
         setRecommend(res.items);
       } catch {

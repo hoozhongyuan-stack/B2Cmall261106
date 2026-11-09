@@ -1,5 +1,7 @@
 import { expect, test, type APIRequestContext } from '@playwright/test';
 
+import { CONSENT } from './session';
+
 const ADMIN = 'http://127.0.0.1:5173';
 const API = 'http://127.0.0.1:3000/api';
 
@@ -47,7 +49,7 @@ async function createStore(
 /** 种子会员「王先生」：已绑定手机号，可被关联为门店负责人 */
 async function seedMember(request: APIRequestContext): Promise<{ id: string; nickname: string }> {
   const res = await request.post(`${API}/auth/wechat-login`, {
-    data: { code: 'seed_user' },
+    data: { code: 'seed_user', ...CONSENT },
   });
   expect(res.ok(), `会员登录失败：${res.status()}`).toBeTruthy();
   return unwrap<{ user: { id: string; nickname: string } }>(await res.json()).user;

@@ -47,7 +47,7 @@ export default function Page() {
   useEffect(() => {
     void (async () => {
       try {
-        const list = await api<Category[]>('/categories');
+        const list = await api<Category[]>('/categories', { auth: 'optional' });
         setCategories(list);
         const wanted = router.params.categoryId ?? '';
         const exists = list.some((c) => c.id === wanted);
@@ -71,6 +71,7 @@ export default function Page() {
     try {
       const res = await api<ProductPage>('/products', {
         query: { categoryId: activeId, sort, page: pageNo, pageSize: 20 },
+        auth: 'optional',
       });
       setTotal(res.total);
       setPage(res.page);

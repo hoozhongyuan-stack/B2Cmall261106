@@ -1,5 +1,7 @@
 import { expect, test, type APIRequestContext, type APIResponse } from '@playwright/test';
 
+import { CONSENT, injectSession } from './session';
+
 const API = 'http://127.0.0.1:3000/api';
 const H5 = 'http://127.0.0.1:8080';
 
@@ -14,7 +16,7 @@ function unwrap<T>(body: unknown): T {
 
 async function loginMiniapp(request: APIRequestContext): Promise<string> {
   const res = await request.post(`${API}/auth/wechat-login`, {
-    data: { code: 'dev_miniapp_user' },
+    data: { code: 'dev_miniapp_user', ...CONSENT },
   });
   expect(res.ok(), `小程序登录失败：${res.status()} ${await res.text()}`).toBeTruthy();
   return unwrap<{ token: string }>(await res.json()).token;
@@ -69,6 +71,7 @@ test('H5 下单到支付成功主链路', async ({ page, request }) => {
     const productId = await pickPlainProduct(request);
     expect(productId, '商品列表为空，请先执行 pnpm db:seed').toBeTruthy();
 
+    await injectSession(page, token);
     await page.goto(`${H5}/#/pages/product/index?id=${productId}`);
     await expect(page.getByText('立即购买')).toBeVisible();
     await page.getByText('立即购买').click();

@@ -2,6 +2,7 @@
  * 迭代 B 契约测试：批量发货、物流公司字典、首页运营位、评价晒图上传。
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { AGREEMENT_VERSIONS } from '@shanye/shared';
 import { PrismaClient } from '@prisma/client';
 
 const PORT = Number(process.env.CONTRACT_PORT ?? 3100);
@@ -36,7 +37,7 @@ beforeAll(async () => {
 
   const login = await api('/auth/wechat-login', {
     method: 'POST',
-    body: JSON.stringify({ code: 'seed_user' }),
+    body: JSON.stringify({ code: 'seed_user', agreed: true, agreementVersion: AGREEMENT_VERSIONS.terms, privacyVersion: AGREEMENT_VERSIONS.privacy }),
   });
   userToken = login.body.data.token;
 

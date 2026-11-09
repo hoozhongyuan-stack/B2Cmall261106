@@ -463,8 +463,26 @@ model User {
   storedValueAccount StoredValueAccount?
   tags               UserTagLink[]
   managedStore       Store?
+  consents           UserConsent[]
 
   @@index([levelId])
+}
+
+/// 协议同意留痕：用户 + 类型 + 版本唯一
+model UserConsent {
+  id        String   @id @default(cuid())
+  userId    String
+  /// USER_AGREEMENT | PRIVACY
+  type      String
+  version   String
+  agreedAt  DateTime @default(now()) @db.Timestamptz(3)
+  ip        String?
+  userAgent String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, type, version])
+  @@index([userId])
 }
 
 /// 用户标签：仅支持两级（parentId 为空为一级标签）

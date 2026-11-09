@@ -4,6 +4,7 @@
 import { randomUUID } from 'node:crypto';
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { AGREEMENT_VERSIONS } from '@shanye/shared';
 import { PrismaClient } from '@prisma/client';
 
 const PORT = Number(process.env.CONTRACT_PORT ?? 3100);
@@ -39,7 +40,7 @@ function uniqueCode(prefix: string): string {
 async function loginMember(code: string) {
   const res = await api('/auth/wechat-login', {
     method: 'POST',
-    body: JSON.stringify({ code }),
+    body: JSON.stringify({ code, agreed: true, agreementVersion: AGREEMENT_VERSIONS.terms, privacyVersion: AGREEMENT_VERSIONS.privacy }),
   });
   expect(res.status).toBe(200);
   return { token: res.body.data.token as string, userId: res.body.data.user.id as string };

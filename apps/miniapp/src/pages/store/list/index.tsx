@@ -70,6 +70,7 @@ export default function Page() {
     try {
       const result = await api<{ items: Store[] }>('/stores', {
         query: { capability },
+        auth: 'optional',
       });
       setItems(result.items.filter((store) => matchRegion(store, keyword, capability)));
     } catch (err) {

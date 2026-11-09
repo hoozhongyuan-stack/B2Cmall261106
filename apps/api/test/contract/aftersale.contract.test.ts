@@ -6,6 +6,7 @@ import { randomUUID } from 'node:crypto';
 
 import { PrismaClient } from '@prisma/client';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { AGREEMENT_VERSIONS } from '@shanye/shared';
 
 const PORT = Number(process.env.CONTRACT_PORT ?? 3100);
 const BASE = `http://127.0.0.1:${PORT}/api`;
@@ -63,7 +64,7 @@ beforeAll(async () => {
 
   const login = await api('/auth/wechat-login', {
     method: 'POST',
-    body: JSON.stringify({ code: 'seed_user' }),
+    body: JSON.stringify({ code: 'seed_user', agreed: true, agreementVersion: AGREEMENT_VERSIONS.terms, privacyVersion: AGREEMENT_VERSIONS.privacy }),
   });
   userToken = login.body.data.token;
 
