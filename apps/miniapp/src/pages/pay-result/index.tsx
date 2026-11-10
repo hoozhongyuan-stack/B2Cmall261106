@@ -70,7 +70,7 @@ export default function Page() {
         </View>
         <View
           className="btn btn--ghost btn--block"
-          onClick={() => Taro.switchTab({ url: '/pages/home/index' })}
+          onClick={() => Taro.reLaunch({ url: '/pages/home/index' })}
         >
           继续逛逛
         </View>

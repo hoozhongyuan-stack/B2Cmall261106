@@ -714,6 +714,8 @@ model ShopConfig {
   payTimeoutMinutes  Int      @default(15)
   afterSaleDays      Int      @default(7)
   autoConfirmDays    Int      @default(10)
+  /// 首页渲染方式：legacy（旧运营位）| micro（微页面 home）
+  homeRenderer       String   @default("legacy")
   updatedAt          DateTime @updatedAt @db.Timestamptz(3)
 }
 
@@ -813,6 +815,49 @@ model ExpressCompany {
   sort      Int      @default(0)
   enabled   Boolean  @default(true)
   createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+}
+
+// 微页面：可视化装修后的页面，草稿与发布快照分离，线上只读发布快照
+model MicroPage {
+  id                  String    @id @default(cuid())
+  /// 访问标识：home 为系统首页；小程序路径 /pages/micro/index?code=xxx
+  code                String    @unique
+  title               String
+  /// DRAFT | PUBLISHED
+  status              String    @default("DRAFT")
+  isHome              Boolean   @default(false)
+  /// 草稿组件文档
+  components          Json      @default("[]")
+  /// 已发布组件快照
+  publishedComponents Json?
+  /// 上一版发布快照（用于回滚）
+  previousComponents Json?
+  /// 页面设置：shareTitle / shareDesc / shareImageKey / bgColor / navStyle / allowShare
+  settings            Json      @default("{}")
+  publishedSettings   Json?
+  previousSettings    Json?
+  schemaVersion       Int       @default(1)
+  version             Int       @default(0)
+  publishedAt         DateTime? @db.Timestamptz(3)
+  publishedBy         String?
+  updatedBy           String?
+  deletedAt           DateTime? @db.Timestamptz(3)
+  createdAt           DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt           DateTime  @updatedAt @db.Timestamptz(3)
+
+  @@index([status, isHome])
+  @@index([deletedAt])
+}
+
+// 底部导航（单例）：条目由后台配置，小程序自绘 TabBar 读取
+model ShopTabbar {
+  id        String   @id @default("singleton")
+  enabled   Boolean  @default(true)
+  /// { background, color, selectedColor, borderTop }
+  style     Json     @default("{}")
+  /// [{ key, text, iconKey, activeIconKey, link }]
+  items     Json     @default("[]")
   updatedAt DateTime @updatedAt @db.Timestamptz(3)
 }
 

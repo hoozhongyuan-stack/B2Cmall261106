@@ -3,6 +3,7 @@ import Taro, { useReachBottom, useRouter } from '@tarojs/taro';
 import { useEffect, useRef, useState } from 'react';
 
 import { api, showError } from '../../api/client';
+import { AppTabBar } from '../../components/AppTabBar';
 import { Empty, Loading } from '../../components/common';
 import { ProductCard, type ProductCardData } from '../../components/ProductCard';
 
@@ -153,6 +154,7 @@ export default function Page() {
           </View>
         )}
       </View>
+      <AppTabBar />
     </View>
   );
 }

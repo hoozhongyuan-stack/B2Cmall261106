@@ -44,6 +44,7 @@ export default function Assets() {
   const [folder, setFolder] = useState('all');
   const [keyword, setKeyword] = useState('');
   const [applied, setApplied] = useState('');
+  const [kind, setKind] = useState<'' | 'image' | 'video'>('');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(PAGE_SIZE);
   const [items, setItems] = useState<AssetItem[]>([]);
@@ -77,6 +78,7 @@ export default function Assets() {
       const result = await listAssets({
         folderId: folder === 'all' ? undefined : folder,
         keyword: applied || undefined,
+        kind: kind || undefined,
         page,
         pageSize,
       });
@@ -95,7 +97,7 @@ export default function Assets() {
 
   useEffect(() => {
     void loadAssets();
-  }, [folder, applied, page, pageSize]);
+  }, [folder, applied, page, pageSize, kind]);
 
   useEffect(() => {
     setSelected([]);
@@ -263,7 +265,7 @@ export default function Assets() {
     <>
       <PageHeader
         title="素材库"
-        desc="本地图片上传与一级文件夹管理；商品与店铺图片只能从素材库选择"
+        desc="本地图片与视频上传、一级文件夹管理；商品与店铺图片只能从素材库选择"
         actions={
           canWrite ? (
             <>
@@ -274,7 +276,7 @@ export default function Assets() {
                 新建文件夹
               </Button>
               <Button loading={uploading} onClick={() => fileRef.current?.click()}>
-                上传图片
+                上传图片或视频
               </Button>
             </>
           ) : undefined
@@ -284,7 +286,7 @@ export default function Assets() {
       <input
         ref={fileRef}
         type="file"
-        accept="image/jpeg,image/png,image/webp,image/gif"
+        accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/quicktime,video/webm"
         multiple
         hidden
         onChange={(e) => {
@@ -348,6 +350,19 @@ export default function Assets() {
             <Button type="submit" variant="ghost">
               搜索
             </Button>
+            <select
+              className="select"
+              aria-label="素材类型"
+              value={kind}
+              onChange={(event) => {
+                setKind(event.target.value as '' | 'image' | 'video');
+                setPage(1);
+              }}
+            >
+              <option value="">全部类型</option>
+              <option value="image">图片</option>
+              <option value="video">视频</option>
+            </select>
             {applied && (
               <Button
                 type="button"
@@ -409,18 +424,34 @@ export default function Assets() {
                       </span>
                     </label>
                   )}
-                  <img
-                    src={assetPreviewUrl(item.key)}
-                    alt={item.originalName ?? item.key}
-                    loading="lazy"
-                    style={{
-                      width: '100%',
-                      height: 120,
-                      objectFit: 'cover',
-                      borderRadius: 'var(--radius-sm)',
-                      background: 'var(--surface)',
-                    }}
-                  />
+                  {item.mimeType?.startsWith('video/') ? (
+                    <video
+                      src={assetPreviewUrl(item.key)}
+                      muted
+                      playsInline
+                      preload="metadata"
+                      style={{
+                        width: '100%',
+                        height: 120,
+                        objectFit: 'cover',
+                        borderRadius: 'var(--radius-sm)',
+                        background: 'var(--surface)',
+                      }}
+                    />
+                  ) : (
+                    <img
+                      src={assetPreviewUrl(item.key)}
+                      alt={item.originalName ?? item.key}
+                      loading="lazy"
+                      style={{
+                        width: '100%',
+                        height: 120,
+                        objectFit: 'cover',
+                        borderRadius: 'var(--radius-sm)',
+                        background: 'var(--surface)',
+                      }}
+                    />
+                  )}
                   <div className="small" style={{ wordBreak: 'break-all' }}>
                     {item.originalName ?? item.key}
                   </div>

@@ -90,11 +90,41 @@ export class CatalogController {
     @Query('priceMaxCents') priceMaxCents?: string,
     @Query('tagId') tagId?: string,
     @Query('storeId') storeId?: string,
+    @Query('ids') ids?: string,
     @Query('sort') sort = 'default',
     @Query('page') page = '1',
     @Query('pageSize') pageSize = '20',
     @OptionalCurrentUser() user?: MiniappUser,
   ) {
+    // 微页面「手动选品」按 id 精确取数，顺序与传入一致
+    if (ids !== undefined) {
+      const list = ids
+        .split(',')
+        .map((id) => id.trim())
+        .filter(Boolean)
+        .slice(0, 50);
+      if (!list.length) return { total: 0, page: 1, pageSize: 0, items: [] };
+
+      const rows = await this.prisma.product.findMany({
+        where: { id: { in: list }, status: 'ON_SALE' },
+        select: {
+          id: true,
+          title: true,
+          subtitle: true,
+          mainImageKey: true,
+          priceMinCents: true,
+          priceMaxCents: true,
+          soldCount: true,
+          status: true,
+        },
+      });
+      const map = new Map(rows.map((row) => [row.id, row]));
+      const items = list
+        .map((id) => map.get(id))
+        .filter((row): row is NonNullable<typeof row> => Boolean(row));
+      return { total: items.length, page: 1, pageSize: items.length, items };
+    }
+
     if (!PRODUCT_SORTS.includes(sort as ProductSort)) {
       throw new BadRequestException('排序方式不合法');
     }

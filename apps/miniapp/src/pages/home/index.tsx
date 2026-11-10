@@ -1,11 +1,16 @@
 import { Image, ScrollView, Swiper, SwiperItem, Text, View } from '@tarojs/components';
-import Taro from '@tarojs/taro';
+import Taro, { useShareAppMessage } from '@tarojs/taro';
+import { useEffect, useState } from 'react';
 
+import type { MicroPageRelease, ShopShell } from '@shanye/shared/src/microPage';
 import { api } from '../../api/client';
+import { AppTabBar } from '../../components/AppTabBar';
+import { MicroRenderer } from '../../components/MicroRenderer';
 import { Loading, SectionTitle, imageSrc } from '../../components/common';
 import { ProductCard } from '../../components/ProductCard';
 import { useRequest } from '../../hooks/useRequest';
 import { money } from '../../utils/format';
+import { cachedShell, loadShell } from '../../utils/shopShell';
 
 import './index.css';
 
@@ -72,6 +77,56 @@ interface HomeData {
 
 export default function Page() {
   const { data, loading } = useRequest(() => api<HomeData>('/home', { auth: 'optional' }));
+  const [shell, setShell] = useState<ShopShell>(cachedShell());
+  const [micro, setMicro] = useState<MicroPageRelease | null>(null);
+  const [microLoading, setMicroLoading] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    void loadShell(true).then((result) => {
+      if (!alive) return;
+      setShell(result);
+      if (result.homeRenderer !== 'micro' || !result.homeCode) return;
+      setMicroLoading(true);
+      void api<MicroPageRelease>(`/micro-pages/${encodeURIComponent(result.homeCode)}`, {
+        auth: 'optional',
+      })
+        .then((page) => {
+          if (!alive) return;
+          setMicro(page);
+          const navTitle = page.settings?.navTitle || page.title;
+          if (navTitle) void Taro.setNavigationBarTitle({ title: navTitle });
+        })
+        .catch(() => undefined)
+        .finally(() => {
+          if (alive) setMicroLoading(false);
+        });
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  useShareAppMessage(() => ({
+    title: micro?.settings?.shareTitle || micro?.title || '山野好物 · 顺时而食',
+    path: '/pages/home/index',
+    imageUrl: micro?.settings?.shareImageKey ? imageSrc(micro.settings.shareImageKey) : undefined,
+  }));
+
+  if (shell.homeRenderer === 'micro' && shell.homeCode) {
+    return (
+      <View className="page page--flush">
+        {micro ? (
+          <View style={{ background: micro.settings?.bgColor || undefined, minHeight: '100vh' }}>
+            <MicroRenderer components={micro.components} />
+          </View>
+        ) : (
+          <Loading text={microLoading ? '页面加载中…' : '页面暂不可用'} />
+        )}
+        <AppTabBar />
+      </View>
+    );
+  }
 
   const goSearch = () => {
     void Taro.navigateTo({ url: '/pages/search/index' });
@@ -248,6 +303,7 @@ export default function Page() {
           </>
         )}
       </View>
+      <AppTabBar />
     </View>
   );
 }

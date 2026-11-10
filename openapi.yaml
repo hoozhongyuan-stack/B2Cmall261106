@@ -154,6 +154,7 @@ paths:
         - { name: priceMaxCents, in: query, schema: { type: integer, minimum: 0 } }
         - { name: tagId, in: query, schema: { type: string } }
         - { name: storeId, in: query, schema: { type: string } }
+        - { name: ids, in: query, schema: { type: string }, description: "按商品 id 精确取数（逗号分隔，最多 50 个），顺序与传入一致" }
         - { name: sort, in: query, schema: { type: string, enum: [default, sales, price_asc, price_desc, new] } }
         - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
         - { name: pageSize, in: query, schema: { type: integer, minimum: 1, maximum: 50, default: 20 } }
@@ -1731,11 +1732,12 @@ paths:
   /admin/assets:
     get:
       tags: [admin-assets]
-      summary: 素材列表（文件夹 / 关键词筛选，分页）
+      summary: 素材列表（文件夹 / 类型 / 关键词筛选，分页）
       security: [{ adminToken: [] }]
       parameters:
         - { name: folderId, in: query, schema: { type: string, description: "文件夹 id；none 表示未分类" } }
         - { name: keyword, in: query, schema: { type: string } }
+        - { name: kind, in: query, schema: { type: string, enum: [image, video], description: "不传表示全部" } }
         - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
         - { name: pageSize, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 40 } }
       responses:
@@ -3814,6 +3816,279 @@ paths:
         '400': { $ref: '#/components/responses/BadRequest' }
         '404': { $ref: '#/components/responses/NotFound' }
 
+  /micro-pages/{code}:
+    get:
+      tags: [micro-page]
+      summary: 小程序读取已发布的微页面快照
+      parameters:
+        - { name: code, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/MicroPageRelease' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /shop/shell:
+    get:
+      tags: [micro-page]
+      summary: 小程序启动配置：底部导航、首页微页面与渲染方式
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/ShopShell' }
+
+  /admin/micro-pages:
+    get:
+      tags: [admin-micro-page]
+      summary: 微页面列表
+      security: [{ adminToken: [] }]
+      parameters:
+        - { name: keyword, in: query, schema: { type: string } }
+        - { name: status, in: query, schema: { type: string, enum: [DRAFT, PUBLISHED] } }
+        - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+        - { name: pageSize, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      total: { type: integer }
+                      page: { type: integer }
+                      pageSize: { type: integer }
+                      items:
+                        type: array
+                        items: { $ref: '#/components/schemas/MicroPageSummary' }
+    post:
+      tags: [admin-micro-page]
+      summary: 新建微页面
+      security: [{ adminToken: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title]
+              properties:
+                title: { type: string, maxLength: 20 }
+                code: { type: string, pattern: '^[a-z0-9-]{2,32}$' }
+                copyFromId: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/MicroPageDetail' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+
+  /admin/micro-pages/migrate-home:
+    post:
+      tags: [admin-micro-page]
+      summary: 把现有首页运营位迁移为 home 微页面（可重复执行）
+      security: [{ adminToken: [] }]
+      responses:
+        '200':
+          description: OK
+
+  /admin/micro-pages/{id}:
+    get:
+      tags: [admin-micro-page]
+      summary: 微页面详情（草稿 + 发布快照）
+      security: [{ adminToken: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/MicroPageDetail' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      tags: [admin-micro-page]
+      summary: 保存草稿（不影响线上快照）
+      security: [{ adminToken: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title: { type: string, maxLength: 20 }
+                components: { type: array, items: { type: object } }
+                settings: { type: object }
+                expectedUpdatedAt: { type: string, format: date-time }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/MicroPageDetail' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '409': { $ref: '#/components/responses/Conflict' }
+    delete:
+      tags: [admin-micro-page]
+      summary: 删除微页面（被引用时拒绝）
+      security: [{ adminToken: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: OK
+        '400': { $ref: '#/components/responses/BadRequest' }
+
+  /admin/micro-pages/{id}/publish:
+    post:
+      tags: [admin-micro-page]
+      summary: 全量校验后发布当前草稿
+      security: [{ adminToken: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/MicroPageDetail' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+
+  /admin/micro-pages/{id}/rollback:
+    post:
+      tags: [admin-micro-page]
+      summary: 回滚到上一版发布快照
+      security: [{ adminToken: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: OK
+        '400': { $ref: '#/components/responses/BadRequest' }
+
+  /admin/micro-pages/{id}/duplicate:
+    post:
+      tags: [admin-micro-page]
+      summary: 复制为新草稿
+      security: [{ adminToken: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: OK
+
+  /admin/micro-pages/{id}/home:
+    post:
+      tags: [admin-micro-page]
+      summary: 设为小程序首页（需已上线）
+      security: [{ adminToken: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: OK
+        '400': { $ref: '#/components/responses/BadRequest' }
+    delete:
+      tags: [admin-micro-page]
+      summary: 取消微页面首页，回退旧版首页渲染
+      security: [{ adminToken: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: OK
+
+  /admin/link-options:
+    get:
+      tags: [admin-micro-page]
+      summary: 统一链接选择器数据源
+      security: [{ adminToken: [] }]
+      parameters:
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [micro, product, category, search, seckill, coupon, store, cart, orders, mine, points, page, none]
+        - { name: keyword, in: query, schema: { type: string } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 50, default: 20 } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      items:
+                        type: array
+                        items: { $ref: '#/components/schemas/LinkOption' }
+
+  /admin/tabbar:
+    get:
+      tags: [admin-micro-page]
+      summary: 读取底部导航配置
+      security: [{ adminToken: [] }]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/ShopTabbar' }
+    put:
+      tags: [admin-micro-page]
+      summary: 保存底部导航（2~5 个入口，必须有首页）
+      security: [{ adminToken: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ShopTabbar' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/ShopTabbar' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+
 components:
   securitySchemes:
     userToken:
@@ -4968,3 +5243,132 @@ components:
         message: { type: string }
         data: { nullable: true }
         requestId: { type: string }
+
+    MicroPageSummary:
+      type: object
+      required: [id, code, title, status, isHome, version]
+      properties:
+        id: { type: string }
+        code: { type: string }
+        title: { type: string }
+        status: { type: string, enum: [DRAFT, PUBLISHED] }
+        isHome: { type: boolean }
+        version: { type: integer }
+        componentCount: { type: integer }
+        publishedComponentCount: { type: integer }
+        published: { type: boolean }
+        publishedAt: { type: string, format: date-time, nullable: true }
+        updatedAt: { type: string, format: date-time }
+        createdAt: { type: string, format: date-time }
+
+    MicroPageComponent:
+      type: object
+      required: [id, type, visible]
+      properties:
+        id: { type: string }
+        type:
+          type: string
+          enum: [notice, search, banner, imageHotspot, goods, divider, video, text, navGrid]
+        visible: { type: boolean }
+        style:
+          type: object
+          properties:
+            margin: { type: array, items: { type: number } }
+            padding: { type: array, items: { type: number } }
+            bgColor: { type: string }
+            radius: { type: number }
+        props: { type: object, additionalProperties: true }
+
+    MicroPageSettings:
+      type: object
+      properties:
+        shareTitle: { type: string }
+        shareDesc: { type: string }
+        shareImageKey: { type: string }
+        bgColor: { type: string }
+        navTitle: { type: string }
+        navColor: { type: string, enum: [black, white] }
+        allowShare: { type: boolean }
+
+    MicroPageDetail:
+      allOf:
+        - $ref: '#/components/schemas/MicroPageSummary'
+        - type: object
+          properties:
+            components:
+              type: array
+              items: { $ref: '#/components/schemas/MicroPageComponent' }
+            publishedComponents:
+              type: array
+              items: { $ref: '#/components/schemas/MicroPageComponent' }
+            settings: { $ref: '#/components/schemas/MicroPageSettings' }
+            publishedSettings:
+              allOf: [{ $ref: '#/components/schemas/MicroPageSettings' }]
+              nullable: true
+
+    MicroPageRelease:
+      type: object
+      required: [code, title, version, components, settings]
+      properties:
+        code: { type: string }
+        title: { type: string }
+        version: { type: integer }
+        components:
+          type: array
+          items: { $ref: '#/components/schemas/MicroPageComponent' }
+        settings: { $ref: '#/components/schemas/MicroPageSettings' }
+        updatedAt: { type: string, format: date-time }
+
+    MicroLink:
+      type: object
+      required: [type]
+      properties:
+        type:
+          type: string
+          enum: [none, micro, product, category, search, seckill, coupon, store, cart, orders, mine, points, page]
+        value: { type: string, nullable: true }
+
+    ShopTabbarItem:
+      type: object
+      required: [key, text, link]
+      properties:
+        key: { type: string }
+        text: { type: string, maxLength: 5 }
+        iconKey: { type: string, nullable: true }
+        activeIconKey: { type: string, nullable: true }
+        link: { $ref: '#/components/schemas/MicroLink' }
+
+    ShopTabbar:
+      type: object
+      required: [enabled, style, items]
+      properties:
+        enabled: { type: boolean }
+        style:
+          type: object
+          properties:
+            background: { type: string }
+            color: { type: string }
+            selectedColor: { type: string }
+            borderTop: { type: boolean }
+        items:
+          type: array
+          minItems: 2
+          maxItems: 5
+          items: { $ref: '#/components/schemas/ShopTabbarItem' }
+
+    ShopShell:
+      type: object
+      required: [tabbar, homeRenderer]
+      properties:
+        tabbar: { $ref: '#/components/schemas/ShopTabbar' }
+        homeCode: { type: string, nullable: true }
+        homeRenderer: { type: string, enum: [legacy, micro] }
+        updatedAt: { type: string, format: date-time, nullable: true }
+
+    LinkOption:
+      type: object
+      required: [value, label]
+      properties:
+        value: { type: string }
+        label: { type: string }
+        hint: { type: string }

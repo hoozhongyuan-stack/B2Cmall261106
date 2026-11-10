@@ -93,6 +93,9 @@ importers:
       '@shanye/shared':
         specifier: workspace:*
         version: link:../../packages/shared
+      '@shanye/tokens':
+        specifier: workspace:*
+        version: link:../../packages/tokens
       class-transformer:
         specifier: ^0.5.1
         version: 0.5.1

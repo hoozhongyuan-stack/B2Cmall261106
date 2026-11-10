@@ -1450,3 +1450,100 @@ button:focus-visible,
     grid-template-columns: 1fr;
   }
 }
+
+/* ---------------- 页面装修 ---------------- */
+
+.micro-page-title {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tabbar-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 16px;
+  align-items: start;
+}
+
+.tabbar-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.tabbar-item {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 10px;
+  margin-bottom: 10px;
+}
+
+.tabbar-preview {
+  position: sticky;
+  top: 12px;
+}
+
+.tabbar-phone {
+  width: 300px;
+  margin: 0 auto 8px;
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  overflow: hidden;
+  background: #f6f4ef;
+  box-shadow: 0 16px 36px rgba(30, 24, 16, 0.12);
+}
+
+.tabbar-phone-body {
+  height: 380px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tabbar-preview-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding: 8px 4px calc(8px + env(safe-area-inset-bottom));
+}
+
+.tabbar-preview-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  font-size: 11px;
+  min-width: 44px;
+}
+
+.tabbar-preview-item img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+
+.tabbar-preview-item em {
+  font-style: normal;
+}
+
+.tabbar-ph {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--brand-soft);
+  color: var(--brand);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+}
+
+@media (max-width: 1080px) {
+  .tabbar-layout {
+    grid-template-columns: 1fr;
+  }
+  .tabbar-preview {
+    position: static;
+  }
+}

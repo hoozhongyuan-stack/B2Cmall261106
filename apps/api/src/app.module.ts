@@ -17,6 +17,7 @@ import { IntegrationModule } from './modules/integration/integration.module';
 import { MiniappReleaseModule } from './modules/miniapp-release/miniapp-release.module';
 import { OpsModule } from './modules/ops/ops.module';
 import { HomeModule } from './modules/home/home.module';
+import { MicroPageModule } from './modules/micro-page/micro-page.module';
 import { ExpressModule } from './modules/express/express.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { StoreModule } from './modules/store/store.module';
@@ -39,6 +40,7 @@ import { StoreConsoleModule } from './modules/store-console/store-console.module
     MiniappReleaseModule,
     OpsModule,
     HomeModule,
+    MicroPageModule,
     ExpressModule,
     AnalyticsModule,
     StoreModule,

@@ -5,6 +5,7 @@ export default defineAppConfig({
     'pages/home/index',
     'pages/login/index',
     'pages/agreement/index',
+    'pages/micro/index',
     'pages/category/index',
     'pages/search/index',
     'pages/product/index',
@@ -41,15 +42,5 @@ export default defineAppConfig({
     navigationBarTextStyle: 'black',
     backgroundColor: tokens.color.surface,
   },
-  tabBar: {
-    color: tokens.color.ink3,
-    selectedColor: tokens.color.brand,
-    backgroundColor: tokens.color.surface,
-    list: [
-      { pagePath: 'pages/home/index', text: '首页' },
-      { pagePath: 'pages/category/index', text: '分类' },
-      { pagePath: 'pages/cart/index', text: '购物车' },
-      { pagePath: 'pages/mine/index', text: '我的' },
-    ],
-  },
+  // 底部导航改为自绘（components/AppTabBar），配置由 /shop/shell 下发
 });

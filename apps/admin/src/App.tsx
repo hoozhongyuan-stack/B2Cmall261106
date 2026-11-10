@@ -35,6 +35,9 @@ const Accounts = lazy(() => import('./pages/Accounts'));
 const Logs = lazy(() => import('./pages/Logs'));
 const SystemStatus = lazy(() => import('./pages/SystemStatus'));
 const HomeLayout = lazy(() => import('./pages/HomeLayout'));
+const MicroPages = lazy(() => import('./pages/MicroPages'));
+const MicroPageEditor = lazy(() => import('./pages/MicroPageEditor'));
+const TabbarSettings = lazy(() => import('./pages/TabbarSettings'));
 const ExpressSettings = lazy(() => import('./pages/ExpressSettings'));
 const MemberCommerce = lazy(() => import('./pages/MemberCommerce'));
 const Promotions = lazy(() => import('./pages/Promotions'));
@@ -94,7 +97,10 @@ export function App() {
           <Route path="settings/freight" element={<Freight />} />
           <Route path="settings/payment" element={<PaymentSettings />} />
           <Route path="settings/system" element={<SystemStatus />} />
-          <Route path="settings/home" element={<HomeLayout />} />
+          <Route path="settings/home" element={<MicroPages />} />
+          <Route path="settings/home/tabbar" element={<TabbarSettings />} />
+          <Route path="settings/home/legacy" element={<HomeLayout />} />
+          <Route path="settings/home/:id" element={<MicroPageEditor />} />
           <Route path="settings/express" element={<ExpressSettings />} />
           <Route path="assets" element={<Assets />} />
           <Route path="accounts" element={<Accounts />} />

@@ -91,7 +91,8 @@ const MENU: MenuGroup[] = [
     group: '装修',
     icon: 'decoration',
     items: [
-      { to: '/settings/home', label: '首页运营位', roles: ['SUPER', 'OPS'] },
+      { to: '/settings/home', label: '页面装修', roles: ['SUPER', 'OPS'] },
+      { to: '/settings/home/tabbar', label: '底部导航', roles: ['SUPER', 'OPS'] },
       { to: '/assets', label: '素材库', roles: ['SUPER', 'OPS'] },
     ],
   },
@@ -164,6 +165,9 @@ const CRUMB_OVERRIDES: [RegExp, string][] = [
   [/^\/customers\/[^/]+$/, '客户详情'],
   [/^\/coupons\/new$/, '新建优惠券'],
   [/^\/coupons\/[^/]+\/claims$/, '领取记录'],
+  [/^\/settings\/home\/tabbar$/, '底部导航'],
+  [/^\/settings\/home\/legacy$/, '旧版首页设置'],
+  [/^\/settings\/home\/[^/]+$/, '编辑微页面'],
 ];
 
 export function Layout() {

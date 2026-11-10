@@ -294,7 +294,7 @@ export default function Page() {
       <View className="bottom-bar">
         <View
           className="product-cart-link"
-          onClick={() => Taro.switchTab({ url: '/pages/cart/index' })}
+          onClick={() => Taro.navigateTo({ url: '/pages/cart/index' })}
         >
           <Text className="product-cart-icon">🛒</Text>
           <Text className="tiny muted">购物车</Text>

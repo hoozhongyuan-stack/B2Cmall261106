@@ -45,6 +45,7 @@ export function assetPreviewUrl(key?: string | null): string {
 export function listAssets(query: {
   folderId?: string;
   keyword?: string;
+  kind?: 'image' | 'video';
   page?: number;
   pageSize?: number;
 }) {

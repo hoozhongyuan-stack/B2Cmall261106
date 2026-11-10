@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 
 import {
   assetPreviewUrl,
@@ -17,6 +17,8 @@ const PAGE_SIZE = 24;
 interface BaseProps {
   disabled?: boolean;
   hint?: string;
+  /** image（默认）或 video，决定列表筛选、上传类型与预览方式 */
+  kind?: 'image' | 'video';
 }
 
 interface SingleProps extends BaseProps {
@@ -43,9 +45,27 @@ function emitValue(props: AssetPickerProps, keys: string[]): void {
   else props.onChange(keys[0] ?? '');
 }
 
+function AssetMedia({
+  assetKey,
+  kind,
+  style,
+  className,
+}: {
+  assetKey: string;
+  kind: 'image' | 'video';
+  style?: CSSProperties;
+  className?: string;
+}) {
+  const url = assetPreviewUrl(assetKey);
+  if (kind === 'video') {
+    return <video className={className} src={url} style={style} muted playsInline preload="metadata" />;
+  }
+  return <img className={className} src={url} alt="素材预览" style={style} />;
+}
+
 /** 素材选择器：只允许从素材库选图，支持单选与多选（有序） */
 export function AssetPicker(props: AssetPickerProps) {
-  const { disabled, hint } = props;
+  const { disabled, hint, kind = 'image' } = props;
   const multiple = props.multiple === true;
   const currentKeys = valuesOf(props);
 
@@ -79,6 +99,7 @@ export function AssetPicker(props: AssetPickerProps) {
       const result = await listAssets({
         folderId: folder === 'all' ? undefined : folder,
         keyword: appliedKeyword || undefined,
+        kind,
         page,
         pageSize: PAGE_SIZE,
       });
@@ -99,7 +120,7 @@ export function AssetPicker(props: AssetPickerProps) {
   useEffect(() => {
     if (!open) return;
     void loadAssets();
-  }, [open, folder, appliedKeyword, page]);
+  }, [open, folder, appliedKeyword, page, kind]);
 
   function openPicker() {
     setSelected(valuesOf(props));
@@ -167,9 +188,9 @@ export function AssetPicker(props: AssetPickerProps) {
             <div className="row" style={{ gap: 10, flexWrap: 'wrap' }}>
               {currentKeys.map((key, index) => (
                 <div key={`${key}-${index}`} style={{ width: 92 }}>
-                  <img
-                    src={assetPreviewUrl(key)}
-                    alt={`已选图片 ${index + 1}`}
+                  <AssetMedia
+                    assetKey={key}
+                    kind={kind}
                     style={{
                       width: 92,
                       height: 92,
@@ -265,9 +286,9 @@ export function AssetPicker(props: AssetPickerProps) {
             }}
           >
             {currentKeys[0] ? (
-              <img
-                src={assetPreviewUrl(currentKeys[0])}
-                alt="已选图片"
+              <AssetMedia
+                assetKey={currentKeys[0]}
+                kind={kind}
                 style={{ width: '100%', height: '100%', objectFit: 'cover' }}
               />
             ) : (
@@ -307,7 +328,7 @@ export function AssetPicker(props: AssetPickerProps) {
       <input
         ref={fileRef}
         type="file"
-        accept="image/jpeg,image/png,image/webp,image/gif"
+        accept={kind === 'video' ? 'video/mp4,video/quicktime,video/webm' : 'image/jpeg,image/png,image/webp,image/gif'}
         multiple
         hidden
         onChange={(e) => {
@@ -318,7 +339,7 @@ export function AssetPicker(props: AssetPickerProps) {
 
       <Modal
         open={open}
-        title={multiple ? '选择图片（可多选）' : '选择图片'}
+        title={kind === 'video' ? (multiple ? '选择视频（可多选）' : '选择视频') : multiple ? '选择图片（可多选）' : '选择图片'}
         onClose={() => setOpen(false)}
         footer={
           <>
@@ -362,7 +383,7 @@ export function AssetPicker(props: AssetPickerProps) {
             disabled={uploading}
             onClick={() => fileRef.current?.click()}
           >
-            上传图片
+            {kind === 'video' ? '上传视频' : '上传图片'}
           </Button>
         </div>
 
@@ -402,7 +423,7 @@ export function AssetPicker(props: AssetPickerProps) {
         {loading ? (
           <div className="table-loading">加载中…</div>
         ) : items.length === 0 ? (
-          <Empty text="还没有图片，先上传一张吧" />
+          <Empty text={kind === 'video' ? '还没有视频，先上传一个吧' : '还没有图片，先上传一张吧'} />
         ) : (
           <div
             style={{
@@ -455,10 +476,9 @@ export function AssetPicker(props: AssetPickerProps) {
                       ✓
                     </span>
                   )}
-                  <img
-                    src={assetPreviewUrl(item.key)}
-                    alt={item.originalName ?? item.key}
-                    loading="lazy"
+                  <AssetMedia
+                    assetKey={item.key}
+                    kind={kind}
                     style={{
                       width: '100%',
                       height: 90,

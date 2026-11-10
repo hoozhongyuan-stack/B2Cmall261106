@@ -12,6 +12,7 @@ import { PrismaService } from '../../prisma/prisma.module';
 import { ASSET_URL_PREFIX, assetsDir, assetUrl } from '../../common/media';
 
 const MAX_FILE_BYTES = 5 * 1024 * 1024;
+const MAX_VIDEO_BYTES = 50 * 1024 * 1024;
 const DEFAULT_PAGE_SIZE = 40;
 const MAX_PAGE_SIZE = 100;
 
@@ -55,18 +56,54 @@ const IMAGE_SPECS: Record<string, ImageSpec> = {
   },
 };
 
+/** 视频白名单：mp4 / mov / webm，单文件 ≤50MB */
+const VIDEO_SPECS: Record<string, ImageSpec> = {
+  'video/mp4': {
+    ext: 'mp4',
+    matches: (b) => b.length >= 12 && b.subarray(4, 8).toString('ascii') === 'ftyp',
+  },
+  'video/quicktime': {
+    ext: 'mov',
+    matches: (b) =>
+      b.length >= 12 &&
+      ['ftyp', 'moov', 'mdat', 'wide', 'free'].includes(b.subarray(4, 8).toString('ascii')),
+  },
+  'video/webm': {
+    ext: 'webm',
+    matches: (b) =>
+      b.length >= 4 &&
+      b[0] === 0x1a &&
+      b[1] === 0x45 &&
+      b[2] === 0xdf &&
+      b[3] === 0xa3,
+  },
+};
+
 @Injectable()
 export class AssetService {
   constructor(private readonly prisma: PrismaService) {}
 
   /* ---------------- 素材列表 ---------------- */
 
-  async list(query: { folderId?: string; keyword?: string; page?: number; pageSize?: number }) {
+  async list(query: {
+    folderId?: string;
+    keyword?: string;
+    kind?: string;
+    page?: number;
+    pageSize?: number;
+  }) {
     const page = Math.max(Number(query.page) || 1, 1);
     const pageSize = Math.min(Math.max(Number(query.pageSize) || DEFAULT_PAGE_SIZE, 1), MAX_PAGE_SIZE);
     const keyword = query.keyword?.trim();
+    const kindFilter =
+      query.kind === 'video'
+        ? { mimeType: { startsWith: 'video/' } }
+        : query.kind === 'image'
+          ? { mimeType: { startsWith: 'image/' } }
+          : {};
 
     const where = {
+      ...kindFilter,
       ...(query.folderId === 'none'
         ? { folderId: null }
         : query.folderId
@@ -171,11 +208,11 @@ export class AssetService {
   /* ---------------- 上传 / 移动 / 删除 ---------------- */
 
   async upload(files: UploadedImage[], folderIdInput?: string) {
-    if (!files?.length) throw new BadRequestException('请选择要上传的图片');
+    if (!files?.length) throw new BadRequestException('请选择要上传的文件');
     const folderId = await this.resolveFolder(folderIdInput);
 
     // 先整体校验，避免部分文件落盘后才发现格式错误
-    const prepared = files.map((file) => ({ file, spec: this.validateImage(file) }));
+    const prepared = files.map((file) => ({ file, spec: this.validateFile(file) }));
 
     const created: Array<{ id: string; key: string; url: string }> = [];
     for (const { file, spec } of prepared) {
@@ -278,6 +315,23 @@ export class AssetService {
     }
   }
 
+  /** 视频引用校验：必须是素材库里的视频，且不超过 50MB */
+  async assertVideoReference(key: string | null | undefined): Promise<void> {
+    const value = (key ?? '').trim();
+    if (!value) throw new BadRequestException('请从素材库选择视频');
+
+    const asset = await this.prisma.asset.findUnique({
+      where: { key: value },
+      select: { mimeType: true, size: true },
+    });
+    if (!asset || !(asset.mimeType ?? '').startsWith('video/')) {
+      throw new BadRequestException('所选视频不存在或不是视频文件');
+    }
+    if (asset.size > MAX_VIDEO_BYTES) {
+      throw new BadRequestException('视频不能超过 50MB');
+    }
+  }
+
   /* ---------------- 内部 ---------------- */
 
   private view(
@@ -311,6 +365,23 @@ export class AssetService {
     };
   }
 
+  private validateFile(file: UploadedImage): ImageSpec {
+    if (!file?.buffer?.length) throw new BadRequestException('文件内容为空');
+    if ((file.mimetype ?? '').startsWith('video/')) return this.validateVideo(file);
+    return this.validateImage(file);
+  }
+
+  private validateVideo(file: UploadedImage): ImageSpec {
+    if (file.size > MAX_VIDEO_BYTES) throw new BadRequestException('单个视频不能超过 50MB');
+
+    const spec = VIDEO_SPECS[file.mimetype];
+    if (!spec) throw new BadRequestException('仅支持 MP4 / MOV / WEBM 视频');
+    if (!spec.matches(file.buffer)) {
+      throw new BadRequestException(`${this.originalName(file.originalname)} 的内容与格式不符`);
+    }
+    return spec;
+  }
+
   private validateImage(file: UploadedImage): ImageSpec {
     if (!file?.buffer?.length) throw new BadRequestException('图片内容为空');
     if (file.size > MAX_FILE_BYTES) throw new BadRequestException('单张图片不能超过 5MB');
@@ -335,7 +406,7 @@ export class AssetService {
   private async refCounts(keys: string[]): Promise<Map<string, number>> {
     if (!keys.length) return new Map();
 
-    const [products, logo] = await Promise.all([
+    const [products, logo, pages] = await Promise.all([
       this.prisma.product.findMany({
         where: {
           OR: [
@@ -347,6 +418,10 @@ export class AssetService {
         select: { mainImageKey: true, mainImageKeys: true, detailImageKeys: true },
       }),
       this.prisma.shopConfig.findFirst({ select: { logoKey: true } }),
+      this.prisma.microPage.findMany({
+        where: { deletedAt: null },
+        select: { components: true, publishedComponents: true, previousComponents: true },
+      }),
     ]);
 
     const counts = new Map<string, number>();
@@ -362,6 +437,18 @@ export class AssetService {
     }
     if (logo?.logoKey && keys.includes(logo.logoKey)) {
       counts.set(logo.logoKey, (counts.get(logo.logoKey) ?? 0) + 1);
+    }
+    for (const page of pages) {
+      const raw = JSON.stringify([
+        page.components,
+        page.publishedComponents,
+        page.previousComponents,
+      ]);
+      for (const key of keys) {
+        if (raw.includes(JSON.stringify(key).slice(1, -1))) {
+          counts.set(key, (counts.get(key) ?? 0) + 1);
+        }
+      }
     }
     return counts;
   }

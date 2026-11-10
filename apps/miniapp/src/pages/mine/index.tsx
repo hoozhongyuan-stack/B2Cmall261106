@@ -4,6 +4,7 @@ import { tokens } from '@shanye/tokens';
 import { useState } from 'react';
 
 import { api, clearConsent, clearToken, showError } from '../../api/client';
+import { AppTabBar } from '../../components/AppTabBar';
 import { Loading } from '../../components/common';
 import { money } from '../../utils/format';
 
@@ -231,6 +232,7 @@ export default function Page() {
           {shop?.intro ? ` · ${shop.intro}` : ''}
         </Text>
       </View>
+      <AppTabBar />
     </View>
   );
 }

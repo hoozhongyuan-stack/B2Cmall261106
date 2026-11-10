@@ -64,16 +64,18 @@ export class AdminAssetController {
 
   @Get()
   @Roles('SUPER', 'OPS', 'CS', 'WMS')
-  @ApiOperation({ summary: '素材列表（按文件夹、关键词筛选，分页）' })
+  @ApiOperation({ summary: '素材列表（按文件夹、类型、关键词筛选，分页）' })
   list(
     @Query('folderId') folderId?: string,
     @Query('keyword') keyword?: string,
+    @Query('kind') kind?: string,
     @Query('page') page?: string,
     @Query('pageSize') pageSize?: string,
   ) {
     return this.assets.list({
       folderId,
       keyword,
+      kind,
       page: Number(page),
       pageSize: Number(pageSize),
     });
@@ -110,9 +112,9 @@ export class AdminAssetController {
 
   @Post('upload')
   @Roles('SUPER', 'OPS')
-  @UseInterceptors(FilesInterceptor('files', 9, { limits: { fileSize: 5 * 1024 * 1024 } }))
+  @UseInterceptors(FilesInterceptor('files', 9, { limits: { fileSize: 50 * 1024 * 1024 } }))
   @ApiConsumes('multipart/form-data')
-  @ApiOperation({ summary: '上传图片（multipart，最多 9 张，单张 ≤5MB）' })
+  @ApiOperation({ summary: '上传素材（图片 ≤5MB，视频 mp4/mov/webm ≤50MB，最多 9 个）' })
   upload(
     @UploadedFiles() files: UploadedImage[],
     @Body('folderId') folderId?: string,

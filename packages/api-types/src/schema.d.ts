@@ -276,6 +276,8 @@ export interface paths {
                     priceMaxCents?: number;
                     tagId?: string;
                     storeId?: string;
+                    /** @description 按商品 id 精确取数（逗号分隔，最多 50 个），顺序与传入一致 */
+                    ids?: string;
                     sort?: "default" | "sales" | "price_asc" | "price_desc" | "new";
                     page?: number;
                     pageSize?: number;
@@ -3698,12 +3700,13 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 素材列表（文件夹 / 关键词筛选，分页） */
+        /** 素材列表（文件夹 / 类型 / 关键词筛选，分页） */
         get: {
             parameters: {
                 query?: {
                     folderId?: string;
                     keyword?: string;
+                    kind?: "image" | "video";
                     page?: number;
                     pageSize?: number;
                 };
@@ -7799,6 +7802,576 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/micro-pages/{code}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 小程序读取已发布的微页面快照 */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    code: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: components["schemas"]["MicroPageRelease"];
+                        };
+                    };
+                };
+                404: components["responses"]["NotFound"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/shop/shell": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 小程序启动配置：底部导航、首页微页面与渲染方式 */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: components["schemas"]["ShopShell"];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/micro-pages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 微页面列表 */
+        get: {
+            parameters: {
+                query?: {
+                    keyword?: string;
+                    status?: "DRAFT" | "PUBLISHED";
+                    page?: number;
+                    pageSize?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: {
+                                total?: number;
+                                page?: number;
+                                pageSize?: number;
+                                items?: components["schemas"]["MicroPageSummary"][];
+                            };
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** 新建微页面 */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        title: string;
+                        code?: string;
+                        copyFromId?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: components["schemas"]["MicroPageDetail"];
+                        };
+                    };
+                };
+                400: components["responses"]["BadRequest"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/micro-pages/migrate-home": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 把现有首页运营位迁移为 home 微页面（可重复执行） */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/micro-pages/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 微页面详情（草稿 + 发布快照） */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: components["schemas"]["MicroPageDetail"];
+                        };
+                    };
+                };
+                404: components["responses"]["NotFound"];
+            };
+        };
+        /** 保存草稿（不影响线上快照） */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        title?: string;
+                        components?: Record<string, never>[];
+                        settings?: Record<string, never>;
+                        /** Format: date-time */
+                        expectedUpdatedAt?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: components["schemas"]["MicroPageDetail"];
+                        };
+                    };
+                };
+                400: components["responses"]["BadRequest"];
+                409: components["responses"]["Conflict"];
+            };
+        };
+        post?: never;
+        /** 删除微页面（被引用时拒绝） */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                400: components["responses"]["BadRequest"];
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/micro-pages/{id}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 全量校验后发布当前草稿 */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: components["schemas"]["MicroPageDetail"];
+                        };
+                    };
+                };
+                400: components["responses"]["BadRequest"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/micro-pages/{id}/rollback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 回滚到上一版发布快照 */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                400: components["responses"]["BadRequest"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/micro-pages/{id}/duplicate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 复制为新草稿 */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/micro-pages/{id}/home": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 设为小程序首页（需已上线） */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                400: components["responses"]["BadRequest"];
+            };
+        };
+        /** 取消微页面首页，回退旧版首页渲染 */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/link-options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 统一链接选择器数据源 */
+        get: {
+            parameters: {
+                query?: {
+                    type?: "micro" | "product" | "category" | "search" | "seckill" | "coupon" | "store" | "cart" | "orders" | "mine" | "points" | "page" | "none";
+                    keyword?: string;
+                    limit?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: {
+                                items?: components["schemas"]["LinkOption"][];
+                            };
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/tabbar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 读取底部导航配置 */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: components["schemas"]["ShopTabbar"];
+                        };
+                    };
+                };
+            };
+        };
+        /** 保存底部导航（2~5 个入口，必须有首页） */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ShopTabbar"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: components["schemas"]["ShopTabbar"];
+                        };
+                    };
+                };
+                400: components["responses"]["BadRequest"];
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -8775,6 +9348,99 @@ export interface components {
             message: string;
             data?: unknown;
             requestId: string;
+        };
+        MicroPageSummary: {
+            id: string;
+            code: string;
+            title: string;
+            /** @enum {string} */
+            status: "DRAFT" | "PUBLISHED";
+            isHome: boolean;
+            version: number;
+            componentCount?: number;
+            publishedComponentCount?: number;
+            published?: boolean;
+            /** Format: date-time */
+            publishedAt?: string | null;
+            /** Format: date-time */
+            updatedAt?: string;
+            /** Format: date-time */
+            createdAt?: string;
+        };
+        MicroPageComponent: {
+            id: string;
+            /** @enum {string} */
+            type: "notice" | "search" | "banner" | "imageHotspot" | "goods" | "divider" | "video" | "text" | "navGrid";
+            visible: boolean;
+            style?: {
+                margin?: number[];
+                padding?: number[];
+                bgColor?: string;
+                radius?: number;
+            };
+            props?: {
+                [key: string]: unknown;
+            };
+        };
+        MicroPageSettings: {
+            shareTitle?: string;
+            shareDesc?: string;
+            shareImageKey?: string;
+            bgColor?: string;
+            navTitle?: string;
+            /** @enum {string} */
+            navColor?: "black" | "white";
+            allowShare?: boolean;
+        };
+        MicroPageDetail: components["schemas"]["MicroPageSummary"] & {
+            components?: components["schemas"]["MicroPageComponent"][];
+            publishedComponents?: components["schemas"]["MicroPageComponent"][];
+            settings?: components["schemas"]["MicroPageSettings"];
+            publishedSettings?: components["schemas"]["MicroPageSettings"] | null;
+        };
+        MicroPageRelease: {
+            code: string;
+            title: string;
+            version: number;
+            components: components["schemas"]["MicroPageComponent"][];
+            settings: components["schemas"]["MicroPageSettings"];
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        MicroLink: {
+            /** @enum {string} */
+            type: "none" | "micro" | "product" | "category" | "search" | "seckill" | "coupon" | "store" | "cart" | "orders" | "mine" | "points" | "page";
+            value?: string | null;
+        };
+        ShopTabbarItem: {
+            key: string;
+            text: string;
+            iconKey?: string | null;
+            activeIconKey?: string | null;
+            link: components["schemas"]["MicroLink"];
+        };
+        ShopTabbar: {
+            enabled: boolean;
+            style: {
+                background?: string;
+                color?: string;
+                selectedColor?: string;
+                borderTop?: boolean;
+            };
+            items: components["schemas"]["ShopTabbarItem"][];
+        };
+        ShopShell: {
+            tabbar: components["schemas"]["ShopTabbar"];
+            homeCode?: string | null;
+            /** @enum {string} */
+            homeRenderer: "legacy" | "micro";
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        LinkOption: {
+            value: string;
+            label: string;
+            hint?: string;
         };
     };
     responses: {

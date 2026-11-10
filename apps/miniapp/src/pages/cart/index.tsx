@@ -3,6 +3,7 @@ import Taro, { useDidShow } from '@tarojs/taro';
 import { useState } from 'react';
 
 import { api, showError } from '../../api/client';
+import { AppTabBar } from '../../components/AppTabBar';
 import { Empty, Loading, Price, ProductThumb } from '../../components/common';
 import { specText } from '../../utils/format';
 
@@ -114,7 +115,7 @@ export default function Page() {
           <Empty text="购物车还是空的" />
           <View
             className="btn btn--primary cart-empty-btn"
-            onClick={() => Taro.switchTab({ url: '/pages/home/index' })}
+            onClick={() => Taro.reLaunch({ url: '/pages/home/index' })}
           >
             去逛逛
           </View>
@@ -205,6 +206,7 @@ export default function Page() {
           </View>
         </>
       )}
+      <AppTabBar />
     </View>
   );
 }
