@@ -175,12 +175,119 @@ describe('微页面：草稿与发布', () => {
     expect(goodLink.status).toBe(200);
 
     const pageLink = await api(
-      `/admin/link-options?type=page&limit=20`,
+      `/admin/link-options?type=page&limit=50`,
       {},
       admin,
     );
     expect(pageLink.status).toBe(200);
     expect(pageLink.body.data.items.some((item: { value: string }) => item.value === '/pages/home/index')).toBe(true);
+    expect(
+      pageLink.body.data.items.some(
+        (item: { value: string }) => item.value === '/pages/after-sale/list/index',
+      ),
+    ).toBe(true);
+
+    // 内置页面允许附加查询参数，但路径必须在白名单内
+    const pageWithQuery = await api(
+      `/admin/micro-pages/${page.id}`,
+      {
+        method: 'PUT',
+        body: JSON.stringify({
+          components: [
+            {
+              ...textComponent('去订单'),
+              props: {
+                ...textComponent('去订单').props,
+                link: { type: 'page', value: '/pages/orders/index?status=PAID' },
+              },
+            },
+          ],
+        }),
+      },
+      admin,
+    );
+    expect(pageWithQuery.status).toBe(200);
+
+    const badPage = await api(
+      `/admin/micro-pages/${page.id}`,
+      {
+        method: 'PUT',
+        body: JSON.stringify({
+          components: [
+            {
+              ...textComponent('错误页面'),
+              props: {
+                ...textComponent('错误页面').props,
+                link: { type: 'page', value: '/pages/not-exist/index' },
+              },
+            },
+          ],
+        }),
+      },
+      admin,
+    );
+    expect(badPage.status).toBe(400);
+
+    // 固定去向（购物车 / 订单 / 我的 / 积分）不需要目标值，上线时不能被判为空
+    const fixedLink = await api(
+      `/admin/micro-pages/${page.id}`,
+      {
+        method: 'PUT',
+        body: JSON.stringify({
+          components: [
+            {
+              ...textComponent('去积分中心'),
+              props: {
+                ...textComponent('去积分中心').props,
+                link: { type: 'points', value: '' },
+              },
+            },
+          ],
+        }),
+      },
+      admin,
+    );
+    expect(fixedLink.status).toBe(200);
+    const publishedFixed = await api(
+      `/admin/micro-pages/${page.id}/publish`,
+      { method: 'POST' },
+      admin,
+    );
+    expect(publishedFixed.status, JSON.stringify(publishedFixed.body)).toBe(200);
+    const publicFixed = await api(`/micro-pages/${page.code}`);
+    expect(publicFixed.body.data.components[0].props.link).toEqual({ type: 'points', value: null });
+
+    // 搜索 / 优惠券 / 门店允许不选具体目标，直接进入列表页
+    await api(
+      `/admin/micro-pages/${page.id}`,
+      {
+        method: 'PUT',
+        body: JSON.stringify({
+          components: [
+            {
+              ...textComponent('去搜索'),
+              props: { ...textComponent('去搜索').props, link: { type: 'search', value: '' } },
+            },
+            {
+              ...textComponent('去门店'),
+              props: { ...textComponent('去门店').props, link: { type: 'store', value: '' } },
+            },
+          ],
+        }),
+      },
+      admin,
+    );
+    const publishedOptional = await api(
+      `/admin/micro-pages/${page.id}/publish`,
+      { method: 'POST' },
+      admin,
+    );
+    expect(publishedOptional.status, JSON.stringify(publishedOptional.body)).toBe(200);
+    const optionalLinks = await api(`/micro-pages/${page.code}`);
+    expect(optionalLinks.body.data.components.map((item: { props: { link: unknown } }) => item.props.link)).toEqual([
+      { type: 'search', value: null },
+      { type: 'store', value: null },
+    ]);
   });
 
   it('并发保存返回 409', async () => {
@@ -315,13 +422,18 @@ describe('微页面：首页与删除保护', () => {
             { key: 'category', text: '分类', link: { type: 'page', value: '/pages/category/index' } },
             { key: 'cart', text: '购物车', link: { type: 'page', value: '/pages/cart/index' } },
             { key: 'mine', text: '我的', link: { type: 'page', value: '/pages/mine/index' } },
+            {
+              key: 'service',
+              text: '售后',
+              link: { type: 'page', value: '/pages/after-sale/list/index' },
+            },
           ],
         }),
       },
       admin,
     );
     expect(saved.status).toBe(200);
-    expect(saved.body.data.items).toHaveLength(4);
+    expect(saved.body.data.items).toHaveLength(5);
 
     const shell = await api('/shop/shell');
     expect(shell.body.data.tabbar.items[0].key).toBe('home');

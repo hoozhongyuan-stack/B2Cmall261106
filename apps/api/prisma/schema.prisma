@@ -127,6 +127,8 @@ model SearchLog {
 model Category {
   id       String     @id @default(cuid())
   name     String
+  /// 分类图标，素材库 key；为空时小程序取该分类首个商品图兜底
+  iconKey  String?
   parentId String?
   sort     Int        @default(0)
   parent   Category?  @relation("CategoryTree", fields: [parentId], references: [id])
@@ -709,6 +711,20 @@ model ShopConfig {
   intro              String?
   logoKey            String?
   servicePhone       String?
+  /// 对外联系方式：邮箱 / 微信 / 服务时间 / 公司地址
+  serviceEmail       String?
+  serviceWechat      String?
+  serviceHours       String?
+  companyAddress     String?
+  /// 经营主体与备案信息（小程序「关于我们」展示）
+  companyName        String?
+  creditCode         String?
+  icpNumber          String?
+  icpUrl             String?
+  policeNumber       String?
+  policeUrl          String?
+  /// 对外官方商城 / H5 地址（业务域名仍由集成配置维护）
+  officialSiteUrl    String?
   freeThresholdCents Int      @default(9900)
   flatFreightCents   Int      @default(1000)
   payTimeoutMinutes  Int      @default(15)
@@ -816,6 +832,26 @@ model ExpressCompany {
   enabled   Boolean  @default(true)
   createdAt DateTime @default(now()) @db.Timestamptz(3)
   updatedAt DateTime @updatedAt @db.Timestamptz(3)
+}
+
+// 首页弹窗广告：每条每天最多展示一次，多条按优先级依次弹出
+model PopupAd {
+  id        String    @id @default(cuid())
+  name      String
+  imageKey  String
+  alt       String?
+  /// 统一链接：{ type, value }
+  link      Json      @default("{}")
+  priority  Int       @default(0)
+  enabled   Boolean   @default(true)
+  startAt   DateTime? @db.Timestamptz(3)
+  endAt     DateTime? @db.Timestamptz(3)
+  deletedAt DateTime? @db.Timestamptz(3)
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(3)
+
+  @@index([enabled, priority])
+  @@index([deletedAt])
 }
 
 // 微页面：可视化装修后的页面，草稿与发布快照分离，线上只读发布快照

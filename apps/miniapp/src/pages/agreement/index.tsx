@@ -1,5 +1,6 @@
 import { Text, View } from '@tarojs/components';
 import { useRouter } from '@tarojs/taro';
+import { useEffect, useState } from 'react';
 
 import {
   AGREEMENT_TITLES,
@@ -7,7 +8,15 @@ import {
   type AgreementType,
 } from '@shanye/shared/src/agreements';
 
+import { api } from '../../api/client';
+
 import './index.css';
+
+interface ShopProfile {
+  shopName: string;
+  companyName: string | null;
+  servicePhone: string | null;
+}
 
 interface Section {
   title: string;
@@ -125,6 +134,18 @@ export default function Page() {
   const router = useRouter();
   const type: AgreementType = router.params.type === 'privacy' ? 'privacy' : 'terms';
   const sections = type === 'privacy' ? PRIVACY : TERMS;
+  const [shop, setShop] = useState<ShopProfile | null>(null);
+
+  useEffect(() => {
+    api<ShopProfile>('/shop', { auth: 'optional' })
+      .then(setShop)
+      .catch(() => setShop(null));
+  }, []);
+
+  const shopName = shop?.shopName || '山野商城';
+  const operator = shop?.companyName
+    ? `运营主体：${shop.companyName}${shop.servicePhone ? ` · 客服电话：${shop.servicePhone}` : ''}`
+    : '';
 
   return (
     <View className="page agreement-page">
@@ -138,11 +159,13 @@ export default function Page() {
           <Text className="agreement-heading">{section.title}</Text>
           {section.paragraphs.map((paragraph) => (
             <Text className="agreement-paragraph" key={paragraph}>
-              {paragraph}
+              {paragraph.replace(/山野商城/g, shopName)}
             </Text>
           ))}
         </View>
       ))}
+
+      {operator ? <Text className="agreement-paragraph agreement-foot">{operator}</Text> : null}
 
       <Text className="muted tiny agreement-foot">
         完整文本以门店公示与客服提供的最新版本为准。

@@ -43,7 +43,19 @@ export class CatalogController {
     return {
       shopName: config?.shopName ?? '山野',
       intro: config?.intro ?? '',
+      logoKey: config?.logoKey ?? null,
       servicePhone: config?.servicePhone ?? null,
+      serviceEmail: config?.serviceEmail ?? null,
+      serviceWechat: config?.serviceWechat ?? null,
+      serviceHours: config?.serviceHours ?? null,
+      companyAddress: config?.companyAddress ?? null,
+      companyName: config?.companyName ?? null,
+      creditCode: config?.creditCode ?? null,
+      icpNumber: config?.icpNumber ?? null,
+      icpUrl: config?.icpUrl ?? null,
+      policeNumber: config?.policeNumber ?? null,
+      policeUrl: config?.policeUrl ?? null,
+      officialSiteUrl: config?.officialSiteUrl ?? null,
       freeThresholdCents: config?.freeThresholdCents ?? 9900,
       flatFreightCents: config?.flatFreightCents ?? 1000,
       afterSaleDays: config?.afterSaleDays ?? 7,
@@ -51,7 +63,7 @@ export class CatalogController {
   }
 
   @Get('categories')
-  @ApiOperation({ summary: '分类树（含商品数）' })
+  @ApiOperation({ summary: '分类树（含商品数与分类图标）' })
   async categories() {
     const list = await this.prisma.category.findMany({
       where: { parentId: null },
@@ -59,13 +71,25 @@ export class CatalogController {
       include: {
         children: { orderBy: { sort: 'asc' } },
         _count: { select: { products: true } },
+        // 未单独配置图标时，用该分类首个在售商品图兜底
+        products: {
+          where: { status: 'ON_SALE' },
+          orderBy: { sort: 'asc' },
+          take: 1,
+          select: { mainImageKey: true },
+        },
       },
     });
     return list.map((c) => ({
       id: c.id,
       name: c.name,
+      iconKey: c.iconKey ?? c.products[0]?.mainImageKey ?? null,
       productCount: c._count.products,
-      children: c.children.map((child) => ({ id: child.id, name: child.name })),
+      children: c.children.map((child) => ({
+        id: child.id,
+        name: child.name,
+        iconKey: child.iconKey,
+      })),
     }));
   }
 

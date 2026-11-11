@@ -33,6 +33,50 @@ class UpdateShopDto {
   logoKey?: string;
 
   @IsOptional()
+  @IsString()
+  serviceEmail?: string | null;
+
+  @IsOptional()
+  @IsString()
+  serviceWechat?: string | null;
+
+  @IsOptional()
+  @IsString()
+  serviceHours?: string | null;
+
+  @IsOptional()
+  @IsString()
+  companyAddress?: string | null;
+
+  @IsOptional()
+  @IsString()
+  companyName?: string | null;
+
+  @IsOptional()
+  @IsString()
+  creditCode?: string | null;
+
+  @IsOptional()
+  @IsString()
+  icpNumber?: string | null;
+
+  @IsOptional()
+  @IsString()
+  icpUrl?: string | null;
+
+  @IsOptional()
+  @IsString()
+  policeNumber?: string | null;
+
+  @IsOptional()
+  @IsString()
+  policeUrl?: string | null;
+
+  @IsOptional()
+  @IsString()
+  officialSiteUrl?: string | null;
+
+  @IsOptional()
   @IsInt()
   freeThresholdCents?: number;
 

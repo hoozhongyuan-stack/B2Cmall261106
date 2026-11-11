@@ -93,6 +93,7 @@ const MENU: MenuGroup[] = [
     items: [
       { to: '/settings/home', label: '页面装修', roles: ['SUPER', 'OPS'] },
       { to: '/settings/home/tabbar', label: '底部导航', roles: ['SUPER', 'OPS'] },
+      { to: '/settings/home/popup-ads', label: '弹窗广告', roles: ['SUPER', 'OPS'] },
       { to: '/assets', label: '素材库', roles: ['SUPER', 'OPS'] },
     ],
   },
@@ -166,6 +167,7 @@ const CRUMB_OVERRIDES: [RegExp, string][] = [
   [/^\/coupons\/new$/, '新建优惠券'],
   [/^\/coupons\/[^/]+\/claims$/, '领取记录'],
   [/^\/settings\/home\/tabbar$/, '底部导航'],
+  [/^\/settings\/home\/popup-ads$/, '弹窗广告'],
   [/^\/settings\/home\/legacy$/, '旧版首页设置'],
   [/^\/settings\/home\/[^/]+$/, '编辑微页面'],
 ];

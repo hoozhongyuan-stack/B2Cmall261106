@@ -1562,6 +1562,7 @@ paths:
               required: [name]
               properties:
                 name: { type: string }
+                iconKey: { type: string, nullable: true }
                 parentId: { type: string, nullable: true }
                 sort: { type: integer }
       responses:
@@ -1584,6 +1585,7 @@ paths:
               additionalProperties: false
               properties:
                 name: { type: string }
+                iconKey: { type: string, nullable: true }
                 parentId: { type: string, nullable: true }
                 sort: { type: integer }
       responses:
@@ -1691,6 +1693,17 @@ paths:
                 intro: { type: string }
                 servicePhone: { type: string }
                 logoKey: { type: string }
+                serviceEmail: { type: string, nullable: true }
+                serviceWechat: { type: string, nullable: true }
+                serviceHours: { type: string, nullable: true }
+                companyAddress: { type: string, nullable: true }
+                companyName: { type: string, nullable: true }
+                creditCode: { type: string, nullable: true }
+                icpNumber: { type: string, nullable: true }
+                icpUrl: { type: string, nullable: true }
+                policeNumber: { type: string, nullable: true }
+                policeUrl: { type: string, nullable: true }
+                officialSiteUrl: { type: string, nullable: true }
                 freeThresholdCents: { type: integer, minimum: 0 }
                 flatFreightCents: { type: integer, minimum: 0 }
                 payTimeoutMinutes: { type: integer, minimum: 0 }
@@ -4089,6 +4102,138 @@ paths:
                   data: { $ref: '#/components/schemas/ShopTabbar' }
         '400': { $ref: '#/components/responses/BadRequest' }
 
+  /popup-ad/active:
+    get:
+      tags: [popup-ad]
+      summary: 首页弹窗广告列表（启用且时间命中，按优先级）
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      serverDate: { type: string, description: YYYY-MM-DD（Asia/Shanghai） }
+                      ads:
+                        type: array
+                        items: { $ref: '#/components/schemas/PopupAd' }
+
+  /admin/popup-ads:
+    get:
+      tags: [admin-popup-ad]
+      summary: 弹窗广告列表
+      security: [{ adminToken: [] }]
+      parameters:
+        - { name: keyword, in: query, schema: { type: string } }
+        - { name: enabled, in: query, schema: { type: boolean } }
+        - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+        - { name: pageSize, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      total: { type: integer }
+                      items:
+                        type: array
+                        items: { $ref: '#/components/schemas/PopupAd' }
+    post:
+      tags: [admin-popup-ad]
+      summary: 新建弹窗广告
+      security: [{ adminToken: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PopupAdInput' }
+      responses:
+        '201': { description: 创建成功 }
+        '400': { $ref: '#/components/responses/BadRequest' }
+
+  /admin/popup-ads/{id}:
+    get:
+      tags: [admin-popup-ad]
+      summary: 弹窗广告详情
+      security: [{ adminToken: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/PopupAd' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      tags: [admin-popup-ad]
+      summary: 保存弹窗广告
+      security: [{ adminToken: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PopupAdInput' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/PopupAd' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+    delete:
+      tags: [admin-popup-ad]
+      summary: 删除弹窗广告（软删除）
+      security: [{ adminToken: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { description: OK }
+
+  /admin/popup-ads/{id}/enabled:
+    patch:
+      tags: [admin-popup-ad]
+      summary: 启用 / 停用弹窗广告
+      security: [{ adminToken: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [enabled]
+              properties:
+                enabled: { type: boolean }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/PopupAd' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+
 components:
   securitySchemes:
     userToken:
@@ -4137,7 +4282,19 @@ components:
       properties:
         shopName: { type: string }
         intro: { type: string }
+        logoKey: { type: string, nullable: true }
         servicePhone: { type: string, nullable: true }
+        serviceEmail: { type: string, nullable: true }
+        serviceWechat: { type: string, nullable: true }
+        serviceHours: { type: string, nullable: true }
+        companyAddress: { type: string, nullable: true }
+        companyName: { type: string, nullable: true }
+        creditCode: { type: string, nullable: true }
+        icpNumber: { type: string, nullable: true }
+        icpUrl: { type: string, nullable: true }
+        policeNumber: { type: string, nullable: true }
+        policeUrl: { type: string, nullable: true }
+        officialSiteUrl: { type: string, nullable: true }
         freeThresholdCents: { type: integer }
         flatFreightCents: { type: integer }
         afterSaleDays: { type: integer }
@@ -4634,6 +4791,7 @@ components:
       properties:
         id: { type: string }
         name: { type: string }
+        iconKey: { type: string, nullable: true }
         parentId: { type: string, nullable: true }
         sort: { type: integer }
         productCount: { type: integer }
@@ -4656,6 +4814,17 @@ components:
         intro: { type: string, nullable: true }
         servicePhone: { type: string, nullable: true }
         logoKey: { type: string, nullable: true }
+        serviceEmail: { type: string, nullable: true }
+        serviceWechat: { type: string, nullable: true }
+        serviceHours: { type: string, nullable: true }
+        companyAddress: { type: string, nullable: true }
+        companyName: { type: string, nullable: true }
+        creditCode: { type: string, nullable: true }
+        icpNumber: { type: string, nullable: true }
+        icpUrl: { type: string, nullable: true }
+        policeNumber: { type: string, nullable: true }
+        policeUrl: { type: string, nullable: true }
+        officialSiteUrl: { type: string, nullable: true }
         freeThresholdCents: { type: integer }
         flatFreightCents: { type: integer }
         payTimeoutMinutes: { type: integer }
@@ -5372,3 +5541,32 @@ components:
         value: { type: string }
         label: { type: string }
         hint: { type: string }
+
+    PopupAd:
+      type: object
+      required: [id, name, imageKey, priority, enabled]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        imageKey: { type: string }
+        alt: { type: string, nullable: true }
+        link: { $ref: '#/components/schemas/MicroLink' }
+        priority: { type: integer }
+        enabled: { type: boolean }
+        startAt: { type: string, format: date-time, nullable: true }
+        endAt: { type: string, format: date-time, nullable: true }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    PopupAdInput:
+      type: object
+      required: [name, imageKey]
+      properties:
+        name: { type: string, maxLength: 20 }
+        imageKey: { type: string }
+        alt: { type: string, nullable: true, maxLength: 40 }
+        link: { $ref: '#/components/schemas/MicroLink' }
+        priority: { type: integer }
+        enabled: { type: boolean }
+        startAt: { type: string, format: date-time, nullable: true }
+        endAt: { type: string, format: date-time, nullable: true }

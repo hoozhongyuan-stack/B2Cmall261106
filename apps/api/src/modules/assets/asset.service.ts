@@ -406,7 +406,7 @@ export class AssetService {
   private async refCounts(keys: string[]): Promise<Map<string, number>> {
     if (!keys.length) return new Map();
 
-    const [products, logo, pages] = await Promise.all([
+    const [products, logo, pages, categories, popupAds] = await Promise.all([
       this.prisma.product.findMany({
         where: {
           OR: [
@@ -421,6 +421,14 @@ export class AssetService {
       this.prisma.microPage.findMany({
         where: { deletedAt: null },
         select: { components: true, publishedComponents: true, previousComponents: true },
+      }),
+      this.prisma.category.findMany({
+        where: { iconKey: { in: keys } },
+        select: { iconKey: true },
+      }),
+      this.prisma.popupAd.findMany({
+        where: { deletedAt: null, imageKey: { in: keys } },
+        select: { imageKey: true },
       }),
     ]);
 
@@ -449,6 +457,12 @@ export class AssetService {
           counts.set(key, (counts.get(key) ?? 0) + 1);
         }
       }
+    }
+    for (const category of categories) {
+      if (category.iconKey) counts.set(category.iconKey, (counts.get(category.iconKey) ?? 0) + 1);
+    }
+    for (const ad of popupAds) {
+      if (ad.imageKey) counts.set(ad.imageKey, (counts.get(ad.imageKey) ?? 0) + 1);
     }
     return counts;
   }

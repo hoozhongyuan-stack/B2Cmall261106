@@ -6,22 +6,28 @@ import {
 } from '@nestjs/common';
 
 import { PrismaService, isUniqueViolation } from '../../prisma/prisma.module';
+import { AssetService } from '../assets/asset.service';
 
 export interface CreateCategoryInput {
   name: string;
+  iconKey?: string | null;
   parentId?: string;
   sort?: number;
 }
 
 export interface UpdateCategoryInput {
   name?: string;
+  iconKey?: string | null;
   parentId?: string | null;
   sort?: number;
 }
 
 @Injectable()
 export class AdminTaxonomyService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly assets: AssetService,
+  ) {}
 
   /* ---------------- 分类 ---------------- */
 
@@ -42,12 +48,14 @@ export class AdminTaxonomyService {
     return roots.map((root) => ({
       id: root.id,
       name: root.name,
+      iconKey: root.iconKey,
       parentId: root.parentId,
       sort: root.sort,
       productCount: root._count.products,
       children: root.children.map((child) => ({
         id: child.id,
         name: child.name,
+        iconKey: child.iconKey,
         parentId: child.parentId,
         sort: child.sort,
         productCount: child._count.products,
@@ -59,6 +67,7 @@ export class AdminTaxonomyService {
   async createCategory(input: CreateCategoryInput) {
     const name = this.requireName(input.name, '分类名称');
     this.assertSort(input.sort);
+    const iconKey = await this.iconKeyOf(input.iconKey);
 
     const parentId = input.parentId?.trim();
     if (input.parentId !== undefined && !parentId) {
@@ -71,7 +80,7 @@ export class AdminTaxonomyService {
     }
 
     return this.prisma.category.create({
-      data: { name, parentId: parentId ?? null, sort: input.sort ?? 0 },
+      data: { name, iconKey, parentId: parentId ?? null, sort: input.sort ?? 0 },
     });
   }
 
@@ -84,6 +93,8 @@ export class AdminTaxonomyService {
 
     const name = input.name === undefined ? undefined : this.requireName(input.name, '分类名称');
     this.assertSort(input.sort);
+    const iconKey =
+      input.iconKey === undefined ? undefined : await this.iconKeyOf(input.iconKey);
 
     if (input.parentId !== undefined) {
       if (input.parentId === id) throw new BadRequestException('不能把分类挂到自己下');
@@ -102,6 +113,7 @@ export class AdminTaxonomyService {
       where: { id },
       data: {
         ...(name !== undefined ? { name } : {}),
+        ...(iconKey !== undefined ? { iconKey } : {}),
         ...(input.parentId !== undefined ? { parentId: input.parentId } : {}),
         ...(input.sort !== undefined ? { sort: input.sort } : {}),
       },
@@ -183,5 +195,13 @@ export class AdminTaxonomyService {
     if (value !== undefined && !Number.isInteger(value)) {
       throw new BadRequestException('排序必须为整数');
     }
+  }
+
+  /** 分类图标：允许留空；填写时必须来自素材库 */
+  private async iconKeyOf(value: string | null | undefined): Promise<string | null> {
+    const key = (value ?? '').trim();
+    if (!key) return null;
+    await this.assets.assertReference(key);
+    return key;
   }
 }

@@ -197,7 +197,7 @@ export function LinkField({
       </Field>
 
       {current.type === 'search' && (
-        <Field label="搜索关键词">
+        <Field label="搜索关键词（选填）" hint="留空则进入搜索页">
           <TextInput
             value={current.value ?? ''}
             maxLength={50}
@@ -207,7 +207,44 @@ export function LinkField({
         </Field>
       )}
 
-      {needsTarget && (
+      {current.type === 'page' && (
+        <>
+          <Field label="内置页面">
+            <select
+              className="input"
+              value={splitPageValue(current.value ?? '').path}
+              onChange={(event) => {
+                const nextPath = event.target.value;
+                const query = splitPageValue(current.value ?? '').query;
+                onChange({ ...current, value: joinPageValue(nextPath, query) });
+              }}
+            >
+              <option value="">请选择页面</option>
+              {options.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                  {option.hint ? `（${option.hint}）` : ''}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label="页面参数（选填）" hint="如 id=xxx 或 status=PAID，多个用 & 连接">
+            <TextInput
+              value={splitPageValue(current.value ?? '').query}
+              maxLength={120}
+              placeholder="id=xxx"
+              onChange={(next) =>
+                onChange({
+                  ...current,
+                  value: joinPageValue(splitPageValue(current.value ?? '').path, next),
+                })
+              }
+            />
+          </Field>
+        </>
+      )}
+
+      {needsTarget && current.type !== 'page' && (
         <>
           <div className="row" style={{ gap: 6, marginBottom: 6 }}>
             <input
@@ -249,6 +286,12 @@ export function LinkField({
               </option>
             ))}
           </select>
+          {!loading && options.length === 0 && (
+            <span className="small muted">暂无可选项，请先创建对应内容或换个类型</span>
+          )}
+          {(current.type === 'coupon' || current.type === 'store') && (
+            <span className="small muted">可不选，默认进入列表页</span>
+          )}
         </>
       )}
     </div>
@@ -257,6 +300,16 @@ export function LinkField({
 
 function needsTargetFor(type: string): boolean {
   return NEEDS_TARGET.includes(type);
+}
+
+function splitPageValue(value: string): { path: string; query: string } {
+  const [path, ...rest] = (value ?? '').split('?');
+  return { path: path ?? '', query: rest.join('?') };
+}
+
+function joinPageValue(path: string, query: string): string {
+  const clean = query.trim().replace(/^[?&]+/, '');
+  return clean ? `${path}?${clean}` : path;
 }
 
 /* ---------------- 通用样式 ---------------- */

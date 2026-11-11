@@ -38,6 +38,7 @@ const HomeLayout = lazy(() => import('./pages/HomeLayout'));
 const MicroPages = lazy(() => import('./pages/MicroPages'));
 const MicroPageEditor = lazy(() => import('./pages/MicroPageEditor'));
 const TabbarSettings = lazy(() => import('./pages/TabbarSettings'));
+const PopupAds = lazy(() => import('./pages/PopupAds'));
 const ExpressSettings = lazy(() => import('./pages/ExpressSettings'));
 const MemberCommerce = lazy(() => import('./pages/MemberCommerce'));
 const Promotions = lazy(() => import('./pages/Promotions'));
@@ -99,6 +100,7 @@ export function App() {
           <Route path="settings/system" element={<SystemStatus />} />
           <Route path="settings/home" element={<MicroPages />} />
           <Route path="settings/home/tabbar" element={<TabbarSettings />} />
+          <Route path="settings/home/popup-ads" element={<PopupAds />} />
           <Route path="settings/home/legacy" element={<HomeLayout />} />
           <Route path="settings/home/:id" element={<MicroPageEditor />} />
           <Route path="settings/express" element={<ExpressSettings />} />

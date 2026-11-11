@@ -12,6 +12,7 @@ import {
   MICRO_LINK_TYPES,
   MICRO_PAGE_LIMITS,
   MICRO_VIDEO_RATIOS,
+  isMicroPagePathAllowed,
 } from '../src/microPage';
 
 describe('微页面共享定义', () => {
@@ -52,5 +53,13 @@ describe('微页面共享定义', () => {
     expect(MICRO_GOODS_LAYOUTS.length).toBeGreaterThan(0);
     expect(MICRO_BANNER_RATIOS.length).toBeGreaterThan(0);
     expect(MICRO_VIDEO_RATIOS.length).toBeGreaterThan(0);
+  });
+
+  it('内置页面允许查询参数，但路径必须在白名单内', () => {
+    expect(isMicroPagePathAllowed('/pages/orders/index')).toBe(true);
+    expect(isMicroPagePathAllowed('/pages/orders/index?status=PAID')).toBe(true);
+    expect(isMicroPagePathAllowed('/pages/after-sale/list/index')).toBe(true);
+    expect(isMicroPagePathAllowed('/pages/not-exist/index')).toBe(false);
+    expect(isMicroPagePathAllowed('')).toBe(false);
   });
 });

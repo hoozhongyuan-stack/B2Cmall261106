@@ -71,16 +71,34 @@ test('退出登录：清空会话后再次进入需重新登录', async ({ page,
   await page.locator('.mine-logout').click();
   await page.locator('.taro-model__confirm').click();
 
-  // 回到首页未登录态
+  // 回到首页未登录态（首页可能是旧版或微页面，只校验框架与导航）
   await expect(page).toHaveURL(/pages\/home\/index/, { timeout: 30_000 });
-  await expect(page.locator('.home-brand')).toContainText('山野');
+  await expect(page.locator('.app-tabbar')).toBeVisible();
 
   await page.goto(`${H5}/#/pages/mine/index`);
   await expect(page.locator('.login-btn')).toBeVisible({ timeout: 30_000 });
 });
 
+test('登录页：同步后台店铺名称与 Logo，按钮文字为白色', async ({ page, request }) => {
+  const shopRes = await request.get(`${API}/shop`);
+  const shop = unwrap<{ shopName: string; logoKey: string | null }>(await shopRes.json());
+
+  await page.goto(`${H5}/#/pages/login/index`);
+  await expect(page.locator('.login-title')).toHaveText(shop.shopName, { timeout: 30_000 });
+  if (shop.logoKey) {
+    await expect(page.locator('.login-logo-img')).toBeVisible();
+  } else {
+    await expect(page.locator('.login-logo-letter')).toBeVisible();
+  }
+
+  const color = await page
+    .locator('.login-btn')
+    .evaluate((el) => getComputedStyle(el).color);
+  expect(color).toBe('rgb(255, 255, 255)');
+});
+
 test('公开页面：未登录可匿名浏览首页', async ({ page }) => {
   await page.goto(`${H5}/#/pages/home/index`);
-  await expect(page.locator('.home-brand')).toContainText('山野', { timeout: 30_000 });
+  await expect(page.locator('.app-tabbar')).toBeVisible({ timeout: 30_000 });
   await expect(page.locator('.login-btn')).toHaveCount(0);
 });

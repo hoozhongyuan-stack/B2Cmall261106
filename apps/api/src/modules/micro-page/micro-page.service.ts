@@ -338,7 +338,11 @@ export class MicroPageService {
       return {
         items:
           type === 'page'
-            ? MICRO_INNER_PAGES.map((item) => ({ value: item.path, label: item.label, hint: '' }))
+            ? MICRO_INNER_PAGES.map((item) => ({
+                value: item.path,
+                label: item.label,
+                hint: item.hint ?? '',
+              }))
             : [],
       };
     }

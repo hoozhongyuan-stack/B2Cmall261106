@@ -3332,6 +3332,7 @@ export interface paths {
                 content: {
                     "application/json": {
                         name: string;
+                        iconKey?: string | null;
                         parentId?: string | null;
                         sort?: number;
                     };
@@ -3402,6 +3403,7 @@ export interface paths {
                 content: {
                     "application/json": {
                         name?: string;
+                        iconKey?: string | null;
                         parentId?: string | null;
                         sort?: number;
                     };
@@ -3595,6 +3597,17 @@ export interface paths {
                         intro?: string;
                         servicePhone?: string;
                         logoKey?: string;
+                        serviceEmail?: string | null;
+                        serviceWechat?: string | null;
+                        serviceHours?: string | null;
+                        companyAddress?: string | null;
+                        companyName?: string | null;
+                        creditCode?: string | null;
+                        icpNumber?: string | null;
+                        icpUrl?: string | null;
+                        policeNumber?: string | null;
+                        policeUrl?: string | null;
+                        officialSiteUrl?: string | null;
                         freeThresholdCents?: number;
                         flatFreightCents?: number;
                         payTimeoutMinutes?: number;
@@ -8372,6 +8385,254 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/popup-ad/active": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 首页弹窗广告列表（启用且时间命中，按优先级） */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: {
+                                /** @description YYYY-MM-DD（Asia/Shanghai） */
+                                serverDate?: string;
+                                ads?: components["schemas"]["PopupAd"][];
+                            };
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/popup-ads": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 弹窗广告列表 */
+        get: {
+            parameters: {
+                query?: {
+                    keyword?: string;
+                    enabled?: boolean;
+                    page?: number;
+                    pageSize?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: {
+                                total?: number;
+                                items?: components["schemas"]["PopupAd"][];
+                            };
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** 新建弹窗广告 */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["PopupAdInput"];
+                };
+            };
+            responses: {
+                /** @description 创建成功 */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                400: components["responses"]["BadRequest"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/popup-ads/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 弹窗广告详情 */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: components["schemas"]["PopupAd"];
+                        };
+                    };
+                };
+                404: components["responses"]["NotFound"];
+            };
+        };
+        /** 保存弹窗广告 */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["PopupAdInput"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: components["schemas"]["PopupAd"];
+                        };
+                    };
+                };
+                400: components["responses"]["BadRequest"];
+            };
+        };
+        post?: never;
+        /** 删除弹窗广告（软删除） */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/popup-ads/{id}/enabled": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** 启用 / 停用弹窗广告 */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        enabled: boolean;
+                    };
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: components["schemas"]["PopupAd"];
+                        };
+                    };
+                };
+                400: components["responses"]["BadRequest"];
+            };
+        };
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -8383,7 +8644,19 @@ export interface components {
         ShopConfig: {
             shopName?: string;
             intro?: string;
+            logoKey?: string | null;
             servicePhone?: string | null;
+            serviceEmail?: string | null;
+            serviceWechat?: string | null;
+            serviceHours?: string | null;
+            companyAddress?: string | null;
+            companyName?: string | null;
+            creditCode?: string | null;
+            icpNumber?: string | null;
+            icpUrl?: string | null;
+            policeNumber?: string | null;
+            policeUrl?: string | null;
+            officialSiteUrl?: string | null;
             freeThresholdCents?: number;
             flatFreightCents?: number;
             afterSaleDays?: number;
@@ -8830,6 +9103,7 @@ export interface components {
         AdminCategory: {
             id?: string;
             name?: string;
+            iconKey?: string | null;
             parentId?: string | null;
             sort?: number;
             productCount?: number;
@@ -8846,6 +9120,17 @@ export interface components {
             intro?: string | null;
             servicePhone?: string | null;
             logoKey?: string | null;
+            serviceEmail?: string | null;
+            serviceWechat?: string | null;
+            serviceHours?: string | null;
+            companyAddress?: string | null;
+            companyName?: string | null;
+            creditCode?: string | null;
+            icpNumber?: string | null;
+            icpUrl?: string | null;
+            policeNumber?: string | null;
+            policeUrl?: string | null;
+            officialSiteUrl?: string | null;
             freeThresholdCents?: number;
             flatFreightCents?: number;
             payTimeoutMinutes?: number;
@@ -9441,6 +9726,35 @@ export interface components {
             value: string;
             label: string;
             hint?: string;
+        };
+        PopupAd: {
+            id: string;
+            name: string;
+            imageKey: string;
+            alt?: string | null;
+            link?: components["schemas"]["MicroLink"];
+            priority: number;
+            enabled: boolean;
+            /** Format: date-time */
+            startAt?: string | null;
+            /** Format: date-time */
+            endAt?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        PopupAdInput: {
+            name: string;
+            imageKey: string;
+            alt?: string | null;
+            link?: components["schemas"]["MicroLink"];
+            priority?: number;
+            enabled?: boolean;
+            /** Format: date-time */
+            startAt?: string | null;
+            /** Format: date-time */
+            endAt?: string | null;
         };
     };
     responses: {

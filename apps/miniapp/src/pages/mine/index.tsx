@@ -219,6 +219,13 @@ export default function Page() {
             <Text className="grow small">联系客服</Text>
             <Text className="muted tiny">{shop?.servicePhone ?? '未配置'} ›</Text>
           </View>
+          <View
+            className="list-item"
+            onClick={() => Taro.navigateTo({ url: '/pages/about/index' })}
+          >
+            <Text className="grow small">关于我们</Text>
+            <Text className="muted tiny">品牌与备案信息 ›</Text>
+          </View>
         </View>
 
         <View className="list mine-menu mine-logout">

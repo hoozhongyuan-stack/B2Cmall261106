@@ -154,20 +154,44 @@ export const MICRO_PAGE_LIMITS = {
 } as const;
 
 /** 内置页面白名单：page 类型链接只能指向这里 */
-export const MICRO_INNER_PAGES: { label: string; path: string }[] = [
+export interface MicroInnerPage {
+  label: string;
+  path: string;
+  /** 需要携带参数时给出提示，如「需 orderId」 */
+  hint?: string;
+}
+
+export const MICRO_INNER_PAGES: MicroInnerPage[] = [
   { label: '首页', path: '/pages/home/index' },
-  { label: '分类', path: '/pages/category/index' },
-  { label: '搜索', path: '/pages/search/index' },
+  { label: '分类页', path: '/pages/category/index' },
+  { label: '搜索页', path: '/pages/search/index' },
   { label: '购物车', path: '/pages/cart/index' },
   { label: '我的', path: '/pages/mine/index' },
-  { label: '订单列表', path: '/pages/orders/index' },
+  { label: '我的订单', path: '/pages/orders/index' },
+  { label: '售后列表', path: '/pages/after-sale/list/index' },
+  { label: '我的评价', path: '/pages/review/mine/index' },
   { label: '优惠券', path: '/pages/coupon/index' },
   { label: '积分中心', path: '/pages/points/index' },
-  { label: '门店列表', path: '/pages/store/list/index' },
   { label: '会员中心', path: '/pages/member/index' },
+  { label: '会员卡', path: '/pages/member-card/index' },
+  { label: '收货地址', path: '/pages/address/list/index' },
+  { label: '门店列表', path: '/pages/store/list/index' },
+  { label: '门店中心', path: '/pages/store-console/index' },
+  { label: '商品详情', path: '/pages/product/index', hint: '需 id' },
+  { label: '订单详情', path: '/pages/order-detail/index', hint: '需 id' },
+  { label: '售后详情', path: '/pages/after-sale/detail/index', hint: '需 id' },
+  { label: '物流详情', path: '/pages/shipment/index', hint: '需 id' },
+  { label: '支付结果', path: '/pages/pay-result/index', hint: '需 orderNo' },
+  { label: '结算页', path: '/pages/checkout/index' },
 ];
 
 export const MICRO_INNER_PAGE_PATHS = MICRO_INNER_PAGES.map((item) => item.path);
+
+/** page 链接允许附加查询串，路径部分必须在白名单内 */
+export function isMicroPagePathAllowed(value: string): boolean {
+  const path = (value ?? '').split('?')[0];
+  return MICRO_INNER_PAGE_PATHS.includes(path);
+}
 
 /** 商品组件数据来源 */
 export const MICRO_GOODS_SOURCES = ['manual', 'category', 'seckill', 'picks'] as const;

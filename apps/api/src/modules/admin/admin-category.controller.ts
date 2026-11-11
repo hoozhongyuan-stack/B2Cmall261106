@@ -20,6 +20,10 @@ class CreateCategoryDto {
 
   @IsOptional()
   @IsString()
+  iconKey?: string | null;
+
+  @IsOptional()
+  @IsString()
   parentId?: string;
 
   @IsOptional()
@@ -31,6 +35,10 @@ class UpdateCategoryDto {
   @IsOptional()
   @IsString()
   name?: string;
+
+  @IsOptional()
+  @IsString()
+  iconKey?: string | null;
 
   @IsOptional()
   @IsString()

@@ -214,6 +214,75 @@ describe('店铺与素材契约', () => {
     expect(removed.status).toBe(200);
   });
 
+  it('店铺基础信息可保存并在公开接口下发', async () => {
+    const profile = {
+      serviceEmail: 'service@shanye.test',
+      serviceWechat: 'shanye-service',
+      serviceHours: '9:00-21:00',
+      companyAddress: '云南省昆明市盘龙区测试路 9 号',
+      companyName: '云南山野商贸有限公司',
+      creditCode: '91530103MA6K12345X',
+      icpNumber: '滇ICP备2026000000号',
+      icpUrl: 'https://beian.miit.gov.cn/',
+      policeNumber: '滇公网安备53010302000000号',
+      policeUrl: 'https://beian.mps.gov.cn/',
+      officialSiteUrl: 'https://shop.shanye.test',
+    };
+
+    const patched = await api(
+      '/admin/shop',
+      { method: 'PATCH', body: JSON.stringify(profile) },
+      superToken,
+    );
+    expect(patched.status).toBe(200);
+
+    const detail = await api('/admin/shop', {}, superToken);
+    expect(detail.body.data).toMatchObject(profile);
+
+    const pub = await api('/shop');
+    expect(pub.status).toBe(200);
+    expect(pub.body.data).toMatchObject(profile);
+    expect(pub.body.data).not.toHaveProperty('businessDomain');
+
+    // 空串按清空处理
+    const cleared = await api(
+      '/admin/shop',
+      { method: 'PATCH', body: JSON.stringify({ serviceWechat: '' }) },
+      superToken,
+    );
+    expect(cleared.status).toBe(200);
+    const afterClear = await api('/admin/shop', {}, superToken);
+    expect(afterClear.body.data.serviceWechat).toBeNull();
+
+    // 非法值
+    for (const body of [
+      { serviceEmail: 'not-an-email' },
+      { creditCode: '123' },
+      { officialSiteUrl: 'ftp://shop.shanye.test' },
+      { icpUrl: 'beian.miit.gov.cn' },
+    ]) {
+      const bad = await api(
+        '/admin/shop',
+        { method: 'PATCH', body: JSON.stringify(body) },
+        superToken,
+      );
+      expect(bad.status, JSON.stringify(body)).toBe(400);
+    }
+
+    // 非超管不可写
+    const ops = await api(
+      '/admin/auth/login',
+      { method: 'POST', body: JSON.stringify({ account: 'ops@shanye.com', password: 'ops12345' }) },
+      '',
+    );
+    const forbidden = await api(
+      '/admin/shop',
+      { method: 'PATCH', body: JSON.stringify({ servicePhone: '400-800-1234' }) },
+      ops.body.data.token as string,
+    );
+    expect(forbidden.status).toBe(403);
+  });
+
   it('素材可上传、归类、移动与删除', async () => {
     const folder = await api(
       '/admin/assets/folders',

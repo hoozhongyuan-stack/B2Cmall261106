@@ -1,7 +1,9 @@
 import { useEffect, useState, type FormEvent } from 'react';
 
 import { api, ApiError } from '../api/client';
+import { assetPreviewUrl } from '../api/assets';
 import { hasRole } from '../auth';
+import { AssetPicker } from '../components/AssetPicker';
 import { confirmAction } from '../components/confirm';
 import { toast } from '../components/toast';
 import {
@@ -17,6 +19,7 @@ import {
 interface CategoryNode {
   id: string;
   name: string;
+  iconKey: string | null;
   parentId: string | null;
   sort: number;
   productCount: number;
@@ -26,6 +29,7 @@ interface CategoryNode {
 interface FlatRow {
   id: string;
   name: string;
+  iconKey: string | null;
   parentId: string | null;
   sort: number;
   productCount: number;
@@ -37,11 +41,19 @@ interface ModalState {
   open: boolean;
   editing: FlatRow | null;
   name: string;
+  iconKey: string;
   parentId: string;
   sort: string;
 }
 
-const CLOSED_MODAL: ModalState = { open: false, editing: null, name: '', parentId: '', sort: '0' };
+const CLOSED_MODAL: ModalState = {
+  open: false,
+  editing: null,
+  name: '',
+  iconKey: '',
+  parentId: '',
+  sort: '0',
+};
 
 function errorText(err: unknown): string {
   return err instanceof ApiError ? err.message : '操作失败';
@@ -75,6 +87,7 @@ export default function Categories() {
     rows.push({
       id: root.id,
       name: root.name,
+      iconKey: root.iconKey ?? null,
       parentId: root.parentId,
       sort: root.sort,
       productCount: root.productCount,
@@ -85,6 +98,7 @@ export default function Categories() {
       rows.push({
         id: child.id,
         name: child.name,
+        iconKey: child.iconKey ?? null,
         parentId: child.parentId,
         sort: child.sort,
         productCount: child.productCount,
@@ -97,7 +111,7 @@ export default function Categories() {
   const rootOptions = rows.filter((row) => !row.isChild);
 
   function openCreate(parentId = '') {
-    setModal({ open: true, editing: null, name: '', parentId, sort: '0' });
+    setModal({ open: true, editing: null, name: '', iconKey: '', parentId, sort: '0' });
   }
 
   function openEdit(row: FlatRow) {
@@ -105,6 +119,7 @@ export default function Categories() {
       open: true,
       editing: row,
       name: row.name,
+      iconKey: row.iconKey ?? '',
       parentId: row.parentId ?? '',
       sort: String(row.sort),
     });
@@ -127,6 +142,7 @@ export default function Categories() {
           method: 'PATCH',
           body: {
             name: modal.name.trim(),
+            iconKey: modal.iconKey || null,
             parentId: modal.parentId || null,
             sort: Number(modal.sort),
           },
@@ -136,6 +152,7 @@ export default function Categories() {
           method: 'POST',
           body: {
             name: modal.name.trim(),
+            iconKey: modal.iconKey || null,
             ...(modal.parentId ? { parentId: modal.parentId } : {}),
             sort: Number(modal.sort),
           },
@@ -167,8 +184,34 @@ export default function Categories() {
       key: 'name',
       title: '分类名称',
       render: (row) => (
-        <span style={{ paddingLeft: row.isChild ? 20 : 0 }}>
+        <span
+          className="row"
+          style={{ paddingLeft: row.isChild ? 20 : 0, gap: 8, alignItems: 'center' }}
+        >
           {row.isChild ? '— ' : ''}
+          {row.iconKey ? (
+            <img
+              src={assetPreviewUrl(row.iconKey)}
+              alt=""
+              style={{ width: 28, height: 28, borderRadius: 6, objectFit: 'cover' }}
+            />
+          ) : (
+            <span
+              style={{
+                width: 28,
+                height: 28,
+                borderRadius: 6,
+                background: 'var(--brand-soft)',
+                color: 'var(--brand)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 12,
+              }}
+            >
+              {row.name.slice(0, 1)}
+            </span>
+          )}
           {row.name}
         </span>
       ),
@@ -244,6 +287,13 @@ export default function Categories() {
               value={modal.name}
               placeholder="例如：山野干货"
               onChange={(e) => setModal((prev) => ({ ...prev, name: e.target.value }))}
+            />
+          </Field>
+          <Field label="分类图标" hint="小程序分类页展示；留空时取该分类首个商品图兜底">
+            <AssetPicker
+              value={modal.iconKey}
+              onChange={(key) => setModal((prev) => ({ ...prev, iconKey: key }))}
+              hint="建议正方形图标"
             />
           </Field>
           <Field

@@ -22,6 +22,7 @@ export default defineAppConfig({
     'pages/review/create/index',
     'pages/review/mine/index',
     'pages/mine/index',
+    'pages/about/index',
     'pages/member/index',
     'pages/member-card/index',
     'pages/points/index',

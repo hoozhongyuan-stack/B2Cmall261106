@@ -14,7 +14,7 @@
     "db:bench-seed": "tsx prisma/seed-search-benchmark.ts",
     "db:bench-clean": "tsx prisma/seed-search-benchmark.ts --clean",
     "search:bench": "tsx prisma/bench-search.ts",
-    "db:demo-reset": "prisma migrate reset --force --skip-generate && pnpm db:seed",
+    "db:demo-reset": "prisma migrate reset --force --skip-generate --skip-seed && pnpm db:seed",
     "db:studio": "prisma studio",
     "test:contract": "vitest run --config ../../vitest.contract.config.ts"
   },

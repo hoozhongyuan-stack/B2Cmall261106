@@ -6,6 +6,7 @@ import type { MicroPageRelease, ShopShell } from '@shanye/shared/src/microPage';
 import { api } from '../../api/client';
 import { AppTabBar } from '../../components/AppTabBar';
 import { MicroRenderer } from '../../components/MicroRenderer';
+import { PopupAd } from '../../components/PopupAd';
 import { Loading, SectionTitle, imageSrc } from '../../components/common';
 import { ProductCard } from '../../components/ProductCard';
 import { useRequest } from '../../hooks/useRequest';
@@ -124,6 +125,7 @@ export default function Page() {
           <Loading text={microLoading ? '页面加载中…' : '页面暂不可用'} />
         )}
         <AppTabBar />
+        <PopupAd />
       </View>
     );
   }
@@ -304,6 +306,7 @@ export default function Page() {
         )}
       </View>
       <AppTabBar />
+      <PopupAd />
     </View>
   );
 }

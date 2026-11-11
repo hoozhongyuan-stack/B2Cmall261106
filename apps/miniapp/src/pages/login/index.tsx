@@ -1,15 +1,43 @@
-import { Text, View } from '@tarojs/components';
+import { Image, Text, View } from '@tarojs/components';
 import Taro, { useRouter } from '@tarojs/taro';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
-import { loginWithWechat, saveConsent, showError } from '../../api/client';
+import { api, loginWithWechat, saveConsent, showError } from '../../api/client';
+import { imageSrc } from '../../components/common';
 
 import './index.css';
+
+interface ShopInfo {
+  shopName: string;
+  intro: string;
+  logoKey: string | null;
+}
 
 export default function Page() {
   const router = useRouter();
   const [agreed, setAgreed] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [shop, setShop] = useState<ShopInfo>({ shopName: '', intro: '', logoKey: null });
+
+  useEffect(() => {
+    let alive = true;
+    void api<ShopInfo>('/shop', { auth: 'optional' })
+      .then((data) => {
+        if (!alive) return;
+        setShop({
+          shopName: data.shopName || '山野商城',
+          intro: data.intro || '',
+          logoKey: data.logoKey ?? null,
+        });
+        if (data.shopName) void Taro.setNavigationBarTitle({ title: data.shopName });
+      })
+      .catch(() => {
+        if (alive) setShop((prev) => ({ ...prev, shopName: prev.shopName || '山野商城' }));
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   const openAgreement = (type: 'terms' | 'privacy') => {
     void Taro.navigateTo({ url: `/pages/agreement/index?type=${type}` });
@@ -35,14 +63,23 @@ export default function Page() {
     }
   };
 
+  const initial = shop.shopName.slice(0, 1) || '山';
+
   return (
-    <View className="page login-page">
+    <View className="login-page">
+      <View className="login-deco login-deco-a" />
+      <View className="login-deco login-deco-b" />
+
       <View className="login-brand">
-        <View className="login-logo">
-          <Text>山</Text>
+        <View className="login-logo-shell">
+          {shop.logoKey ? (
+            <Image className="login-logo-img" src={imageSrc(shop.logoKey)} mode="aspectFill" />
+          ) : (
+            <Text className="login-logo-letter">{initial}</Text>
+          )}
         </View>
-        <Text className="login-title">山野商城</Text>
-        <Text className="login-sub">把山野好物送到每一户人家</Text>
+        <Text className="login-title">{shop.shopName || ' '}</Text>
+        <Text className="login-sub">{shop.intro || '山野好物 · 顺时而食'}</Text>
       </View>
 
       <View className="login-panel">
@@ -58,7 +95,7 @@ export default function Page() {
             {agreed && <Text className="login-check-mark">✓</Text>}
           </View>
           <View className="login-agree-text">
-            <Text className="muted tiny">我已阅读并同意</Text>
+            <Text className="login-muted">我已阅读并同意</Text>
             <Text
               className="login-link"
               onClick={(event) => {
@@ -68,7 +105,7 @@ export default function Page() {
             >
               《用户协议》
             </Text>
-            <Text className="muted tiny">和</Text>
+            <Text className="login-muted">和</Text>
             <Text
               className="login-link"
               onClick={(event) => {
@@ -81,7 +118,7 @@ export default function Page() {
           </View>
         </View>
 
-        <Text className="muted tiny login-hint">
+        <Text className="login-hint">
           未注册的微信号登录后将自动创建账号；我们仅收集提供服务所必需的信息。
         </Text>
       </View>

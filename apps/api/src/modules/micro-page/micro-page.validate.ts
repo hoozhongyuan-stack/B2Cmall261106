@@ -8,11 +8,11 @@ import {
   MICRO_COMPONENT_TYPES,
   MICRO_GOODS_LAYOUTS,
   MICRO_GOODS_SOURCES,
-  MICRO_INNER_PAGE_PATHS,
   MICRO_LINK_LABELS,
   MICRO_LINK_TYPES,
   MICRO_PAGE_LIMITS,
   MICRO_VIDEO_RATIOS,
+  isMicroPagePathAllowed,
   type MicroComponent,
   type MicroComponentStyle,
   type MicroComponentType,
@@ -129,8 +129,20 @@ async function validateLink(
   if (!(MICRO_LINK_TYPES as readonly string[]).includes(type)) fail(label, '不支持的跳转类型');
   if (type === 'none') return { type: 'none', value: null };
 
-  const target = textOf(input.value, 300, label, { required: strict });
-  if (!target && !strict) return { type, value: null };
+  // 固定去向不需要选择目标（购物车 / 订单 / 我的 / 积分）
+  if (type === 'cart' || type === 'orders' || type === 'mine' || type === 'points') {
+    return { type, value: null };
+  }
+
+  // 搜索 / 优惠券 / 门店允许不指定具体目标，直接进入对应列表页
+  const target = textOf(input.value, 300, label);
+  if (!target) {
+    if (type === 'search' || type === 'coupon' || type === 'store') {
+      return { type, value: null };
+    }
+    if (!strict) return { type, value: null };
+    fail(label, '不能为空');
+  }
   const linkLabel = MICRO_LINK_LABELS[type] ?? '跳转目标';
 
   if (type === 'micro') {
@@ -166,9 +178,11 @@ async function validateLink(
     const store = await ctx.prisma.store.findUnique({ where: { id: target }, select: { id: true } });
     if (!store) fail(label, '目标门店不存在');
   } else if (type === 'page') {
-    if (!MICRO_INNER_PAGE_PATHS.includes(target)) {
+    if (!target.startsWith('/pages/') || !isMicroPagePathAllowed(target)) {
       fail(label, `${linkLabel}只能选择内置页面`);
     }
+    if (/[#\s]/.test(target)) fail(label, '页面参数不能包含空格或 #');
+    if (target.length > 200) fail(label, '页面路径过长');
   }
 
   return { type, value: target };
