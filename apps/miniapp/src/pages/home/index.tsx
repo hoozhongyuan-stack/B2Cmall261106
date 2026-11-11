@@ -1,4 +1,4 @@
-import { Text, View } from '@tarojs/components';
+import { View } from '@tarojs/components';
 import Taro, { useShareAppMessage } from '@tarojs/taro';
 import { useEffect, useState } from 'react';
 
@@ -7,7 +7,7 @@ import { api } from '../../api/client';
 import { AppTabBar } from '../../components/AppTabBar';
 import { MicroRenderer } from '../../components/MicroRenderer';
 import { PopupAd } from '../../components/PopupAd';
-import { Loading, imageSrc } from '../../components/common';
+import { PageState, imageSrc } from '../../components/common';
 import { loadShell } from '../../utils/shopShell';
 
 import './index.css';
@@ -64,15 +64,12 @@ export default function Page() {
         <View style={{ background: micro.settings?.bgColor || undefined, minHeight: '100vh' }}>
           <MicroRenderer components={micro.components} />
         </View>
-      ) : loading ? (
-        <Loading text="页面加载中…" />
       ) : (
-        <View className="home-empty">
-          <Text className="home-empty-title">{error || '首页暂不可用'}</Text>
-          <Text className="muted small">
-            请前往后台「装修 → 页面装修」创建并上线首页页面。
-          </Text>
-        </View>
+        <PageState
+          loading={loading}
+          empty
+          text={`${error || '首页暂不可用'}，请前往后台「装修 → 页面装修」创建并上线首页页面`}
+        />
       )}
       <AppTabBar />
       <PopupAd />

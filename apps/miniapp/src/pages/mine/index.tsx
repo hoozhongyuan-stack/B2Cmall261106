@@ -5,7 +5,7 @@ import { useState } from 'react';
 
 import { api, clearConsent, clearToken, showError } from '../../api/client';
 import { AppTabBar } from '../../components/AppTabBar';
-import { Loading } from '../../components/common';
+import { Cell, Loading, SectionHeader } from '../../components/common';
 import { money } from '../../utils/format';
 
 import './index.css';
@@ -144,12 +144,12 @@ export default function Page() {
 
       <View className="mine-body">
         <View className="card">
-          <View className="row-between mine-card-head">
-            <Text className="section-title mine-flush">我的订单</Text>
-            <Text className="muted tiny" onClick={() => goOrders('')}>
-              全部订单 ›
-            </Text>
-          </View>
+          <SectionHeader
+            className="mine-card-head"
+            title="我的订单"
+            action="全部订单"
+            onAction={() => goOrders('')}
+          />
           <View className="mine-orders">
             {ORDER_ENTRIES.map((entry) => (
               <View
@@ -180,52 +180,34 @@ export default function Page() {
         )}
 
         <View className="list mine-menu">
-          <View
-            className="list-item"
+          <Cell
+            title="我的优惠券"
+            value={`${profile?.coupons.unused ?? 0} 张可用`}
             onClick={() => Taro.navigateTo({ url: '/pages/coupon/index?tab=mine' })}
-          >
-            <Text className="grow small">我的优惠券</Text>
-            <Text className="muted tiny">{profile?.coupons.unused ?? 0} 张可用 ›</Text>
-          </View>
-          <View
-            className="list-item"
+          />
+          <Cell
+            title="积分明细"
+            value={`${profile?.points ?? 0} 分`}
             onClick={() => Taro.navigateTo({ url: '/pages/points/index' })}
-          >
-            <Text className="grow small">积分明细</Text>
-            <Text className="muted tiny">{profile?.points ?? 0} 分 ›</Text>
-          </View>
-          <View
-            className="list-item"
+          />
+          <Cell
+            title="我的评价"
             onClick={() => Taro.navigateTo({ url: '/pages/review/mine/index' })}
-          >
-            <Text className="grow small">我的评价</Text>
-            <Text className="muted tiny">›</Text>
-          </View>
-          <View
-            className="list-item"
+          />
+          <Cell
+            title="售后记录"
             onClick={() => Taro.navigateTo({ url: '/pages/after-sale/list/index' })}
-          >
-            <Text className="grow small">售后记录</Text>
-            <Text className="muted tiny">›</Text>
-          </View>
-          <View
-            className="list-item"
+          />
+          <Cell
+            title="收货地址"
             onClick={() => Taro.navigateTo({ url: '/pages/address/list/index' })}
-          >
-            <Text className="grow small">收货地址</Text>
-            <Text className="muted tiny">›</Text>
-          </View>
-          <View className="list-item" onClick={callService}>
-            <Text className="grow small">联系客服</Text>
-            <Text className="muted tiny">{shop?.servicePhone ?? '未配置'} ›</Text>
-          </View>
-          <View
-            className="list-item"
+          />
+          <Cell title="联系客服" value={shop?.servicePhone ?? '未配置'} onClick={callService} />
+          <Cell
+            title="关于我们"
+            value="品牌与备案信息"
             onClick={() => Taro.navigateTo({ url: '/pages/about/index' })}
-          >
-            <Text className="grow small">关于我们</Text>
-            <Text className="muted tiny">品牌与备案信息 ›</Text>
-          </View>
+          />
         </View>
 
         <View className="list mine-menu mine-logout">

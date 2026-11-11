@@ -1,10 +1,10 @@
 .verify-input {
   margin: 12px 0 16px;
-  height: 56px;
+  height: 72px;
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
   padding: 0 16px;
-  font-size: 26px;
+  font-size: var(--fs-body);
   font-weight: 700;
   letter-spacing: 8px;
   text-align: center;
@@ -14,10 +14,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 46px;
+  height: 64px;
   border-radius: var(--radius-md);
   border: 1px solid var(--line);
-  font-size: 15px;
+  font-size: var(--fs-secondary);
   color: var(--ink);
 }
 
@@ -33,7 +33,7 @@
 
 .verify-scan {
   margin-top: 16px;
-  height: 88px;
+  height: 120px;
   border-radius: var(--radius-md);
   border: 1px dashed var(--brand);
   color: var(--brand);
@@ -41,12 +41,12 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  font-size: 15px;
+  gap: 8px;
+  font-size: var(--fs-secondary);
 }
 
 .verify-scan-icon {
-  font-size: 24px;
+  font-size: var(--fs-title);
 }
 
 .verify-note {
@@ -57,33 +57,33 @@
 
 .verify-result {
   border-radius: var(--radius-lg);
-  padding: 24px 16px;
+  padding: 28px 24px;
   background: var(--brand-soft);
   color: var(--brand);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   margin-bottom: 12px;
 }
 
 .verify-result.is-dup {
-  background: var(--warn-soft, #fff6e5);
-  color: #b26a00;
+  background: var(--warn-soft);
+  color: var(--warn);
 }
 
 .verify-result-title {
-  font-size: 22px;
+  font-size: var(--fs-section);
   font-weight: 700;
 }
 
 .verify-order-no {
-  font-size: 12px;
+  font-size: var(--fs-caption);
   opacity: 0.8;
 }
 
 .verify-amount {
-  font-size: 28px;
+  font-size: var(--fs-body);
   font-weight: 700;
 }
 

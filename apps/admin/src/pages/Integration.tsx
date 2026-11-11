@@ -1,10 +1,11 @@
 import { useEffect, useState, type FormEvent } from 'react';
+import { useSearchParams } from 'react-router-dom';
 
 import { api, ApiError, formatDate } from '../api/client';
 import { hasRole } from '../auth';
 import { confirmAction } from '../components/confirm';
 import { toast } from '../components/toast';
-import { Button, Card, Field, PageHeader, Tag } from '../components/ui';
+import { Button, Card, Field, PageHeader, Tabs, Tag } from '../components/ui';
 
 interface SecretMeta {
   configured: boolean;
@@ -43,6 +44,15 @@ type SecretField =
   | 'wechatPayApiV3Key'
   | 'wechatPayPrivateKey'
   | 'wechatPayPublicKey';
+
+type TabValue = 'miniapp' | 'payment' | 'subscribe' | 'domain';
+
+const TABS: { value: TabValue; label: string }[] = [
+  { value: 'miniapp', label: '小程序' },
+  { value: 'payment', label: '微信支付' },
+  { value: 'subscribe', label: '订阅消息' },
+  { value: 'domain', label: '域名与地址' },
+];
 
 const SECRET_ACCEPT: Record<SecretField, string> = {
   miniappUploadKey: '.key,.pem',
@@ -111,8 +121,35 @@ function SecretRow({
   );
 }
 
+/** 配置状态徽标：支付 Tab 顶部一眼看清还缺什么 */
+function StatusItem({
+  label,
+  value,
+  ok,
+  optional,
+}: {
+  label: string;
+  value: string;
+  ok: boolean;
+  optional?: boolean;
+}) {
+  const tone = ok ? 'ok' : optional ? 'muted' : 'warn';
+  return (
+    <div className={`pay-status-item pay-status-item--${tone}`}>
+      <span className="pay-status-label">{label}</span>
+      <strong className="pay-status-value">{value}</strong>
+    </div>
+  );
+}
+
 export default function IntegrationSettings() {
   const canWrite = hasRole('SUPER');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const requested = searchParams.get('tab');
+  const tab: TabValue = TABS.some((item) => item.value === requested)
+    ? (requested as TabValue)
+    : 'miniapp';
+
   const [detail, setDetail] = useState<IntegrationDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -181,7 +218,7 @@ export default function IntegrationSettings() {
   async function handleSave(event: FormEvent) {
     event.preventDefault();
     if (!canWrite) {
-      toast('只有超级管理员可以修改集成配置', 'error');
+      toast('只有超级管理员可以修改小程序与支付配置', 'error');
       return;
     }
     setSaving(true);
@@ -300,26 +337,50 @@ export default function IntegrationSettings() {
   if (loading) {
     return (
       <>
-        <PageHeader title="集成配置" />
+        <PageHeader title="小程序与支付" />
         <div className="table-loading">加载中…</div>
       </>
     );
   }
 
+  const wechat = form.paymentProvider === 'wechat';
+  const apiV3Configured = Boolean(detail?.wechatPayApiV3Key.configured);
+  const privateKeyConfigured = Boolean(detail?.wechatPayPrivateKey.configured);
+  const publicKeyConfigured = Boolean(detail?.wechatPayPublicKey.configured);
+  const payChecklist = [
+    '商户号、证书序列号与小程序 AppID 属于同一商户主体',
+    '已上传 APIv3 密钥（32 位）与商户 API 私钥（PEM）',
+    '公钥模式需额外填写微信支付公钥 ID 并上传微信支付公钥',
+    `支付回调地址：${form.wechatPayNotifyUrl.trim() || 'https://…/api/payments/callback'}`,
+    '小程序 request 合法域名已包含上述 API 域名',
+  ];
+
   return (
-    <>
+    <form onSubmit={handleSave} className="integration-form">
       <PageHeader
-        title="集成配置"
+        title="小程序与支付"
         desc="小程序登录、微信支付、订阅消息与域名参数；密钥文件只存服务端，不回显内容"
+        actions={
+          <Button type="submit" loading={saving} disabled={!canWrite}>
+            保存配置
+          </Button>
+        }
       />
 
-      <form onSubmit={handleSave}>
+      {!canWrite && (
+        <p className="small muted" style={{ marginTop: 0 }}>
+          当前角色仅可查看配置，只有超级管理员可以修改。
+        </p>
+      )}
+
+      <Tabs
+        items={TABS}
+        value={tab}
+        onChange={(next) => setSearchParams({ tab: next }, { replace: true })}
+      />
+
+      {tab === 'miniapp' && (
         <Card title="小程序登录">
-          {!canWrite && (
-            <p className="small muted" style={{ marginTop: 0 }}>
-              当前角色仅可查看集成配置。
-            </p>
-          )}
           <div className="grid grid-2">
             <Field label="小程序 AppID" hint="微信公众平台 → 开发管理 → 开发设置">
               <input
@@ -381,93 +442,140 @@ export default function IntegrationSettings() {
             onRemove={() => void handleRemoveSecret('miniappUploadKey', '代码上传密钥')}
           />
         </Card>
+      )}
 
-        <Card title="微信支付">
-          <div className="grid grid-2">
-            <Field label="支付渠道" hint="切到 wechat 后小程序将调起真实微信收银台">
-              <select
-                className="input"
-                value={form.paymentProvider}
-                disabled={!canWrite}
-                onChange={(e) => setField('paymentProvider', e.target.value as 'mock' | 'wechat')}
+      {tab === 'payment' && (
+        <>
+          <Card
+            title="配置状态"
+            extra={<Tag tone={wechat ? 'ok' : 'warn'}>{wechat ? '微信支付' : '模拟支付'}</Tag>}
+          >
+            <div className="pay-status">
+              <StatusItem label="支付渠道" value={wechat ? '微信支付' : '模拟支付'} ok={wechat} />
+              <StatusItem
+                label="商户号"
+                value={form.wechatPayMchId.trim() || '未填写'}
+                ok={Boolean(form.wechatPayMchId.trim())}
+              />
+              <StatusItem
+                label="APIv3 密钥"
+                value={apiV3Configured ? '已上传' : '未上传'}
+                ok={apiV3Configured}
+              />
+              <StatusItem
+                label="商户私钥"
+                value={privateKeyConfigured ? '已上传' : '未上传'}
+                ok={privateKeyConfigured}
+              />
+              <StatusItem
+                label="微信支付公钥"
+                value={publicKeyConfigured ? '已上传' : '未上传'}
+                ok={publicKeyConfigured}
+                optional={!form.wechatPayPublicKeyId.trim()}
+              />
+            </div>
+            <details className="pay-checklist">
+              <summary>查看配置检查</summary>
+              <ol>
+                {payChecklist.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ol>
+            </details>
+            <p className="small muted" style={{ marginBottom: 0 }}>
+              任一必填项缺失时，下单接口会返回「微信支付未配置完整」并列出缺失项；支付结果以回调验签通过为准。
+            </p>
+          </Card>
+
+          <Card title="支付参数">
+            <div className="grid grid-2">
+              <Field label="支付渠道" hint="切到 wechat 后小程序将调起真实微信收银台">
+                <select
+                  className="input"
+                  value={form.paymentProvider}
+                  disabled={!canWrite}
+                  onChange={(e) => setField('paymentProvider', e.target.value as 'mock' | 'wechat')}
+                >
+                  <option value="mock">mock（模拟支付）</option>
+                  <option value="wechat">wechat（微信支付）</option>
+                </select>
+              </Field>
+              <Field label="商户号 MchID">
+                <input
+                  className="input"
+                  value={form.wechatPayMchId}
+                  disabled={!canWrite}
+                  placeholder="1900000001"
+                  onChange={(e) => setField('wechatPayMchId', e.target.value)}
+                />
+              </Field>
+              <Field label="商户证书序列号">
+                <input
+                  className="input"
+                  value={form.wechatPayCertSerial}
+                  disabled={!canWrite}
+                  placeholder="证书序列号"
+                  onChange={(e) => setField('wechatPayCertSerial', e.target.value)}
+                />
+              </Field>
+              <Field label="支付回调地址" hint="需为 https 公网地址，指向 /api/payments/callback">
+                <input
+                  className="input"
+                  value={form.wechatPayNotifyUrl}
+                  disabled={!canWrite}
+                  placeholder="https://car.aition.art/api/payments/callback"
+                  onChange={(e) => setField('wechatPayNotifyUrl', e.target.value)}
+                />
+              </Field>
+              <Field
+                label="微信支付公钥 ID"
+                hint="公钥模式填写 PUB_KEY_ID_...；平台证书模式留空"
               >
-                <option value="mock">mock（模拟支付）</option>
-                <option value="wechat">wechat（微信支付）</option>
-              </select>
-            </Field>
-            <Field label="商户号 MchID">
-              <input
-                className="input"
-                value={form.wechatPayMchId}
-                disabled={!canWrite}
-                placeholder="1900000001"
-                onChange={(e) => setField('wechatPayMchId', e.target.value)}
-              />
-            </Field>
-            <Field label="商户证书序列号">
-              <input
-                className="input"
-                value={form.wechatPayCertSerial}
-                disabled={!canWrite}
-                placeholder="证书序列号"
-                onChange={(e) => setField('wechatPayCertSerial', e.target.value)}
-              />
-            </Field>
-            <Field label="支付回调地址" hint="需为 https 公网地址，指向 /api/payments/callback">
-              <input
-                className="input"
-                value={form.wechatPayNotifyUrl}
-                disabled={!canWrite}
-                placeholder="https://car.aition.art/api/payments/callback"
-                onChange={(e) => setField('wechatPayNotifyUrl', e.target.value)}
-              />
-            </Field>
-            <Field
-              label="微信支付公钥 ID"
-              hint="公钥模式填写 PUB_KEY_ID_...；平台证书模式留空"
-            >
-              <input
-                className="input"
-                value={form.wechatPayPublicKeyId}
-                disabled={!canWrite}
-                placeholder="PUB_KEY_ID_..."
-                onChange={(e) => setField('wechatPayPublicKeyId', e.target.value)}
-              />
-            </Field>
-          </div>
-          <SecretRow
-            field="wechatPayApiV3Key"
-            label="APIv3 密钥"
-            hint="上传包含 32 位 APIv3 密钥的 .txt 文件"
-            meta={secretMeta('wechatPayApiV3Key')}
-            disabled={!canWrite}
-            uploading={uploading === 'wechatPayApiV3Key'}
-            onUpload={(file) => void handleUpload('wechatPayApiV3Key', file)}
-            onRemove={() => void handleRemoveSecret('wechatPayApiV3Key', 'APIv3 密钥')}
-          />
-          <SecretRow
-            field="wechatPayPrivateKey"
-            label="商户 API 私钥"
-            hint="上传 apiclient_key.pem（或 .p12 / .pfx）"
-            meta={secretMeta('wechatPayPrivateKey')}
-            disabled={!canWrite}
-            uploading={uploading === 'wechatPayPrivateKey'}
-            onUpload={(file) => void handleUpload('wechatPayPrivateKey', file)}
-            onRemove={() => void handleRemoveSecret('wechatPayPrivateKey', '商户 API 私钥')}
-          />
-          <SecretRow
-            field="wechatPayPublicKey"
-            label="微信支付公钥"
-            hint="商户平台 → API 安全 → 微信支付公钥，下载 pub_key.pem；公钥模式必填"
-            meta={secretMeta('wechatPayPublicKey')}
-            disabled={!canWrite}
-            uploading={uploading === 'wechatPayPublicKey'}
-            onUpload={(file) => void handleUpload('wechatPayPublicKey', file)}
-            onRemove={() => void handleRemoveSecret('wechatPayPublicKey', '微信支付公钥')}
-          />
-        </Card>
+                <input
+                  className="input"
+                  value={form.wechatPayPublicKeyId}
+                  disabled={!canWrite}
+                  placeholder="PUB_KEY_ID_..."
+                  onChange={(e) => setField('wechatPayPublicKeyId', e.target.value)}
+                />
+              </Field>
+            </div>
+            <SecretRow
+              field="wechatPayApiV3Key"
+              label="APIv3 密钥"
+              hint="上传包含 32 位 APIv3 密钥的 .txt 文件"
+              meta={secretMeta('wechatPayApiV3Key')}
+              disabled={!canWrite}
+              uploading={uploading === 'wechatPayApiV3Key'}
+              onUpload={(file) => void handleUpload('wechatPayApiV3Key', file)}
+              onRemove={() => void handleRemoveSecret('wechatPayApiV3Key', 'APIv3 密钥')}
+            />
+            <SecretRow
+              field="wechatPayPrivateKey"
+              label="商户 API 私钥"
+              hint="上传 apiclient_key.pem（或 .p12 / .pfx）"
+              meta={secretMeta('wechatPayPrivateKey')}
+              disabled={!canWrite}
+              uploading={uploading === 'wechatPayPrivateKey'}
+              onUpload={(file) => void handleUpload('wechatPayPrivateKey', file)}
+              onRemove={() => void handleRemoveSecret('wechatPayPrivateKey', '商户 API 私钥')}
+            />
+            <SecretRow
+              field="wechatPayPublicKey"
+              label="微信支付公钥"
+              hint="商户平台 → API 安全 → 微信支付公钥，下载 pub_key.pem；公钥模式必填"
+              meta={secretMeta('wechatPayPublicKey')}
+              disabled={!canWrite}
+              uploading={uploading === 'wechatPayPublicKey'}
+              onUpload={(file) => void handleUpload('wechatPayPublicKey', file)}
+              onRemove={() => void handleRemoveSecret('wechatPayPublicKey', '微信支付公钥')}
+            />
+          </Card>
+        </>
+      )}
 
-        <Card title="订阅消息">
+      {tab === 'subscribe' && (
+        <Card title="订阅消息模板">
           <div className="grid grid-2">
             <Field label="订单支付通知模板 ID">
               <input
@@ -526,21 +634,26 @@ export default function IntegrationSettings() {
               />
             </Field>
           </div>
-          <Field
-            label="模板字段映射（JSON）"
-            hint='键为微信模板字段名，值为变量：orderNo / payable / items / paidAt / trackingNo / expressName / shippedAt / refundNo / amount / status / refundedAt / pickupCode / storeName / pickupAt / expiresAt / courierName / courierPhone / acceptedAt / deliveredAt。留空 {} 使用默认映射；字段名必须与公众平台模板一致，否则微信返回 47003。'
-          >
-            <textarea
-              className="input"
-              rows={8}
-              style={{ fontFamily: 'monospace' }}
-              value={form.templateFields}
-              disabled={!canWrite}
-              onChange={(e) => setField('templateFields', e.target.value)}
-            />
-          </Field>
+          <details className="config-advanced">
+            <summary>高级：模板字段映射（JSON）</summary>
+            <Field
+              label="模板字段映射"
+              hint='键为微信模板字段名，值为变量：orderNo / payable / items / paidAt / trackingNo / expressName / shippedAt / refundNo / amount / status / refundedAt / pickupCode / storeName / pickupAt / expiresAt / courierName / courierPhone / acceptedAt / deliveredAt。留空 {} 使用默认映射；字段名必须与公众平台模板一致，否则微信返回 47003。'
+            >
+              <textarea
+                className="input"
+                rows={8}
+                style={{ fontFamily: 'monospace' }}
+                value={form.templateFields}
+                disabled={!canWrite}
+                onChange={(e) => setField('templateFields', e.target.value)}
+              />
+            </Field>
+          </details>
         </Card>
+      )}
 
+      {tab === 'domain' && (
         <Card title="域名与地址">
           <div className="grid grid-2">
             <Field label="API 地址" hint="真机联调时小程序请求的服务端地址">
@@ -562,17 +675,20 @@ export default function IntegrationSettings() {
               />
             </Field>
           </div>
+          <p className="small muted" style={{ marginBottom: 0 }}>
+            业务域名会同步展示在「设置 → 店铺信息」中，无需重复维护。
+          </p>
         </Card>
+      )}
 
-        <div className="row-between">
-          <span className="small muted">
-            {detail?.updatedAt ? `最近更新：${formatDate(detail.updatedAt)}` : ''}
-          </span>
-          <Button type="submit" loading={saving} disabled={!canWrite}>
-            保存配置
-          </Button>
-        </div>
-      </form>
-    </>
+      <div className="row-between integration-save">
+        <span className="small muted">
+          {detail?.updatedAt ? `最近更新：${formatDate(detail.updatedAt)}` : ''}
+        </span>
+        <Button type="submit" loading={saving} disabled={!canWrite}>
+          保存配置
+        </Button>
+      </div>
+    </form>
   );
 }

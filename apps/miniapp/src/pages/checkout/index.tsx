@@ -3,7 +3,7 @@ import Taro, { useDidShow, useRouter } from '@tarojs/taro';
 import { useRef, useState } from 'react';
 
 import { api, showError } from '../../api/client';
-import { Empty, Loading, Price, ProductThumb } from '../../components/common';
+import { PageState, Price, ProductThumb } from '../../components/common';
 import { formatDate, money } from '../../utils/format';
 import { payOrder } from '../../utils/pay';
 import { requestSubscriptions } from '../../utils/subscribe';
@@ -414,8 +414,7 @@ export default function Page() {
     }
   };
 
-  if (loading && !preview) return <Loading />;
-  if (!preview) return <Empty text="没有可结算的商品" />;
+  if (!preview) return <PageState loading={loading} empty text="没有可结算的商品" />;
 
   const usableCoupons = preview.availableCoupons.filter((item) => item.usable).length;
   const pickupSlotOptions = pickupSlots(store);

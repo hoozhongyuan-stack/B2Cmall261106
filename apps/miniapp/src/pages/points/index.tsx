@@ -3,7 +3,7 @@ import Taro, { useShareAppMessage } from '@tarojs/taro';
 import { useEffect, useState } from 'react';
 
 import { api, showError } from '../../api/client';
-import { Empty, Loading } from '../../components/common';
+import { Loading, PageState } from '../../components/common';
 import { formatDate } from '../../utils/format';
 
 import './index.css';
@@ -204,11 +204,13 @@ export default function Page() {
       )}
 
       <View className="section-title">积分流水</View>
-      {!ledger?.items.length && <Empty text="暂无积分记录" />}
-
-      {!!ledger?.items.length && (
+      <PageState
+        loading={loading && !ledger}
+        empty={!loading && !ledger?.items.length}
+        text="暂无积分记录"
+      >
         <View className="list">
-          {ledger.items.map((record) => (
+          {ledger?.items.map((record) => (
             <View key={record.id} className="list-item">
               <View className="grow col">
                 <Text className="small">{record.reason}</Text>
@@ -227,7 +229,7 @@ export default function Page() {
             </View>
           ))}
         </View>
-      )}
+      </PageState>
     </View>
   );
 }

@@ -4,7 +4,7 @@
 
 .agreement-title {
   display: block;
-  font-size: 40px;
+  font-size: var(--fs-display);
   font-weight: 700;
   margin-bottom: 8px;
 }
@@ -22,12 +22,12 @@
 }
 
 .agreement-heading {
-  font-size: 28px;
+  font-size: var(--fs-body);
   font-weight: 600;
 }
 
 .agreement-paragraph {
-  font-size: 25px;
+  font-size: var(--fs-secondary);
   line-height: 1.8;
   color: var(--ink-2);
 }

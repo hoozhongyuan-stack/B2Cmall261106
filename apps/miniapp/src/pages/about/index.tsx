@@ -35,6 +35,8 @@ interface Row {
 const ICP_DEFAULT_URL = 'https://beian.miit.gov.cn/';
 
 function appVersion(): string {
+  // H5 不支持 getAccountInfoSync，调用会抛 errMsg 并触发未处理拒绝
+  if (process.env.TARO_ENV !== 'weapp') return '';
   try {
     const info = Taro.getAccountInfoSync();
     return info?.miniProgram?.version ?? '';

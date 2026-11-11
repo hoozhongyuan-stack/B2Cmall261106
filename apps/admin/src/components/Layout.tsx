@@ -14,7 +14,8 @@ type IconName =
   | 'promotion'
   | 'store'
   | 'decoration'
-  | 'settings';
+  | 'settings'
+  | 'account';
 
 interface MenuItem {
   to: string;
@@ -102,12 +103,17 @@ const MENU: MenuGroup[] = [
     icon: 'settings',
     items: [
       { to: '/settings/shop', label: '店铺信息', roles: ['SUPER'] },
-      { to: '/settings/integration', label: '集成配置', roles: ['SUPER'] },
+      { to: '/settings/integration', label: '小程序与支付', roles: ['SUPER'] },
       { to: '/settings/miniapp-release', label: '小程序发布', roles: ['SUPER', 'OPS'] },
       { to: '/settings/freight', label: '运费模板', roles: ALL },
-      { to: '/settings/payment', label: '支付设置', roles: ['SUPER'] },
       { to: '/settings/system', label: '系统状态', roles: ['SUPER', 'OPS'] },
       { to: '/settings/express', label: '物流公司', roles: ALL },
+    ],
+  },
+  {
+    group: '账号',
+    icon: 'account',
+    items: [
       { to: '/accounts', label: '子账号', roles: ['SUPER'] },
       { to: '/logs', label: '操作日志', roles: ['SUPER', 'OPS', 'CS'] },
     ],
@@ -129,6 +135,10 @@ const ICON_PATHS: Record<IconName, string[]> = {
   store: ['M4 9l1-5h14l1 5', 'M4 9h16v11H4z', 'M9 20v-6h6v6'],
   decoration: ['M4 4h16v16H4z', 'M4 9h16', 'M9 20V9', 'M13 13h4', 'M13 16h4'],
   settings: ['M4 7h10', 'M18 7h2', 'M14 7a2 2 0 1 0 0 .01', 'M4 17h2', 'M10 17h10', 'M8 17a2 2 0 1 0 0 .01'],
+  account: [
+    'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8z',
+    'M4 21a8 8 0 0 1 16 0',
+  ],
 };
 
 function Icon({ name }: { name: IconName }) {

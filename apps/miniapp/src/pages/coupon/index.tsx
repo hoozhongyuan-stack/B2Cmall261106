@@ -3,7 +3,7 @@ import Taro, { useDidShow, useRouter } from '@tarojs/taro';
 import { useState } from 'react';
 
 import { api, showError } from '../../api/client';
-import { Empty, Loading } from '../../components/common';
+import { PageState } from '../../components/common';
 import { formatDate, money } from '../../utils/format';
 
 import './index.css';
@@ -131,10 +131,16 @@ export default function Page() {
         </View>
       )}
 
-      {loading && <Loading />}
-
-      {!loading && tab === 'center' && !claimable.length && <Empty text="暂无可领取的优惠券" />}
-      {!loading && tab === 'mine' && !mine.length && <Empty text="这里还没有优惠券" />}
+      {tab === 'center' && (
+        <PageState
+          loading={loading}
+          empty={!loading && !claimable.length}
+          text="暂无可领取的优惠券"
+        />
+      )}
+      {tab === 'mine' && (
+        <PageState loading={loading} empty={!loading && !mine.length} text="这里还没有优惠券" />
+      )}
 
       {!loading &&
         tab === 'center' &&

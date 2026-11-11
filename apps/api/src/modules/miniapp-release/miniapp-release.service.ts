@@ -72,9 +72,9 @@ export class MiniappReleaseService {
     if (desc.length > 200) throw new BadRequestException('更新说明不能超过 200 字');
 
     const config = await this.integration.miniappPublishConfig();
-    if (!config.appId) throw new BadRequestException('请先在集成配置中填写小程序 AppID');
+    if (!config.appId) throw new BadRequestException('请先在「小程序与支付」中填写小程序 AppID');
     if (!config.uploadKeyPath || !existsSync(config.uploadKeyPath)) {
-      throw new BadRequestException('请先在集成配置中上传小程序代码上传密钥');
+      throw new BadRequestException('请先在「小程序与支付」中上传小程序代码上传密钥');
     }
 
     await this.failStaleBuilding();

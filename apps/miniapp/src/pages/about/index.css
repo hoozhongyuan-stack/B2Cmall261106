@@ -23,7 +23,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 52px;
+  font-size: var(--fs-amount);
   font-weight: 600;
 }
 
@@ -33,7 +33,7 @@
 }
 
 .about-name {
-  font-size: 34px;
+  font-size: var(--fs-title);
   font-weight: 700;
   color: var(--ink);
 }
@@ -51,7 +51,7 @@
 
 .about-group-title {
   padding-left: 8px;
-  font-size: 22px;
+  font-size: var(--fs-caption);
   color: var(--ink-3);
   letter-spacing: 1px;
 }

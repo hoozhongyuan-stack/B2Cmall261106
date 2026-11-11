@@ -10,7 +10,7 @@
 }
 
 .dash-store {
-  font-size: 30px;
+  font-size: var(--fs-section);
   font-weight: 700;
 }
 
@@ -26,18 +26,18 @@
 }
 
 .dash-hero-value {
-  font-size: 36px;
+  font-size: var(--fs-display);
   font-weight: 700;
 }
 
 .dash-hero-label {
-  font-size: 20px;
+  font-size: var(--fs-caption);
   opacity: 0.82;
 }
 
 .dash-title {
   display: block;
-  font-size: 28px;
+  font-size: var(--fs-body);
   font-weight: 600;
   margin-bottom: 16px;
 }
@@ -67,13 +67,13 @@
 }
 
 .dash-cell-value {
-  font-size: 30px;
+  font-size: var(--fs-section);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
 
 .dash-cell-label {
-  font-size: 20px;
+  font-size: var(--fs-caption);
   color: var(--ink-3);
 }
 
@@ -86,9 +86,9 @@
 }
 
 .dash-warning-value {
-  font-size: 26px;
+  font-size: var(--fs-secondary);
   font-weight: 600;
-  color: #b26a00;
+  color: var(--warn);
   font-variant-numeric: tabular-nums;
 }
 

@@ -1,11 +1,11 @@
 .settings-store {
-  font-size: 32px;
+  font-size: var(--fs-title);
   font-weight: 700;
 }
 
 .settings-title {
   display: block;
-  font-size: 28px;
+  font-size: var(--fs-body);
   font-weight: 600;
   margin-bottom: 16px;
 }
@@ -24,7 +24,7 @@
 
 .settings-day-label {
   width: 96px;
-  font-size: 26px;
+  font-size: var(--fs-secondary);
   color: var(--ink-2);
 }
 
@@ -44,7 +44,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 26px;
+  font-size: var(--fs-secondary);
   font-variant-numeric: tabular-nums;
 }
 
@@ -72,7 +72,7 @@
   box-sizing: border-box;
   border-radius: 16px;
   background: var(--surface-2);
-  font-size: 26px;
+  font-size: var(--fs-secondary);
   line-height: 1.6;
 }
 
@@ -113,16 +113,16 @@
 }
 
 .settings-closure.is-closed {
-  background: var(--warn-soft, #fff6e5);
+  background: var(--warn-soft);
 }
 
 .settings-closed-tag {
   height: 40px;
   padding: 0 16px;
   border-radius: 999px;
-  background: #b26a00;
-  color: #fff;
-  font-size: 20px;
+  background: var(--warn);
+  color: var(--on-brand);
+  font-size: var(--fs-caption);
   display: flex;
   align-items: center;
 }
@@ -164,7 +164,7 @@
   box-sizing: border-box;
   border-radius: 16px;
   background: var(--surface-2);
-  font-size: 26px;
+  font-size: var(--fs-secondary);
   margin: 8px 0 16px;
 }
 
@@ -182,7 +182,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 28px;
+  font-size: var(--fs-body);
   font-weight: 600;
 }
 

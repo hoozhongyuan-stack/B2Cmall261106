@@ -11,7 +11,7 @@
   padding: 0 24px;
   border-radius: 999px;
   background: var(--surface-2);
-  font-size: 26px;
+  font-size: var(--fs-body);
 }
 
 .stock-search-btn {
@@ -22,7 +22,7 @@
   color: var(--on-brand);
   display: flex;
   align-items: center;
-  font-size: 26px;
+  font-size: var(--fs-secondary);
 }
 
 .stock-filters {
@@ -39,7 +39,7 @@
   color: var(--ink-2);
   display: flex;
   align-items: center;
-  font-size: 24px;
+  font-size: var(--fs-secondary);
 }
 
 .stock-chip.active {
@@ -49,8 +49,8 @@
 }
 
 .stock-chip--warn.active {
-  background: var(--warn-soft, #fff6e5);
-  color: #b26a00;
+  background: var(--warn-soft);
+  color: var(--warn);
 }
 
 .stock-card {
@@ -65,7 +65,7 @@
 }
 
 .stock-title {
-  font-size: 28px;
+  font-size: var(--fs-body);
   font-weight: 600;
 }
 
@@ -74,9 +74,9 @@
   height: 40px;
   padding: 0 16px;
   border-radius: 999px;
-  background: var(--warn-soft, #fff6e5);
-  color: #b26a00;
-  font-size: 22px;
+  background: var(--warn-soft);
+  color: var(--warn);
+  font-size: var(--fs-caption);
   display: flex;
   align-items: center;
 }
@@ -98,13 +98,13 @@
 }
 
 .stock-metric-value {
-  font-size: 30px;
+  font-size: var(--fs-section);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
 
 .stock-metric-label {
-  font-size: 20px;
+  font-size: var(--fs-caption);
   color: var(--ink-3);
 }
 
@@ -122,7 +122,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 26px;
+  font-size: var(--fs-secondary);
   color: var(--ink);
 }
 
@@ -148,7 +148,7 @@
   text-align: center;
   padding: 64px 0;
   color: var(--ink-3);
-  font-size: 26px;
+  font-size: var(--fs-secondary);
 }
 
 .stock-mask {
@@ -171,7 +171,7 @@
 }
 
 .stock-sheet-title {
-  font-size: 32px;
+  font-size: var(--fs-title);
   font-weight: 700;
 }
 
@@ -180,7 +180,7 @@
 }
 
 .stock-field-label {
-  font-size: 24px;
+  font-size: var(--fs-secondary);
   color: var(--ink-2);
   margin-top: 8px;
 }
@@ -190,7 +190,7 @@
   padding: 0 24px;
   border-radius: 16px;
   background: var(--surface-2);
-  font-size: 30px;
+  font-size: var(--fs-section);
 }
 
 .stock-sheet-actions {
@@ -202,5 +202,5 @@
 .stock-sheet-actions .stock-btn {
   flex: 1;
   height: 84px;
-  font-size: 30px;
+  font-size: var(--fs-section);
 }

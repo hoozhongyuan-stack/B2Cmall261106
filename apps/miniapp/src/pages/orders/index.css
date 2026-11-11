@@ -8,7 +8,7 @@
 
 .order-status {
   color: var(--brand);
-  font-size: 26px;
+  font-size: var(--fs-secondary);
   font-weight: 600;
 }
 

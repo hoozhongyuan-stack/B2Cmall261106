@@ -27,13 +27,13 @@
 }
 
 .coupon-value {
-  font-size: 40px;
+  font-size: var(--fs-display);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
 
 .coupon-threshold {
-  font-size: 20px;
+  font-size: var(--fs-micro);
 }
 
 .coupon-body {

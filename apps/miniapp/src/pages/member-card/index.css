@@ -5,12 +5,13 @@
 }
 
 .mc-balance-value {
-  font-size: 56px;
+  font-size: var(--fs-amount);
   font-weight: 700;
   color: var(--brand);
 }
 
 .mc-title {
+  display: block;
   margin: 0 0 8px;
 }
 
@@ -25,7 +26,7 @@
 }
 
 .mc-card-name {
-  font-size: 30px;
+  font-size: var(--fs-section);
   font-weight: 600;
 }
 
@@ -64,7 +65,7 @@
 }
 
 .mc-recharge-amount {
-  font-size: 32px;
+  font-size: var(--fs-title);
   font-weight: 600;
 }
 

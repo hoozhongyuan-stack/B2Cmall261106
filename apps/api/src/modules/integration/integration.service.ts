@@ -214,7 +214,7 @@ export class IntegrationService {
 
     if (missing.length) {
       throw new ServiceUnavailableException(
-        `微信支付未配置完整：${missing.join('、')}。请在后台「集成配置 → 微信支付」补齐`,
+        `微信支付未配置完整：${missing.join('、')}。请在后台「小程序与支付 → 微信支付」补齐`,
       );
     }
 

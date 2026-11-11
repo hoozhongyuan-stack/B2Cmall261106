@@ -3,7 +3,7 @@ import Taro from '@tarojs/taro';
 import { useState } from 'react';
 
 import { api, showError } from '../../api/client';
-import { Loading } from '../../components/common';
+import { Empty, PageState } from '../../components/common';
 import { useRequest } from '../../hooks/useRequest';
 import { formatDate, money } from '../../utils/format';
 
@@ -122,8 +122,7 @@ export default function Page() {
     }
   };
 
-  if (loading && !data) return <Loading />;
-  if (!data) return null;
+  if (!data) return <PageState loading={loading} />;
 
   return (
     <View className="page">
@@ -178,7 +177,7 @@ export default function Page() {
             </View>
           </View>
         ))}
-        {!data.plans.length && <Text className="muted small">暂无可购买的会员卡</Text>}
+        {!data.plans.length && <Empty compact text="暂无可购买的会员卡" />}
       </View>
 
       <View className="card">
@@ -193,7 +192,7 @@ export default function Page() {
             </View>
           ))}
         </View>
-        {!data.wallet.plans.length && <Text className="muted small">暂无充值套餐</Text>}
+        {!data.wallet.plans.length && <Empty compact text="暂无充值套餐" />}
         <Text className="muted tiny mc-hint">本地测试渠道充值即时到账；正式环境将接入微信支付</Text>
       </View>
 
@@ -217,7 +216,7 @@ export default function Page() {
             </View>
           </View>
         ))}
-        {!data.wallet.ledger.length && <Text className="muted small">暂无资金流水</Text>}
+        {!data.wallet.ledger.length && <Empty compact text="暂无资金流水" />}
       </View>
     </View>
   );

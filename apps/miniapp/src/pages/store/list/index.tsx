@@ -1,9 +1,9 @@
-import { Image, Input, Text, View } from '@tarojs/components';
+import { Image, Text, View } from '@tarojs/components';
 import Taro, { useDidShow, useRouter } from '@tarojs/taro';
 import { useState } from 'react';
 
 import { api, showError } from '../../../api/client';
-import { Empty, Loading, imageSrc } from '../../../components/common';
+import { PageState, SearchBar, Tag, imageSrc } from '../../../components/common';
 import { money } from '../../../utils/format';
 
 import './index.css';
@@ -96,39 +96,32 @@ export default function Page() {
   return (
     <View className="page store-page">
       <View className="store-search">
-        <Input
-          className="store-search-input"
+        <SearchBar
           value={region}
           placeholder={capability === 'DELIVERY' ? '输入区县筛选配送门店' : '输入区县，如 五华区'}
-          onInput={(e) => setRegion(e.detail.value)}
-          onConfirm={() => void load(region)}
+          onInput={setRegion}
+          onSubmit={() => void load(region)}
         />
-        <Text className="store-search-btn" onClick={() => void load(region)}>
-          搜索
-        </Text>
       </View>
 
-      {loading && !items.length && <Loading />}
-      {!loading && !items.length && (
-        <Empty text={capability === 'DELIVERY' ? '当前区域暂无可配送门店' : '暂无可自提门店'} />
-      )}
+      <PageState
+        loading={loading && !items.length}
+        empty={!loading && !items.length}
+        text={capability === 'DELIVERY' ? '当前区域暂无可配送门店' : '暂无可自提门店'}
+      />
 
       {items.map((store) => (
         <View key={store.id} className="card store-card" onClick={() => choose(store)}>
-          <View className="row-between">
-            <View className="row" style={{ gap: '12px', alignItems: 'center' }}>
-              {store.logoKey ? (
-                <Image className="store-logo" src={imageSrc(store.logoKey)} mode="aspectFill" />
-              ) : (
-                <View className="store-logo store-logo--empty">
-                  <Text>{store.name.slice(0, 1)}</Text>
-                </View>
-              )}
-              <Text className="store-name">{store.name}</Text>
-            </View>
-            <Text className="tag tag--brand">
-              {capability === 'DELIVERY' ? '可配送' : '可自提'}
-            </Text>
+          <View className="store-head">
+            {store.logoKey ? (
+              <Image className="store-logo" src={imageSrc(store.logoKey)} mode="aspectFill" />
+            ) : (
+              <View className="store-logo store-logo--empty">
+                <Text>{store.name.slice(0, 1)}</Text>
+              </View>
+            )}
+            <Text className="store-name grow ellipsis">{store.name}</Text>
+            <Tag tone="brand">{capability === 'DELIVERY' ? '可配送' : '可自提'}</Tag>
           </View>
           <Text className="small muted store-address">
             {store.region} {store.address}

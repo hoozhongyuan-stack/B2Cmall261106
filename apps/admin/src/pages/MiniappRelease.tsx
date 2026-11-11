@@ -113,7 +113,7 @@ export default function MiniappRelease() {
       return;
     }
     if (!readiness?.buildAvailable) {
-      toast('请先在集成配置中完成 AppID 与代码上传密钥', 'error');
+      toast('请先在「小程序与支付」中完成 AppID 与代码上传密钥', 'error');
       return;
     }
     if (!(await confirmAction(`确定构建并上传 ${form.version} 吗？过程中约需 1-2 分钟。`))) return;
@@ -213,7 +213,7 @@ export default function MiniappRelease() {
         </div>
         {notReady && (
           <p className="small" style={{ marginBottom: 0 }}>
-            发布前需要在「集成配置」里填写 AppID 并上传代码上传密钥；密钥需在微信后台配置服务器 IP
+            发布前需要在「小程序与支付」里填写 AppID 并上传代码上传密钥；密钥需在微信后台配置服务器 IP
             白名单（43.153.119.73）。
           </p>
         )}

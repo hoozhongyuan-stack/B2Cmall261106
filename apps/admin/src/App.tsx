@@ -29,7 +29,6 @@ const ShopSettings = lazy(() => import('./pages/ShopSettings'));
 const Integration = lazy(() => import('./pages/Integration'));
 const MiniappRelease = lazy(() => import('./pages/MiniappRelease'));
 const Freight = lazy(() => import('./pages/Freight'));
-const PaymentSettings = lazy(() => import('./pages/PaymentSettings'));
 const Assets = lazy(() => import('./pages/Assets'));
 const Accounts = lazy(() => import('./pages/Accounts'));
 const Logs = lazy(() => import('./pages/Logs'));
@@ -98,7 +97,10 @@ export function App() {
           <Route path="settings/integration" element={<Integration />} />
           <Route path="settings/miniapp-release" element={<MiniappRelease />} />
           <Route path="settings/freight" element={<Freight />} />
-          <Route path="settings/payment" element={<PaymentSettings />} />
+          <Route
+            path="settings/payment"
+            element={<Navigate to="/settings/integration?tab=payment" replace />}
+          />
           <Route path="settings/system" element={<SystemStatus />} />
           <Route path="settings/home" element={<MicroPages />} />
           <Route path="settings/home/tabbar" element={<TabbarSettings />} />

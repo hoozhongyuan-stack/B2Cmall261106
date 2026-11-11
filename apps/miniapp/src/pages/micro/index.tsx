@@ -6,7 +6,7 @@ import type { MicroPageRelease } from '@shanye/shared/src/microPage';
 import { api } from '../../api/client';
 import { AppTabBar } from '../../components/AppTabBar';
 import { MicroRenderer } from '../../components/MicroRenderer';
-import { imageSrc } from '../../components/common';
+import { PageState, imageSrc } from '../../components/common';
 
 import './index.css';
 
@@ -52,7 +52,7 @@ export default function MicroPage() {
   if (loading) {
     return (
       <View className="micro-page">
-        <View className="loading">加载中…</View>
+        <PageState loading />
       </View>
     );
   }
@@ -60,7 +60,7 @@ export default function MicroPage() {
   if (failed || !page) {
     return (
       <View className="micro-page">
-        <View className="empty">页面不存在或已下线</View>
+        <PageState empty text="页面不存在或已下线" />
         <AppTabBar />
       </View>
     );

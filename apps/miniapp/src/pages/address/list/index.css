@@ -9,7 +9,7 @@
 }
 
 .al-name {
-  font-size: 32px;
+  font-size: var(--fs-title);
   font-weight: 600;
 }
 

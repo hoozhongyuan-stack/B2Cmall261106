@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import { api, showError } from '../../api/client';
 import { AppTabBar } from '../../components/AppTabBar';
-import { Empty, Loading, imageSrc } from '../../components/common';
+import { PageState, imageSrc } from '../../components/common';
 import { ProductCard, type ProductCardData } from '../../components/ProductCard';
 
 import './index.css';
@@ -211,8 +211,11 @@ export default function Page() {
             <Text className="cat-count">{total} 件</Text>
           </View>
 
-          {loading && !items.length && <Loading />}
-          {!loading && !items.length && <Empty text="该分类下暂无商品" />}
+          <PageState
+            loading={loading && !items.length}
+            empty={!loading && !items.length}
+            text="该分类下暂无商品"
+          />
 
           {items.map((product) => (
             <ProductCard key={product.id} product={product} />

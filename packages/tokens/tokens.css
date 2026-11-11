@@ -10,13 +10,16 @@
   --line-2: #DEDEDA;
   --brand: #E2231A;
   --brand-2: #C21B14;
+  --brand-deep: #4A6B3C;
   --brand-soft: #FDEDEB;
   --on-brand: #FFFFFF;
   --gold: #BC8A2E;
   --gold-soft: #FBF3E2;
   --ok: #1F7A4C;
   --warn: #A9691A;
+  --warn-soft: #FFF6E5;
   --danger: #C22C1E;
+  --danger-soft: #FDECEC;
 
   --radius-xs: 2px;
   --radius-sm: 8px;

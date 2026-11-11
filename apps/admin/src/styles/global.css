@@ -1906,3 +1906,93 @@ button:focus-visible,
 
 
 
+/* ---------------- 小程序与支付 ---------------- */
+.integration-form .tabs {
+  margin-bottom: 16px;
+}
+
+.pay-status {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.pay-status-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  border-left: 3px solid var(--line-2);
+}
+
+.pay-status-item--ok {
+  border-left-color: var(--ok);
+}
+
+.pay-status-item--warn {
+  border-left-color: var(--warn);
+}
+
+.pay-status-label {
+  font-size: var(--text-caption);
+  color: var(--ink-3);
+}
+
+.pay-status-value {
+  font-size: var(--text-body);
+  color: var(--ink);
+}
+
+.pay-status-item--ok .pay-status-value {
+  color: var(--ok);
+}
+
+.pay-status-item--warn .pay-status-value {
+  color: var(--warn);
+}
+
+.pay-checklist {
+  margin-bottom: 12px;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+
+.pay-checklist summary,
+.config-advanced summary {
+  cursor: pointer;
+  font-size: var(--text-body);
+  color: var(--ink-2);
+}
+
+.pay-checklist ol {
+  margin: 8px 0 0;
+  padding-left: 20px;
+  line-height: 1.9;
+  font-size: var(--text-body);
+  color: var(--ink-2);
+}
+
+.config-advanced {
+  margin-top: 6px;
+  padding: 12px 14px;
+  border: 1px dashed var(--line-2);
+  border-radius: var(--radius-sm);
+}
+
+.config-advanced .field {
+  margin: 12px 0 0;
+}
+
+.integration-save {
+  margin: 4px 0 8px;
+}
+
+@media (max-width: 1080px) {
+  .pay-status {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

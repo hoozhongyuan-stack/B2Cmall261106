@@ -1,8 +1,8 @@
 .delivery-tabs {
   display: flex;
   background: var(--surface);
-  padding: 0 16px;
-  gap: 20px;
+  padding: 0 32px;
+  gap: 32px;
   border-bottom: 1px solid var(--line);
   position: sticky;
   top: 0;
@@ -10,10 +10,10 @@
 }
 
 .delivery-tab {
-  padding: 12px 0;
-  font-size: 14px;
+  padding: 20px 0;
+  font-size: var(--fs-body);
   color: var(--ink-3);
-  border-bottom: 2px solid transparent;
+  border-bottom: 4px solid transparent;
 }
 
 .delivery-tab.active {
@@ -23,7 +23,7 @@
 }
 
 .delivery-list {
-  padding: 12px 16px 32px;
+  padding: 24px 32px 40px;
   height: calc(100vh - 120px);
   box-sizing: border-box;
 }
@@ -31,40 +31,40 @@
 .delivery-card {
   background: var(--surface);
   border-radius: var(--radius-md);
-  padding: 14px;
-  margin-bottom: 10px;
+  padding: 24px;
+  margin-bottom: 20px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 12px;
 }
 
 .delivery-no {
-  font-size: 12px;
+  font-size: var(--fs-caption);
   color: var(--ink-3);
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
 .delivery-tag {
-  font-size: 11px;
-  padding: 2px 8px;
+  font-size: var(--fs-micro);
+  padding: 4px 16px;
   border-radius: 999px;
   background: var(--brand-soft);
   color: var(--brand);
 }
 
 .delivery-tag.is-overdue {
-  background: #fdecec;
-  color: var(--danger, #c0392b);
+  background: var(--danger-soft);
+  color: var(--danger);
 }
 
 .delivery-line {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
 }
 
 .delivery-link {
-  font-size: 12px;
+  font-size: var(--fs-secondary);
   color: var(--brand);
 }
 
@@ -74,20 +74,20 @@
 
 .delivery-foot {
   margin-top: 6px;
-  padding-top: 10px;
+  padding-top: 20px;
   border-top: 1px dashed var(--line);
 }
 
 .delivery-btn {
-  min-width: 76px;
-  height: 34px;
+  min-width: 152px;
+  height: 68px;
   border-radius: 999px;
   border: 1px solid var(--brand);
   color: var(--brand);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 13px;
+  font-size: var(--fs-secondary);
 }
 
 .delivery-btn--primary {
@@ -103,6 +103,6 @@
   display: block;
   text-align: center;
   color: var(--ink-3);
-  font-size: 13px;
-  padding: 48px 0;
+  font-size: var(--fs-secondary);
+  padding: 96px 0;
 }

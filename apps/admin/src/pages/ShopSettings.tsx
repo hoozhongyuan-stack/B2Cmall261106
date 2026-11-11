@@ -372,7 +372,7 @@ export default function ShopSettings() {
             <Field
               label="业务域名"
               wide
-              hint="小程序 request 合法域名，在「集成配置」中维护；此处只读"
+              hint="小程序 request 合法域名，在「小程序与支付」中维护；此处只读"
             >
               <div className="row" style={{ gap: 8 }}>
                 <input className="input" value={businessDomain || '未配置'} disabled readOnly />

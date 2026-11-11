@@ -362,7 +362,7 @@ export class NotificationService implements OnModuleInit, OnModuleDestroy {
   async sendTest(userId?: string) {
     const { templates, fields } = await this.integration.subscribeTemplateConfig();
     if (!templates.orderPaid) {
-      throw new BadRequestException('请先在集成配置中填写订单支付通知模板 ID');
+      throw new BadRequestException('请先在「小程序与支付」中填写订单支付通知模板 ID');
     }
 
     const user = userId

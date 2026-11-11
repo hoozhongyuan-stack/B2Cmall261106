@@ -9,7 +9,7 @@
   padding: 8px 12px;
   background: #fff7e8;
   color: #8a5a1f;
-  font-size: 12px;
+  font-size: var(--fs-micro);
   overflow: hidden;
 }
 
@@ -19,7 +19,7 @@
   border-radius: 3px;
   background: #2f6f4e;
   color: #fff;
-  font-size: 10px;
+  font-size: var(--fs-micro);
 }
 
 .micro-notice-body {
@@ -55,7 +55,7 @@
   gap: 8px;
   height: 38px;
   padding: 0 14px;
-  font-size: 13px;
+  font-size: var(--fs-caption);
   background: rgba(255, 255, 255, 0.92);
   color: #8a8378;
 }
@@ -73,7 +73,7 @@
 }
 
 .micro-search-icon {
-  font-size: 16px;
+  font-size: var(--fs-secondary);
 }
 
 .micro-hotwords {
@@ -84,7 +84,7 @@
 }
 
 .micro-hotword {
-  font-size: 11px;
+  font-size: var(--fs-micro);
   color: #5c6f63;
   background: rgba(255, 255, 255, 0.7);
   border-radius: 999px;
@@ -114,7 +114,7 @@
   left: 12px;
   bottom: 10px;
   color: #fff;
-  font-size: 13px;
+  font-size: var(--fs-caption);
   text-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
 }
 
@@ -176,10 +176,10 @@
 
 .micro-goods-title {
   display: block;
-  font-size: 13px;
+  font-size: var(--fs-caption);
   line-height: 1.35;
   color: #2f2a24;
-  max-height: 36px;
+  max-height: 60px;
   overflow: hidden;
 }
 
@@ -191,20 +191,20 @@
 }
 
 .micro-goods-origin {
-  font-size: 11px;
+  font-size: var(--fs-micro);
   color: #a39c90;
   text-decoration: line-through;
 }
 
 .micro-goods-sales {
-  font-size: 11px;
+  font-size: var(--fs-micro);
   color: #8a8378;
 }
 
 .micro-goods-tag {
   display: inline-block;
   margin-top: 4px;
-  font-size: 10px;
+  font-size: var(--fs-micro);
   color: #b3261e;
   background: #fdecec;
   border-radius: 3px;
@@ -243,7 +243,7 @@
 }
 
 .micro-goods-row-title {
-  font-size: 14px;
+  font-size: var(--fs-caption);
   color: #2f2a24;
 }
 
@@ -259,7 +259,7 @@
 }
 
 .micro-goods-scroll-card {
-  width: 120px;
+  width: 240px;
   background: #fff;
   border-radius: 10px;
   overflow: hidden;
@@ -268,8 +268,8 @@
 }
 
 .micro-goods-scroll-card .micro-goods-image {
-  width: 120px;
-  height: 120px;
+  width: 240px;
+  height: 240px;
 }
 
 .micro-goods-scroll-card .micro-goods-title,
@@ -278,7 +278,7 @@
 }
 
 .micro-goods-loading {
-  font-size: 12px;
+  font-size: var(--fs-micro);
   color: #8a8378;
   padding: 12px;
 }
@@ -336,7 +336,7 @@
   justify-content: center;
   background: #e7f0e9;
   color: #2f6f4e;
-  font-size: 15px;
+  font-size: var(--fs-caption);
 }
 
 .micro-nav-name {

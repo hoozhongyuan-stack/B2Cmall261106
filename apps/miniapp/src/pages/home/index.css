@@ -1,16 +1,1 @@
-.home-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  min-height: 60vh;
-  padding: 0 48px;
-  text-align: center;
-}
-
-.home-empty-title {
-  font-size: 32px;
-  font-weight: 600;
-  color: var(--ink);
-}
+/* 首页空态与加载态统一由 components/common 的 PageState 渲染 */

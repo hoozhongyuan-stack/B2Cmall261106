@@ -2,7 +2,7 @@ import { Text, View } from '@tarojs/components';
 import { useRouter } from '@tarojs/taro';
 
 import { api } from '../../api/client';
-import { Empty, Loading } from '../../components/common';
+import { Empty, PageState } from '../../components/common';
 import { useRequest } from '../../hooks/useRequest';
 import { formatDate } from '../../utils/format';
 
@@ -22,8 +22,7 @@ export default function Page() {
   const id = router.params.id ?? '';
   const { data, loading } = useRequest(() => api<Shipment>(`/orders/${id}/shipment`), [id]);
 
-  if (loading && !data) return <Loading />;
-  if (!data) return <Empty text="物流信息加载失败" />;
+  if (!data) return <PageState loading={loading} empty text="物流信息加载失败" />;
 
   return (
     <View className="page">

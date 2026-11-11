@@ -3,7 +3,7 @@ import Taro, { useReachBottom, useRouter } from '@tarojs/taro';
 import { useEffect, useRef, useState } from 'react';
 
 import { api, showError } from '../../api/client';
-import { Empty, Loading } from '../../components/common';
+import { PageState } from '../../components/common';
 import { ProductCard, type ProductCardData } from '../../components/ProductCard';
 import { useRequest } from '../../hooks/useRequest';
 
@@ -368,10 +368,11 @@ export default function Page() {
             </Text>
           </View>
 
-          {loading && !items?.length && <Loading />}
-          {!loading && !items?.length && (
-            <Empty text="没有找到相关商品，换个词或筛选条件试试" />
-          )}
+          <PageState
+            loading={loading && !items?.length}
+            empty={!loading && !items?.length}
+            text="没有找到相关商品，换个词或筛选条件试试"
+          />
           {items?.map((product) => <ProductCard key={product.id} product={product} />)}
           {!!items?.length && (
             <View className="search-more muted tiny">

@@ -1,5 +1,5 @@
 .asd-status {
-  font-size: 38px;
+  font-size: var(--fs-display);
   font-weight: 700;
   color: var(--brand);
 }
@@ -42,7 +42,7 @@
 }
 
 .asd-step-text {
-  font-size: 20px;
+  font-size: var(--fs-micro);
   text-align: center;
 }
 

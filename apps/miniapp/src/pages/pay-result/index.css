@@ -26,14 +26,14 @@
 }
 
 .pay-mark-icon {
-  font-size: 84px;
+  font-size: var(--fs-hero);
   line-height: 1;
   font-weight: 700;
 }
 
 .pay-title {
   margin-top: 40px;
-  font-size: 40px;
+  font-size: var(--fs-display);
   font-weight: 600;
 }
 

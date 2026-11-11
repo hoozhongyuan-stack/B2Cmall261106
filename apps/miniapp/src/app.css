@@ -1,11 +1,24 @@
 @import '@shanye/tokens/tokens.css';
 
+/* 小程序字号刻度：750 设计稿，只允许这些级别；新增字号先改这里 */
+:root {
+  --fs-hero: 64px;
+  --fs-amount: 48px;
+  --fs-display: 40px;
+  --fs-title: 34px;
+  --fs-section: 30px;
+  --fs-body: 28px;
+  --fs-secondary: 24px;
+  --fs-caption: 22px;
+  --fs-micro: 20px;
+}
+
 /* 小程序：白底浮起卡片、正红强调、少线条；尺寸按 750 设计稿写 px（Taro 自动转 rpx） */
 page {
   background: var(--surface);
   color: var(--ink);
   font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Helvetica Neue', sans-serif;
-  font-size: 28px;
+  font-size: var(--fs-body);
   line-height: 1.55;
 }
 
@@ -67,11 +80,11 @@ page {
 }
 
 .small {
-  font-size: 24px;
+  font-size: var(--fs-secondary);
 }
 
 .tiny {
-  font-size: 22px;
+  font-size: var(--fs-caption);
 }
 
 .ellipsis {
@@ -88,13 +101,13 @@ page {
 }
 
 .title {
-  font-size: 34px;
+  font-size: var(--fs-title);
   font-weight: 600;
   letter-spacing: -0.01em;
 }
 
 .title--sm {
-  font-size: 30px;
+  font-size: var(--fs-section);
 }
 
 /* 图片加载失败时的品牌色块兜底 */
@@ -104,12 +117,12 @@ page {
   justify-content: center;
   background: var(--brand-soft);
   color: var(--brand);
-  font-size: 40px;
+  font-size: var(--fs-display);
   font-weight: 600;
 }
 
 .section-title {
-  font-size: 30px;
+  font-size: var(--fs-section);
   font-weight: 600;
   margin: 32px 0 16px;
 }
@@ -122,7 +135,7 @@ page {
 
 .price--old {
   color: var(--ink-3);
-  font-size: 24px;
+  font-size: var(--fs-secondary);
   text-decoration: line-through;
   font-weight: 400;
 }
@@ -133,7 +146,7 @@ page {
   height: 40px;
   padding: 0 16px;
   border-radius: 999px;
-  font-size: 22px;
+  font-size: var(--fs-caption);
   background: var(--surface-2);
   color: var(--ink-2);
 }
@@ -154,7 +167,7 @@ page {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 30px;
+  font-size: var(--fs-section);
   border: none;
   background: var(--surface-2);
   color: var(--ink);
@@ -178,7 +191,7 @@ page {
 
 .btn--sm {
   height: 60px;
-  font-size: 26px;
+  font-size: var(--fs-secondary);
   border-radius: 999px;
   padding: 0 24px;
 }
@@ -199,7 +212,7 @@ page {
   padding: 12px 24px;
   border-radius: 999px;
   color: var(--ink-2);
-  font-size: 26px;
+  font-size: var(--fs-secondary);
   background: transparent;
 }
 
@@ -244,7 +257,7 @@ page {
 }
 
 .field-label {
-  font-size: 24px;
+  font-size: var(--fs-secondary);
   color: var(--ink-2);
 }
 
@@ -254,7 +267,7 @@ page {
   background: var(--surface-2);
   border-radius: 16px;
   padding: 0 24px;
-  font-size: 28px;
+  font-size: var(--fs-body);
   box-sizing: border-box;
 }
 
@@ -273,14 +286,19 @@ page {
   padding: 120px 0;
   text-align: center;
   color: var(--ink-3);
-  font-size: 26px;
+  font-size: var(--fs-secondary);
+}
+
+/* 卡片内的空态：不占整屏高度 */
+.empty--compact {
+  padding: 24px 0;
 }
 
 .loading {
   padding: 120px 0;
   text-align: center;
   color: var(--ink-3);
-  font-size: 26px;
+  font-size: var(--fs-secondary);
 }
 
 .safe-bottom {
@@ -327,13 +345,13 @@ page {
 }
 
 .stat-value {
-  font-size: 34px;
+  font-size: var(--fs-title);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
 
 .stat-label {
-  font-size: 22px;
+  font-size: var(--fs-caption);
   color: var(--ink-3);
 }
 
@@ -350,12 +368,136 @@ page {
   height: 56px;
   line-height: 56px;
   text-align: center;
-  font-size: 32px;
+  font-size: var(--fs-section);
 }
 
 .stepper .stepper-value {
   min-width: 64px;
-  font-size: 26px;
+  font-size: var(--fs-secondary);
+}
+
+/* ---------------- 通用组件 ---------------- */
+
+/* 列表行：标题 + 值 + 箭头 */
+.cell {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-height: 88px;
+  padding: 20px 0;
+  box-sizing: border-box;
+}
+
+.cell + .cell {
+  border-top: 1px solid var(--line);
+}
+
+.cell-icon {
+  width: 40px;
+  text-align: center;
+  color: var(--ink-3);
+  font-size: var(--fs-secondary);
+}
+
+.cell-title {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--fs-body);
+  color: var(--ink);
+}
+
+.cell-value {
+  max-width: 50%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--fs-secondary);
+  color: var(--ink-3);
+}
+
+.cell-arrow {
+  color: var(--ink-3);
+  font-size: var(--fs-body);
+}
+
+/* 区块标题 + 右侧操作 */
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 32px 0 16px;
+}
+
+.section-head .section-title {
+  margin: 0;
+}
+
+.section-action {
+  flex: none;
+  font-size: var(--fs-secondary);
+  color: var(--ink-3);
+}
+
+.section-action--brand {
+  color: var(--brand);
+}
+
+/* 统计块 */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.stat-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 20px 12px;
+  border-radius: 20px;
+  background: var(--surface-2);
+}
+
+.stat-tile-value {
+  font-size: var(--fs-title);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.stat-tile-label {
+  font-size: var(--fs-caption);
+  color: var(--ink-3);
+}
+
+.stat-tile-hint {
+  font-size: var(--fs-micro);
+  color: var(--ink-3);
+}
+
+/* 搜索条 */
+.search-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.search-bar-input {
+  flex: 1;
+  height: 72px;
+  padding: 0 24px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  font-size: var(--fs-body);
+  box-sizing: border-box;
+}
+
+.search-bar-btn {
+  flex: none;
+  padding: 0 8px;
+  font-size: var(--fs-secondary);
+  color: var(--brand);
 }
 
 /* H5 预览时限制成手机宽度 */
