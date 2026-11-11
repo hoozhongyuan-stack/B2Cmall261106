@@ -140,64 +140,6 @@ describe('批量发货', () => {
   });
 });
 
-describe('首页运营位', () => {
-  it('保存空配置后首页返回空运营位与兜底数据', async () => {
-    const saved = await api(
-      '/admin/home-layout',
-      {
-        method: 'PUT',
-        body: JSON.stringify({ banners: [], navs: [], sections: [] }),
-      },
-      superToken,
-    );
-    expect(saved.status).toBe(200);
-
-    const home = await api('/home');
-    expect(home.status).toBe(200);
-    expect(home.body.data.banners).toEqual([]);
-    expect(Array.isArray(home.body.data.picks)).toBe(true);
-  });
-
-  it('推荐位包含下架商品时保存失败', async () => {
-    const result = await api(
-      '/admin/home-layout',
-      {
-        method: 'PUT',
-        body: JSON.stringify({
-          banners: [],
-          navs: [],
-          sections: [{ title: '测试推荐', productIds: ['not-exist-product'], sort: 0, enabled: true }],
-        }),
-      },
-      superToken,
-    );
-    expect(result.status).toBe(400);
-  });
-
-  it('保存推荐位后首页按配置返回商品', async () => {
-    const product = await prisma?.product.findFirst({ where: { status: 'ON_SALE' } });
-    const result = await api(
-      '/admin/home-layout',
-      {
-        method: 'PUT',
-        body: JSON.stringify({
-          banners: [],
-          navs: [],
-          sections: [
-            { title: '本周精选', productIds: [product?.id], sort: 0, enabled: true },
-          ],
-        }),
-      },
-      superToken,
-    );
-    expect(result.status).toBe(200);
-
-    const home = await api('/home');
-    expect(home.body.data.sections[0]).toMatchObject({ title: '本周精选' });
-    expect(home.body.data.sections[0].products[0].id).toBe(product?.id);
-  });
-});
-
 describe('评价晒图', () => {
   it('登录用户可上传评价图片并返回素材 key', async () => {
     const form = new FormData();

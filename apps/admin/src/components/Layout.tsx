@@ -168,7 +168,6 @@ const CRUMB_OVERRIDES: [RegExp, string][] = [
   [/^\/coupons\/[^/]+\/claims$/, '领取记录'],
   [/^\/settings\/home\/tabbar$/, '底部导航'],
   [/^\/settings\/home\/popup-ads$/, '弹窗广告'],
-  [/^\/settings\/home\/legacy$/, '旧版首页设置'],
   [/^\/settings\/home\/[^/]+$/, '编辑微页面'],
 ];
 

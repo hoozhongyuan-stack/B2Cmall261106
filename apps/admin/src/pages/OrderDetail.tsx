@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { ORDER_STATUS_LABEL, can, type OrderStatus } from '@shanye/shared/src/orderState';
 
 import { api, ApiError, formatDate, money } from '../api/client';
+import { assetPreviewUrl } from '../api/assets';
 import { hasRole } from '../auth';
 import { toast } from '../components/toast';
 import {
@@ -225,12 +226,31 @@ export default function OrderDetail() {
     {
       key: 'title',
       title: '商品',
-      render: (row) => (
-        <div>
-          <div>{row.title}</div>
-          <div className="small muted">{row.specText}</div>
-        </div>
-      ),
+      minWidth: 260,
+      render: (row) => {
+        // 仅上传到素材库的图片可预览；历史静态 key 在后台无对应资源
+        const thumb =
+          row.imageKey && /^(?:https?:\/\/|\/api\/)/i.test(row.imageKey)
+            ? assetPreviewUrl(row.imageKey)
+            : '';
+        return (
+          <div className="cell-product">
+            {thumb ? (
+              <img className="cell-thumb" src={thumb} alt="" loading="lazy" />
+            ) : (
+              <span className="cell-thumb cell-thumb--empty" aria-hidden="true">
+                无图
+              </span>
+            )}
+            <div className="cell-product-text">
+              <div className="cell-title cell-clip" title={row.title}>
+                {row.title}
+              </div>
+              <div className="small muted cell-clip">{row.specText}</div>
+            </div>
+          </div>
+        );
+      },
     },
     {
       key: 'priceCents',

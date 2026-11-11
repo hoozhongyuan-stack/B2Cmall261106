@@ -6,11 +6,15 @@ import {
 } from '@shanye/shared/src/orderState';
 
 import { api, ApiError, formatDate, money } from '../api/client';
+import { hasRole } from '../auth';
+import { confirmAction } from '../components/confirm';
 import { toast } from '../components/toast';
 import {
   Button,
   Card,
   DataTable,
+  Field,
+  Modal,
   PageHeader,
   Pagination,
   Tabs,
@@ -90,36 +94,89 @@ export default function AfterSales() {
   const [typeFilter, setTypeFilter] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [moderateTarget, setModerateTarget] = useState<AfterSaleItem | null>(null);
+  const [moderateAction, setModerateAction] = useState<
+    'approve_only_refund' | 'approve_return' | 'reject'
+  >('approve_only_refund');
+  const [rejectReason, setRejectReason] = useState('');
+  const [working, setWorking] = useState(false);
   const PAGE_SIZE = 20;
 
-  useEffect(() => {
-    let alive = true;
-    async function load() {
-      setLoading(true);
-      try {
-        const result = await api<AfterSaleResult>('/admin/after-sales', {
-          query: {
-            status,
-            page,
-            pageSize: PAGE_SIZE,
-            keyword: appliedKeyword || undefined,
-            type: typeFilter || undefined,
-            startDate: startDate || undefined,
-            endDate: endDate || undefined,
-          },
-        });
-        if (alive) setData(result);
-      } catch (err) {
-        if (alive) toast(errorText(err), 'error');
-      } finally {
-        if (alive) setLoading(false);
-      }
+  async function reload() {
+    setLoading(true);
+    try {
+      const result = await api<AfterSaleResult>('/admin/after-sales', {
+        query: {
+          status,
+          page,
+          pageSize: PAGE_SIZE,
+          keyword: appliedKeyword || undefined,
+          type: typeFilter || undefined,
+          startDate: startDate || undefined,
+          endDate: endDate || undefined,
+        },
+      });
+      setData(result);
+    } catch (err) {
+      toast(errorText(err), 'error');
+    } finally {
+      setLoading(false);
     }
-    void load();
-    return () => {
-      alive = false;
-    };
+  }
+
+  useEffect(() => {
+    void reload();
   }, [status, page, appliedKeyword, typeFilter, startDate, endDate]);
+
+  async function submitModerate() {
+    if (!moderateTarget) return;
+    if (moderateAction === 'reject' && !rejectReason.trim()) {
+      toast('拒绝时必须填写理由', 'error');
+      return;
+    }
+    if (moderateAction !== 'reject') {
+      const label = moderateAction === 'approve_only_refund' ? '同意仅退款' : '同意退货';
+      const confirmed = await confirmAction(
+        `确定${label}吗？将立即向买家退款 ${money(moderateTarget.refundCents)}，操作不可撤销。`,
+      );
+      if (!confirmed) return;
+    }
+    setWorking(true);
+    try {
+      await api(`/admin/after-sales/${moderateTarget.id}/moderate`, {
+        method: 'POST',
+        body: {
+          action: moderateAction,
+          ...(moderateAction === 'reject' ? { rejectReason: rejectReason.trim() } : {}),
+        },
+      });
+      toast('已处理');
+      setModerateTarget(null);
+      setRejectReason('');
+      await reload();
+    } catch (err) {
+      toast(errorText(err), 'error');
+    } finally {
+      setWorking(false);
+    }
+  }
+
+  async function receive(row: AfterSaleItem) {
+    const confirmed = await confirmAction(
+      `确认已收到退货并退款 ${money(row.refundCents)} 吗？操作不可撤销。`,
+    );
+    if (!confirmed) return;
+    setWorking(true);
+    try {
+      await api(`/admin/after-sales/${row.id}/receive`, { method: 'POST' });
+      toast('已确认收货并退款');
+      await reload();
+    } catch (err) {
+      toast(errorText(err), 'error');
+    } finally {
+      setWorking(false);
+    }
+  }
 
   const countMap = new Map(data.tabs.map((tab) => [tab.status, tab.count]));
   const total = data.tabs.reduce((sum, tab) => sum + tab.count, 0);
@@ -182,6 +239,43 @@ export default function AfterSales() {
       key: 'createdAt',
       title: '申请时间',
       render: (row) => <span className="small mono">{formatDate(row.createdAt)}</span>,
+    },
+    {
+      key: 'actions',
+      title: '操作',
+      width: '190px',
+      render: (row) => {
+        const canModerate = row.status === 'APPLIED' && hasRole('SUPER', 'CS');
+        const canReceive = row.status === 'WAIT_SELLER_RECEIVE' && hasRole('SUPER', 'WMS');
+        return (
+          <div
+            className="row"
+            style={{ justifyContent: 'flex-end', gap: 6 }}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <Button size="sm" variant="ghost" onClick={() => navigate(`/after-sales/${row.id}`)}>
+              查看
+            </Button>
+            {canModerate && (
+              <Button
+                size="sm"
+                onClick={() => {
+                  setModerateAction('approve_only_refund');
+                  setRejectReason('');
+                  setModerateTarget(row);
+                }}
+              >
+                审核
+              </Button>
+            )}
+            {canReceive && (
+              <Button size="sm" loading={working} onClick={() => void receive(row)}>
+                确认收货
+              </Button>
+            )}
+          </div>
+        );
+      },
     },
   ];
 
@@ -285,6 +379,55 @@ export default function AfterSales() {
           onChange={setPage}
         />
       </Card>
+
+      <Modal
+        open={Boolean(moderateTarget)}
+        title={`售后审核 ${moderateTarget?.afterSaleNo ?? ''}`}
+        onClose={() => setModerateTarget(null)}
+        footer={
+          <>
+            <Button variant="plain" onClick={() => setModerateTarget(null)}>
+              取消
+            </Button>
+            <Button
+              variant={moderateAction === 'reject' ? 'danger' : 'primary'}
+              loading={working}
+              onClick={() => void submitModerate()}
+            >
+              {moderateAction === 'reject' ? '确认拒绝' : '确认处理'}
+            </Button>
+          </>
+        }
+      >
+        <p className="small muted" style={{ marginTop: 0 }}>
+          退款金额 {money(moderateTarget?.refundCents ?? 0)}，请选择处理方式。
+        </p>
+        <Field label="处理方式">
+          <select
+            className="select"
+            value={moderateAction}
+            onChange={(event) =>
+              setModerateAction(
+                event.target.value as 'approve_only_refund' | 'approve_return' | 'reject',
+              )
+            }
+          >
+            <option value="approve_only_refund">同意仅退款（立即退款）</option>
+            <option value="approve_return">同意退货（等待买家寄回）</option>
+            <option value="reject">拒绝售后</option>
+          </select>
+        </Field>
+        {moderateAction === 'reject' && (
+          <Field label="拒绝理由" hint="必填，将展示给买家">
+            <textarea
+              className="textarea"
+              value={rejectReason}
+              placeholder="请说明拒绝原因"
+              onChange={(event) => setRejectReason(event.target.value)}
+            />
+          </Field>
+        )}
+      </Modal>
     </>
   );
 }

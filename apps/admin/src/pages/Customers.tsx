@@ -230,6 +230,34 @@ export default function Customers() {
       title: '注册时间',
       render: (row) => <span className="small mono">{formatDate(row.createdAt)}</span>,
     },
+    {
+      key: 'actions',
+      title: '操作',
+      width: '160px',
+      render: (row) => (
+        <div
+          className="row"
+          style={{ justifyContent: 'flex-end', gap: 6 }}
+          onClick={(event) => event.stopPropagation()}
+        >
+          <Button size="sm" variant="ghost" onClick={() => navigate(`/customers/${row.id}`)}>
+            查看
+          </Button>
+          {canTag && (
+            <Button
+              size="sm"
+              onClick={() => {
+                setSelected([row.id]);
+                setPickedTags([]);
+                setTagMode('add');
+              }}
+            >
+              打标签
+            </Button>
+          )}
+        </div>
+      ),
+    },
   ];
 
   return (

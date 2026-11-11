@@ -87,16 +87,8 @@ export function setMicroPageHome(id: string) {
   return api<MicroPageDetail>(`/admin/micro-pages/${id}/home`, { method: 'POST' });
 }
 
-export function removeMicroPageHome() {
-  return api<{ homeRenderer: 'legacy' }>('/admin/micro-pages/home', { method: 'DELETE' });
-}
-
 export function deleteMicroPage(id: string) {
   return api<{ deleted: boolean }>(`/admin/micro-pages/${id}`, { method: 'DELETE' });
-}
-
-export function migrateLegacyHome() {
-  return api<{ created: boolean }>('/admin/micro-pages/migrate-home', { method: 'POST' });
 }
 
 export function listLinkOptions(type: string, keyword?: string, limit = 30) {

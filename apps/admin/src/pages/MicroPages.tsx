@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 import { MICRO_PAGE_LIMITS } from '@shanye/shared/src/microPage';
 
@@ -9,8 +9,6 @@ import {
   deleteMicroPage,
   duplicateMicroPage,
   listMicroPages,
-  migrateLegacyHome,
-  removeMicroPageHome,
   setMicroPageHome,
   type MicroPageSummary,
 } from '../api/microPages';
@@ -99,19 +97,6 @@ export default function MicroPages() {
     }
   }
 
-  async function handleMigrate() {
-    setBusy(true);
-    try {
-      const result = await migrateLegacyHome();
-      toast(result.created ? '已生成首页微页面，可在列表中设为首页' : '首页微页面已存在');
-      await load();
-    } catch (err) {
-      toast(err instanceof ApiError ? err.message : '迁移失败', 'error');
-    } finally {
-      setBusy(false);
-    }
-  }
-
   async function handleSetHome(row: MicroPageSummary) {
     setBusy(true);
     try {
@@ -123,19 +108,6 @@ export default function MicroPages() {
     } finally {
       setBusy(false);
       setHomeTarget(null);
-    }
-  }
-
-  async function handleRemoveHome() {
-    setBusy(true);
-    try {
-      await removeMicroPageHome();
-      toast('已回退旧版首页');
-      await load();
-    } catch (err) {
-      toast(err instanceof ApiError ? err.message : '操作失败', 'error');
-    } finally {
-      setBusy(false);
     }
   }
 
@@ -214,11 +186,15 @@ export default function MicroPages() {
           actions={[
             { label: '复制', onClick: () => void handleDuplicate(row) },
             { label: '推广', onClick: () => setPromote(row) },
-            {
-              label: row.isHome ? '取消首页' : '设为首页',
-              onClick: () => (row.isHome ? void handleRemoveHome() : setHomeTarget(row)),
-              disabled: !row.isHome && row.status !== 'PUBLISHED',
-            },
+            ...(row.isHome
+              ? []
+              : [
+                  {
+                    label: '设为首页',
+                    onClick: () => setHomeTarget(row),
+                    disabled: row.status !== 'PUBLISHED',
+                  },
+                ]),
             { label: '删除', danger: true, onClick: () => setDeleting(row) },
           ]}
         />
@@ -231,14 +207,7 @@ export default function MicroPages() {
       <PageHeader
         title="页面装修"
         desc="搭建小程序首页与活动微页面，配置底部导航；保存草稿后上线生效"
-        actions={
-          <>
-            <Button variant="ghost" loading={busy} onClick={() => void handleMigrate()}>
-              迁移旧首页
-            </Button>
-            <Button onClick={() => setCreateOpen(true)}>新建微页面</Button>
-          </>
-        }
+        actions={<Button onClick={() => setCreateOpen(true)}>新建微页面</Button>}
       />
 
       <Tabs
@@ -278,12 +247,11 @@ export default function MicroPages() {
         >
           搜索
         </Button>
-        {hasHome && (
+        {hasHome ? (
           <span className="small muted">当前已启用微页面首页</span>
+        ) : (
+          <span className="small muted">未设置首页时，默认使用标识为 home 的已上线页面</span>
         )}
-        <Link className="small muted" to="/settings/home/legacy" style={{ marginLeft: 'auto' }}>
-          旧版首页设置
-        </Link>
       </Toolbar>
 
       <DataTable columns={columns} rows={rows} loading={loading} empty="还没有微页面，点击右上角新建" />
@@ -390,7 +358,7 @@ export default function MicroPages() {
       <Confirm
         open={Boolean(homeTarget)}
         title="设为小程序首页"
-        text={`确认把「${homeTarget?.title ?? ''}」设为首页？设置后小程序首页将立即使用该页面，可在列表随时回退旧版首页。`}
+        text={`确认把「${homeTarget?.title ?? ''}」设为首页？设置后小程序首页将立即使用该页面。`}
         confirmText="设为首页"
         onConfirm={() => homeTarget && void handleSetHome(homeTarget)}
         onCancel={() => setHomeTarget(null)}

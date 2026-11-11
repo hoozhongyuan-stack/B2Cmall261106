@@ -131,9 +131,8 @@ export interface ShopTabbarConfig {
 
 export interface ShopShell {
   tabbar: ShopTabbarConfig;
-  /** 首页微页面 code；未启用微页面首页时为空 */
+  /** 首页微页面 code；无可用页面时为空 */
   homeCode: string | null;
-  homeRenderer: 'legacy' | 'micro';
   updatedAt: string | null;
 }
 

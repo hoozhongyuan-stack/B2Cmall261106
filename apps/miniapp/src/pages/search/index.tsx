@@ -24,16 +24,6 @@ interface ProductPage {
   items: ProductItem[];
 }
 
-interface HomeData {
-  picks: {
-    id: string;
-    title: string;
-    subtitle: string | null;
-    mainImageKey: string | null;
-    priceCents: number;
-  }[];
-}
-
 interface Category {
   id: string;
   name: string;
@@ -83,7 +73,12 @@ export default function Page() {
   const [tagId, setTagId] = useState('');
   const [priceKey, setPriceKey] = useState('');
   const seq = useRef(0);
-  const { data: home } = useRequest(() => api<HomeData>('/home', { auth: 'optional' }));
+  const { data: suggest } = useRequest(() =>
+    api<ProductPage>('/products', {
+      query: { sort: 'default', page: 1, pageSize: 6 },
+      auth: 'optional',
+    }),
+  );
 
   // 筛选栏数据：分类、标签与聚合热词
   useEffect(() => {
@@ -274,7 +269,7 @@ export default function Page() {
           )}
 
           <View className="section-title">大家都在买</View>
-          {home?.picks.map((pick) => (
+          {suggest?.items.map((pick) => (
             <ProductCard
               key={pick.id}
               product={{
@@ -282,7 +277,7 @@ export default function Page() {
                 title: pick.title,
                 subtitle: pick.subtitle,
                 mainImageKey: pick.mainImageKey,
-                priceMinCents: pick.priceCents,
+                priceMinCents: pick.priceMinCents,
               }}
             />
           ))}

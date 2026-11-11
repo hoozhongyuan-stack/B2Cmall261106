@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { ORDER_STATUS_LABEL, type OrderStatus } from '@shanye/shared/src/orderState';
+import { ORDER_STATUS_LABEL, can, type OrderStatus } from '@shanye/shared/src/orderState';
 
 import { api, ApiError, formatDate, money } from '../api/client';
 import { hasRole } from '../auth';
@@ -11,6 +11,8 @@ import {
   Button,
   Card,
   DataTable,
+  Field,
+  Modal,
   PageHeader,
   Pagination,
   Tabs,
@@ -109,6 +111,9 @@ export default function Orders() {
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<string[]>([]);
+  const [shipTarget, setShipTarget] = useState<OrderRow | null>(null);
+  const [shipForm, setShipForm] = useState({ expressCode: '', expressName: '', trackingNo: '' });
+  const [shipping, setShipping] = useState(false);
   const PAGE_SIZE = 20;
 
   useEffect(() => {
@@ -142,37 +147,65 @@ export default function Orders() {
     toast(`已导出 ${rows.length} 笔订单`);
   }
 
-  useEffect(() => {
-    let alive = true;
-    async function load() {
-      setLoading(true);
-      try {
-        const result = await api<OrderListResult>('/admin/orders', {
-          query: {
-            status,
-            keyword: appliedKeyword,
-            storeIds: storeIds.length ? storeIds.join(',') : undefined,
-            fulfillmentType,
-            startDate: startDate || undefined,
-            endDate: endDate || undefined,
-            minCents: minAmount ? Math.round(Number(minAmount) * 100) : undefined,
-            maxCents: maxAmount ? Math.round(Number(maxAmount) * 100) : undefined,
-            page,
-            pageSize: PAGE_SIZE,
-          },
-        });
-        if (alive) setData(result);
-      } catch (err) {
-        if (alive) toast(errorText(err), 'error');
-      } finally {
-        if (alive) setLoading(false);
-      }
+  async function reload() {
+    setLoading(true);
+    try {
+      const result = await api<OrderListResult>('/admin/orders', {
+        query: {
+          status,
+          keyword: appliedKeyword,
+          storeIds: storeIds.length ? storeIds.join(',') : undefined,
+          fulfillmentType,
+          startDate: startDate || undefined,
+          endDate: endDate || undefined,
+          minCents: minAmount ? Math.round(Number(minAmount) * 100) : undefined,
+          maxCents: maxAmount ? Math.round(Number(maxAmount) * 100) : undefined,
+          page,
+          pageSize: PAGE_SIZE,
+        },
+      });
+      setData(result);
+    } catch (err) {
+      toast(errorText(err), 'error');
+    } finally {
+      setLoading(false);
     }
-    void load();
-    return () => {
-      alive = false;
-    };
+  }
+
+  useEffect(() => {
+    void reload();
   }, [status, appliedKeyword, storeIds, fulfillmentType, startDate, endDate, minAmount, maxAmount, page]);
+
+  async function handleShip() {
+    if (!shipTarget) return;
+    if (
+      !shipForm.expressCode.trim() ||
+      !shipForm.expressName.trim() ||
+      !shipForm.trackingNo.trim()
+    ) {
+      toast('请填写完整物流信息', 'error');
+      return;
+    }
+    setShipping(true);
+    try {
+      await api(`/admin/orders/${shipTarget.id}/ship`, {
+        method: 'POST',
+        body: {
+          expressCode: shipForm.expressCode.trim(),
+          expressName: shipForm.expressName.trim(),
+          trackingNo: shipForm.trackingNo.trim(),
+        },
+      });
+      toast('已发货');
+      setShipTarget(null);
+      setShipForm({ expressCode: '', expressName: '', trackingNo: '' });
+      await reload();
+    } catch (err) {
+      toast(errorText(err), 'error');
+    } finally {
+      setShipping(false);
+    }
+  }
 
   function changeStatus(next: string) {
     setStatus(next);
@@ -272,6 +305,39 @@ export default function Orders() {
       key: 'paidAt',
       title: '支付时间',
       render: (row) => <span className="small mono">{formatDate(row.paidAt)}</span>,
+    },
+    {
+      key: 'actions',
+      title: '操作',
+      width: '150px',
+      render: (row) => {
+        const canShip =
+          can(row.status as OrderStatus, 'ship') &&
+          row.fulfillmentType === 'EXPRESS' &&
+          hasRole('SUPER', 'WMS');
+        return (
+          <div
+            className="row"
+            style={{ justifyContent: 'flex-end', gap: 6 }}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <Button size="sm" variant="ghost" onClick={() => navigate(`/orders/${row.id}`)}>
+              查看
+            </Button>
+            {canShip && (
+              <Button
+                size="sm"
+                onClick={() => {
+                  setShipForm({ expressCode: '', expressName: '', trackingNo: '' });
+                  setShipTarget(row);
+                }}
+              >
+                发货
+              </Button>
+            )}
+          </div>
+        );
+      },
     },
   ];
 
@@ -424,6 +490,50 @@ export default function Orders() {
           },
         ]}
       />
+
+      <Modal
+        open={Boolean(shipTarget)}
+        title={`订单发货 ${shipTarget?.orderNo ?? ''}`}
+        onClose={() => setShipTarget(null)}
+        footer={
+          <>
+            <Button variant="plain" onClick={() => setShipTarget(null)}>
+              取消
+            </Button>
+            <Button loading={shipping} onClick={() => void handleShip()}>
+              确认发货
+            </Button>
+          </>
+        }
+      >
+        <Field label="快递编码" hint="例如：SF / YTO">
+          <input
+            className="input"
+            value={shipForm.expressCode}
+            onChange={(event) =>
+              setShipForm((prev) => ({ ...prev, expressCode: event.target.value }))
+            }
+          />
+        </Field>
+        <Field label="快递公司">
+          <input
+            className="input"
+            value={shipForm.expressName}
+            onChange={(event) =>
+              setShipForm((prev) => ({ ...prev, expressName: event.target.value }))
+            }
+          />
+        </Field>
+        <Field label="运单号">
+          <input
+            className="input"
+            value={shipForm.trackingNo}
+            onChange={(event) =>
+              setShipForm((prev) => ({ ...prev, trackingNo: event.target.value }))
+            }
+          />
+        </Field>
+      </Modal>
     </>
   );
 }

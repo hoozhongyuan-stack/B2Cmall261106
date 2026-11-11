@@ -164,14 +164,6 @@ export class AdminMicroPageController {
     return this.pages.setHome(id);
   }
 
-  @Delete(':id/home')
-  @HttpCode(200)
-  @Roles('SUPER', 'OPS')
-  @ApiOperation({ summary: '取消微页面首页，回退旧版首页渲染' })
-  removeHome() {
-    return this.pages.removeHome();
-  }
-
   @Delete(':id')
   @HttpCode(200)
   @Roles('SUPER', 'OPS')

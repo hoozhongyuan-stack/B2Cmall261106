@@ -16,7 +16,6 @@ import { TelemetryModule } from './modules/telemetry/telemetry.module';
 import { IntegrationModule } from './modules/integration/integration.module';
 import { MiniappReleaseModule } from './modules/miniapp-release/miniapp-release.module';
 import { OpsModule } from './modules/ops/ops.module';
-import { HomeModule } from './modules/home/home.module';
 import { MicroPageModule } from './modules/micro-page/micro-page.module';
 import { PopupAdModule } from './modules/popup-ad/popup-ad.module';
 import { ExpressModule } from './modules/express/express.module';
@@ -40,7 +39,6 @@ import { StoreConsoleModule } from './modules/store-console/store-console.module
     IntegrationModule,
     MiniappReleaseModule,
     OpsModule,
-    HomeModule,
     MicroPageModule,
     PopupAdModule,
     ExpressModule,

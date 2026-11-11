@@ -13,7 +13,6 @@ import {
   MICRO_LINK_LABELS,
   MICRO_PAGE_LIMITS,
   type MicroComponent,
-  type MicroLink,
   type MicroPageSettings,
   type ShopTabbarConfig,
   type ShopTabbarItem,
@@ -261,25 +260,8 @@ export class MicroPageService {
         where: { id: page.id },
         data: { isHome: true, updatedBy: admin?.name ?? null },
       }),
-      this.prisma.shopConfig.upsert({
-        where: { id: 'singleton' },
-        update: { homeRenderer: 'micro' },
-        create: { id: 'singleton', homeRenderer: 'micro' },
-      }),
     ]);
     return this.detail(page.id);
-  }
-
-  async removeHome() {
-    await this.prisma.$transaction([
-      this.prisma.microPage.updateMany({ where: { isHome: true }, data: { isHome: false } }),
-      this.prisma.shopConfig.upsert({
-        where: { id: 'singleton' },
-        update: { homeRenderer: 'legacy' },
-        create: { id: 'singleton', homeRenderer: 'legacy' },
-      }),
-    ]);
-    return { homeRenderer: 'legacy' as const };
   }
 
   async remove(id: string, admin?: AdminInfo) {
@@ -455,10 +437,15 @@ export class MicroPageService {
   }
 
   async shell() {
-    const [config, home, tabbar] = await Promise.all([
-      this.prisma.shopConfig.findFirst({ select: { homeRenderer: true } }),
+    const [home, tabbar] = await Promise.all([
+      // 首页固定取「已设首页」的微页面；未设时回落到标识为 home 的已上线页面
       this.prisma.microPage.findFirst({
-        where: { isHome: true, status: 'PUBLISHED', deletedAt: null },
+        where: {
+          status: 'PUBLISHED',
+          deletedAt: null,
+          OR: [{ isHome: true }, { code: 'home' }],
+        },
+        orderBy: [{ isHome: 'desc' }, { updatedAt: 'desc' }],
         select: { code: true, updatedAt: true },
       }),
       this.tabbar(),
@@ -467,13 +454,16 @@ export class MicroPageService {
     return {
       tabbar,
       homeCode: home?.code ?? null,
-      homeRenderer: config?.homeRenderer === 'micro' ? ('micro' as const) : ('legacy' as const),
       updatedAt: home?.updatedAt ?? null,
     };
   }
 
-  /* ---------------- 老首页迁移 ---------------- */
+  /* ---------------- 默认首页 ---------------- */
 
+  /**
+   * 生成默认首页微页面（仅当不存在 code=home 的页面时）。
+   * 旧版运营位已下线，这里只使用店铺配置、分类与在售商品兜底。
+   */
   async migrateLegacyHome() {
     const existing = await this.prisma.microPage.findFirst({
       where: { code: 'home', deletedAt: null },
@@ -482,23 +472,8 @@ export class MicroPageService {
       return { created: false, page: this.view(existing) };
     }
 
-    const [config, banners, navs, sections, categories, picks, seckillRows] = await Promise.all([
+    const [config, categories, picks, seckillRows] = await Promise.all([
       this.prisma.shopConfig.findFirst(),
-      this.prisma.homeBanner.findMany({
-        where: { enabled: true },
-        orderBy: [{ sort: 'asc' }, { createdAt: 'asc' }],
-        take: MICRO_PAGE_LIMITS.maxBannerItems,
-      }),
-      this.prisma.homeNav.findMany({
-        where: { enabled: true },
-        orderBy: [{ sort: 'asc' }, { createdAt: 'asc' }],
-        take: MICRO_PAGE_LIMITS.maxNavItems,
-      }),
-      this.prisma.homeSection.findMany({
-        where: { enabled: true },
-        orderBy: [{ sort: 'asc' }, { createdAt: 'asc' }],
-        take: 6,
-      }),
       this.prisma.category.findMany({
         where: { parentId: null },
         orderBy: { sort: 'asc' },
@@ -575,35 +550,11 @@ export class MicroPageService {
       link: { type: 'none', value: null },
     });
 
-    if (banners.length) {
-      push(
-        'banner',
-        {
-          items: banners.map((banner) => ({
-            imageKey: banner.imageKey,
-            title: banner.title ?? '',
-            link: this.legacyLink(banner.linkType, banner.linkValue),
-          })),
-          ratio: '2:1',
-          autoplay: true,
-          interval: 4,
-          indicator: 'dots',
-        },
-        { margin: [0, 12, 12, 12], radius: 8 },
-      );
-    }
-
-    const navItems = navs.length
-      ? navs.map((nav) => ({
-          name: nav.name,
-          iconKey: nav.iconKey ?? '',
-          link: this.legacyLink(nav.linkType, nav.linkValue),
-        }))
-      : categories.map((category) => ({
-          name: category.name.slice(0, 6),
-          iconKey: '',
-          link: { type: 'category' as const, value: category.id },
-        }));
+    const navItems = categories.map((category) => ({
+      name: category.name.slice(0, 6),
+      iconKey: '',
+      link: { type: 'category' as const, value: category.id },
+    }));
     if (navItems.length) {
       push('navGrid', {
         columns: navItems.length <= 4 ? 4 : 5,
@@ -628,25 +579,7 @@ export class MicroPageService {
       });
     }
 
-    if (sections.length) {
-      for (const section of sections) {
-        const productIds = Array.isArray(section.productIds)
-          ? (section.productIds as string[]).filter((id) => typeof id === 'string')
-          : [];
-        if (!productIds.length) continue;
-        push('goods', {
-          source: 'manual',
-          productIds,
-          categoryId: '',
-          promotionId: '',
-          limit: Math.min(productIds.length, MICRO_PAGE_LIMITS.maxGoods),
-          layout: 'grid-2',
-          show: { price: true, originPrice: true, sales: false, tag: false },
-          buyButton: false,
-          cardBg: '',
-        });
-      }
-    } else if (picks.length) {
+    if (picks.length) {
       push('goods', {
         source: 'picks',
         productIds: [],
@@ -890,18 +823,6 @@ export class MicroPageService {
       throw new BadRequestException(`颜色 ${color} 格式不正确`);
     }
     return color;
-  }
-
-  private legacyLink(linkType: string | null, linkValue: string | null): MicroLink {
-    const value = (linkValue ?? '').trim();
-    if (!value || linkType === 'none') return { type: 'none', value: null };
-    if (linkType === 'product' || linkType === 'category' || linkType === 'search') {
-      return { type: linkType, value };
-    }
-    if (linkType === 'page') {
-      return { type: 'page', value };
-    }
-    return { type: 'none', value: null };
   }
 
   /** 供控制器展示链接类型文案（避免前端重复维护） */

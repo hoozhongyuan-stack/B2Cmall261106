@@ -84,73 +84,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/home": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** 首页聚合（运营位 + 分类与精选兜底） */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            data?: {
-                                freeThresholdCents?: number;
-                                banners?: {
-                                    id?: string;
-                                    imageKey?: string;
-                                    title?: string | null;
-                                    /** @enum {string} */
-                                    linkType?: "product" | "category" | "search" | "page" | "none";
-                                    linkValue?: string | null;
-                                }[];
-                                navs?: {
-                                    id?: string;
-                                    name?: string;
-                                    iconKey?: string | null;
-                                    /** @enum {string} */
-                                    linkType?: "product" | "category" | "search" | "page" | "none";
-                                    linkValue?: string | null;
-                                }[];
-                                sections?: {
-                                    id?: string;
-                                    title?: string;
-                                    products?: components["schemas"]["HomeProduct"][];
-                                }[];
-                                categories?: {
-                                    id?: string;
-                                    name?: string;
-                                    index?: number;
-                                }[];
-                                picks?: components["schemas"]["HomeProduct"][];
-                            };
-                        };
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/categories": {
         parameters: {
             query?: never;
@@ -6367,75 +6300,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/admin/home-layout": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** 首页运营位配置（含停用项） */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            data?: {
-                                banners?: components["schemas"]["HomeBannerConfig"][];
-                                navs?: components["schemas"]["HomeNavConfig"][];
-                                sections?: components["schemas"]["HomeSectionConfig"][];
-                            };
-                        };
-                    };
-                };
-            };
-        };
-        /** 保存首页运营位（全量替换，保存后即时生效） */
-        put: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": {
-                        banners: components["schemas"]["HomeBannerConfig"][];
-                        navs: components["schemas"]["HomeNavConfig"][];
-                        sections: components["schemas"]["HomeSectionConfig"][];
-                    };
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                400: components["responses"]["BadRequest"];
-            };
-        };
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/member-cards/plans": {
         parameters: {
             query?: never;
@@ -8250,27 +8114,7 @@ export interface paths {
                 400: components["responses"]["BadRequest"];
             };
         };
-        /** 取消微页面首页，回退旧版首页渲染 */
-        delete: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-            };
-        };
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -9236,13 +9080,6 @@ export interface components {
             /** Format: date-time */
             createdAt?: string;
         };
-        HomeProduct: {
-            id?: string;
-            title?: string;
-            subtitle?: string | null;
-            mainImageKey?: string | null;
-            priceCents?: number;
-        };
         ExpressCompany: {
             id?: string;
             code?: string;
@@ -9473,33 +9310,6 @@ export interface components {
             /** Format: date-time */
             createdAt?: string;
         };
-        HomeBannerConfig: {
-            id?: string;
-            imageKey: string;
-            title?: string | null;
-            /** @enum {string} */
-            linkType: "product" | "category" | "search" | "page" | "none";
-            linkValue?: string | null;
-            sort: number;
-            enabled: boolean;
-        };
-        HomeNavConfig: {
-            id?: string;
-            name: string;
-            iconKey?: string | null;
-            /** @enum {string} */
-            linkType: "product" | "category" | "search" | "page" | "none";
-            linkValue?: string | null;
-            sort: number;
-            enabled: boolean;
-        };
-        HomeSectionConfig: {
-            id?: string;
-            title: string;
-            productIds: string[];
-            sort: number;
-            enabled: boolean;
-        };
         MemberCardPlan: {
             id?: string;
             name?: string;
@@ -9717,8 +9527,6 @@ export interface components {
         ShopShell: {
             tabbar: components["schemas"]["ShopTabbar"];
             homeCode?: string | null;
-            /** @enum {string} */
-            homeRenderer: "legacy" | "micro";
             /** Format: date-time */
             updatedAt?: string | null;
         };

@@ -730,8 +730,6 @@ model ShopConfig {
   payTimeoutMinutes  Int      @default(15)
   afterSaleDays      Int      @default(7)
   autoConfirmDays    Int      @default(10)
-  /// 首页渲染方式：legacy（旧运营位）| micro（微页面 home）
-  homeRenderer       String   @default("legacy")
   updatedAt          DateTime @updatedAt @db.Timestamptz(3)
 }
 
@@ -895,45 +893,6 @@ model ShopTabbar {
   /// [{ key, text, iconKey, activeIconKey, link }]
   items     Json     @default("[]")
   updatedAt DateTime @updatedAt @db.Timestamptz(3)
-}
-
-// 首页轮播：图片来自素材库，跳转目标按 linkType 解析
-model HomeBanner {
-  id        String   @id @default(cuid())
-  imageKey  String
-  title     String?
-  /// product | category | search | page | none
-  linkType  String   @default("none")
-  linkValue String?
-  sort      Int      @default(0)
-  enabled   Boolean  @default(true)
-  createdAt DateTime @default(now()) @db.Timestamptz(3)
-  updatedAt DateTime @updatedAt @db.Timestamptz(3)
-}
-
-// 首页金刚区入口
-model HomeNav {
-  id        String   @id @default(cuid())
-  name      String
-  iconKey   String?
-  /// product | category | search | page
-  linkType  String   @default("category")
-  linkValue String?
-  sort      Int      @default(0)
-  enabled   Boolean  @default(true)
-  createdAt DateTime @default(now()) @db.Timestamptz(3)
-  updatedAt DateTime @updatedAt @db.Timestamptz(3)
-}
-
-// 首页推荐位：按配置顺序展示商品，productIds 为有序 ID 数组
-model HomeSection {
-  id         String   @id @default(cuid())
-  title      String
-  productIds Json     @default("[]")
-  sort       Int      @default(0)
-  enabled    Boolean  @default(true)
-  createdAt  DateTime @default(now()) @db.Timestamptz(3)
-  updatedAt  DateTime @updatedAt @db.Timestamptz(3)
 }
 
 // 营销活动：满减（FULL_REDUCTION）与限时秒杀（SECKILL）

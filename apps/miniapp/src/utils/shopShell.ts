@@ -24,7 +24,6 @@ export const DEFAULT_SHELL: ShopShell = {
     ],
   },
   homeCode: null,
-  homeRenderer: 'legacy',
   updatedAt: null,
 };
 

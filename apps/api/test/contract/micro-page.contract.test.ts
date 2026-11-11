@@ -313,7 +313,7 @@ describe('微页面：草稿与发布', () => {
 });
 
 describe('微页面：首页与删除保护', () => {
-  it('未上线不能设为首页；上线后切换 shell，并可回退旧版', async () => {
+  it('未上线不能设为首页；上线后可切换首页且立即生效', async () => {
     const page = await createPage('契约首页');
     const early = await api(`/admin/micro-pages/${page.id}/home`, { method: 'POST' }, admin);
     expect(early.status).toBe(400);
@@ -329,14 +329,25 @@ describe('微页面：首页与删除保护', () => {
     expect(home.status).toBe(200);
 
     const shell = await api('/shop/shell');
-    expect(shell.body.data.homeRenderer).toBe('micro');
     expect(shell.body.data.homeCode).toBe(page.code);
+    expect(shell.body.data).not.toHaveProperty('homeRenderer');
 
-    const reset = await api(`/admin/micro-pages/${page.id}/home`, { method: 'DELETE' }, admin);
-    expect(reset.status).toBe(200);
-    const legacy = await api('/shop/shell');
-    expect(legacy.body.data.homeRenderer).toBe('legacy');
-    expect(legacy.body.data.homeCode).toBeNull();
+    // 切换首页：同一时间只能有一个首页
+    const another = await createPage('契约首页二');
+    await api(
+      `/admin/micro-pages/${another.id}`,
+      { method: 'PUT', body: JSON.stringify({ components: [textComponent('第二首页')] }) },
+      admin,
+    );
+    await api(`/admin/micro-pages/${another.id}/publish`, { method: 'POST' }, admin);
+    const switched = await api(`/admin/micro-pages/${another.id}/home`, { method: 'POST' }, admin);
+    expect(switched.status).toBe(200);
+
+    const nextShell = await api('/shop/shell');
+    expect(nextShell.body.data.homeCode).toBe(another.code);
+
+    const former = await api(`/admin/micro-pages/${page.id}`, {}, admin);
+    expect(former.body.data.isHome).toBe(false);
   });
 
   it('被底部导航或其他页面引用时禁止删除', async () => {
@@ -440,8 +451,8 @@ describe('微页面：首页与删除保护', () => {
   });
 });
 
-describe('微页面：老首页迁移', () => {
-  it('迁移可重复执行，生成已发布的 home 页面', async () => {
+describe('微页面：默认首页生成', () => {
+  it('可重复执行，生成已发布的 home 页面', async () => {
     const first = await api('/admin/micro-pages/migrate-home', { method: 'POST' }, admin);
     expect(first.status).toBe(200);
     expect(first.body.data.created).toBe(true);

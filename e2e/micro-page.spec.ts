@@ -31,11 +31,16 @@ const DEFAULT_TABBAR = {
   ],
 };
 
-test('微页面：编辑发布后小程序渲染，可设为首页并回退', async ({ page, request }) => {
+test('微页面：编辑发布后小程序渲染，可设为首页并持久生效', async ({ page, request }) => {
   const token = await adminToken(request);
   const headers = { authorization: `Bearer ${token}` };
   const suffix = Date.now().toString(36).toUpperCase();
   let pageId = '';
+
+  const list = await request.get(`${API}/admin/micro-pages?pageSize=100`, { headers });
+  const originalHome = unwrap<{ items: { id: string; isHome: boolean }[] }>(await list.json()).items.find(
+    (item) => item.isHome,
+  );
 
   try {
     const created = await request.post(`${API}/admin/micro-pages`, {
@@ -128,19 +133,19 @@ test('微页面：编辑发布后小程序渲染，可设为首页并回退', as
     await page.goto(`${H5}/#/pages/home/index`);
     await expect(page.locator('.app-tabbar')).toContainText('逛店', { timeout: 30_000 });
 
-    // 设为首页后首页直接渲染微页面
+    // 设为首页后首页直接渲染微页面，刷新后仍保持
     const home = await request.post(`${API}/admin/micro-pages/${pageId}/home`, { headers });
     expect(home.ok(), await home.text()).toBeTruthy();
     await page.goto(`${H5}/#/pages/home/index`);
     await expect(page.getByText(`E2E 文案 ${suffix}`)).toBeVisible({ timeout: 30_000 });
-
-    // 回退旧版首页
-    const reset = await request.delete(`${API}/admin/micro-pages/${pageId}/home`, { headers });
-    expect(reset.ok(), await reset.text()).toBeTruthy();
-    await page.goto(`${H5}/#/pages/home/index`);
-    await expect(page.getByText('山野好物 · 顺时而食')).toBeVisible({ timeout: 30_000 });
+    await page.reload();
+    await expect(page.getByText(`E2E 文案 ${suffix}`)).toBeVisible({ timeout: 30_000 });
   } finally {
-    await request.delete(`${API}/admin/micro-pages/${pageId}/home`, { headers }).catch(() => undefined);
+    if (originalHome && originalHome.id !== pageId) {
+      await request
+        .post(`${API}/admin/micro-pages/${originalHome.id}/home`, { headers })
+        .catch(() => undefined);
+    }
     await request.put(`${API}/admin/tabbar`, { headers, data: DEFAULT_TABBAR }).catch(() => undefined);
     if (pageId) {
       await request.delete(`${API}/admin/micro-pages/${pageId}`, { headers }).catch(() => undefined);

@@ -53,64 +53,6 @@ paths:
                   data:
                     $ref: '#/components/schemas/ShopConfig'
 
-  /home:
-    get:
-      tags: [catalog]
-      summary: 首页聚合（运营位 + 分类与精选兜底）
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  data:
-                    type: object
-                    properties:
-                      freeThresholdCents: { type: integer }
-                      banners:
-                        type: array
-                        items:
-                          type: object
-                          properties:
-                            id: { type: string }
-                            imageKey: { type: string }
-                            title: { type: string, nullable: true }
-                            linkType: { type: string, enum: [product, category, search, page, none] }
-                            linkValue: { type: string, nullable: true }
-                      navs:
-                        type: array
-                        items:
-                          type: object
-                          properties:
-                            id: { type: string }
-                            name: { type: string }
-                            iconKey: { type: string, nullable: true }
-                            linkType: { type: string, enum: [product, category, search, page, none] }
-                            linkValue: { type: string, nullable: true }
-                      sections:
-                        type: array
-                        items:
-                          type: object
-                          properties:
-                            id: { type: string }
-                            title: { type: string }
-                            products:
-                              type: array
-                              items: { $ref: '#/components/schemas/HomeProduct' }
-                      categories:
-                        type: array
-                        items:
-                          type: object
-                          properties:
-                            id: { type: string }
-                            name: { type: string }
-                            index: { type: integer }
-                      picks:
-                        type: array
-                        items: { $ref: '#/components/schemas/HomeProduct' }
-
   /categories:
     get:
       tags: [catalog]
@@ -3189,60 +3131,6 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
         '409': { $ref: '#/components/responses/Conflict' }
 
-  /admin/home-layout:
-    get:
-      tags: [admin-home]
-      summary: 首页运营位配置（含停用项）
-      security: [{ adminToken: [] }]
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  data:
-                    type: object
-                    properties:
-                      banners:
-                        type: array
-                        items: { $ref: '#/components/schemas/HomeBannerConfig' }
-                      navs:
-                        type: array
-                        items: { $ref: '#/components/schemas/HomeNavConfig' }
-                      sections:
-                        type: array
-                        items: { $ref: '#/components/schemas/HomeSectionConfig' }
-    put:
-      tags: [admin-home]
-      summary: 保存首页运营位（全量替换，保存后即时生效）
-      security: [{ adminToken: [] }]
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              additionalProperties: false
-              required: [banners, navs, sections]
-              properties:
-                banners:
-                  type: array
-                  maxItems: 6
-                  items: { $ref: '#/components/schemas/HomeBannerConfig' }
-                navs:
-                  type: array
-                  maxItems: 10
-                  items: { $ref: '#/components/schemas/HomeNavConfig' }
-                sections:
-                  type: array
-                  maxItems: 6
-                  items: { $ref: '#/components/schemas/HomeSectionConfig' }
-      responses:
-        '200': { description: OK }
-        '400': { $ref: '#/components/responses/BadRequest' }
-
   /member-cards/plans:
     get:
       tags: [member-cards]
@@ -4030,15 +3918,6 @@ paths:
         '200':
           description: OK
         '400': { $ref: '#/components/responses/BadRequest' }
-    delete:
-      tags: [admin-micro-page]
-      summary: 取消微页面首页，回退旧版首页渲染
-      security: [{ adminToken: [] }]
-      parameters:
-        - { name: id, in: path, required: true, schema: { type: string } }
-      responses:
-        '200':
-          description: OK
 
   /admin/link-options:
     get:
@@ -4936,15 +4815,6 @@ components:
         lastQueriedAt: { type: string, format: date-time, nullable: true }
         createdAt: { type: string, format: date-time }
 
-    HomeProduct:
-      type: object
-      properties:
-        id: { type: string }
-        title: { type: string }
-        subtitle: { type: string, nullable: true }
-        mainImageKey: { type: string, nullable: true }
-        priceCents: { type: integer }
-
     ExpressCompany:
       type: object
       properties:
@@ -5219,42 +5089,6 @@ components:
         operatorId: { type: string, nullable: true }
         createdAt: { type: string, format: date-time }
 
-    HomeBannerConfig:
-      type: object
-      required: [imageKey, linkType, sort, enabled]
-      properties:
-        id: { type: string }
-        imageKey: { type: string }
-        title: { type: string, nullable: true }
-        linkType: { type: string, enum: [product, category, search, page, none] }
-        linkValue: { type: string, nullable: true }
-        sort: { type: integer, minimum: 0 }
-        enabled: { type: boolean }
-
-    HomeNavConfig:
-      type: object
-      required: [name, linkType, sort, enabled]
-      properties:
-        id: { type: string }
-        name: { type: string }
-        iconKey: { type: string, nullable: true }
-        linkType: { type: string, enum: [product, category, search, page, none] }
-        linkValue: { type: string, nullable: true }
-        sort: { type: integer, minimum: 0 }
-        enabled: { type: boolean }
-
-    HomeSectionConfig:
-      type: object
-      required: [title, productIds, sort, enabled]
-      properties:
-        id: { type: string }
-        title: { type: string }
-        productIds:
-          type: array
-          items: { type: string }
-        sort: { type: integer, minimum: 0 }
-        enabled: { type: boolean }
-
     MemberCardPlan:
       type: object
       properties:
@@ -5527,11 +5361,10 @@ components:
 
     ShopShell:
       type: object
-      required: [tabbar, homeRenderer]
+      required: [tabbar]
       properties:
         tabbar: { $ref: '#/components/schemas/ShopTabbar' }
         homeCode: { type: string, nullable: true }
-        homeRenderer: { type: string, enum: [legacy, micro] }
         updatedAt: { type: string, format: date-time, nullable: true }
 
     LinkOption:
