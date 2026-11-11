@@ -18,6 +18,7 @@ import { MiniappReleaseModule } from './modules/miniapp-release/miniapp-release.
 import { OpsModule } from './modules/ops/ops.module';
 import { MicroPageModule } from './modules/micro-page/micro-page.module';
 import { PopupAdModule } from './modules/popup-ad/popup-ad.module';
+import { PointsModule } from './modules/points/points.module';
 import { ExpressModule } from './modules/express/express.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { StoreModule } from './modules/store/store.module';
@@ -41,6 +42,7 @@ import { StoreConsoleModule } from './modules/store-console/store-console.module
     OpsModule,
     MicroPageModule,
     PopupAdModule,
+    PointsModule,
     ExpressModule,
     AnalyticsModule,
     StoreModule,

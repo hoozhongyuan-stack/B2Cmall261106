@@ -43,6 +43,7 @@ const MemberCommerce = lazy(() => import('./pages/MemberCommerce'));
 const Promotions = lazy(() => import('./pages/Promotions'));
 const Analytics = lazy(() => import('./pages/Analytics'));
 const Stores = lazy(() => import('./pages/Stores'));
+const StoreEdit = lazy(() => import('./pages/StoreEdit'));
 const Pickups = lazy(() => import('./pages/Pickups'));
 const Deliveries = lazy(() => import('./pages/Deliveries'));
 
@@ -89,6 +90,8 @@ export function App() {
           <Route path="coupons/new" element={<CouponNew />} />
           <Route path="coupons/:id/claims" element={<CouponClaims />} />
           <Route path="settings/stores" element={<Stores />} />
+          <Route path="settings/stores/new" element={<StoreEdit />} />
+          <Route path="settings/stores/:id/edit" element={<StoreEdit />} />
           <Route path="fulfillment/pickups" element={<Pickups />} />
           <Route path="fulfillment/deliveries" element={<Deliveries />} />
           <Route path="settings/shop" element={<ShopSettings />} />

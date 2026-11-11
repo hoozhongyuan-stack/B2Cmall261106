@@ -1,15 +1,36 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type APIRequestContext } from '@playwright/test';
 
 const ADMIN = 'http://127.0.0.1:5173';
+const API = 'http://127.0.0.1:3000/api';
 
-async function login(page: import('@playwright/test').Page) {
-  await page.goto(`${ADMIN}/login`);
-  await page.getByRole('button', { name: '登录' }).click();
-  await expect(page).toHaveURL(`${ADMIN}/`);
+interface Envelope<T> {
+  code: string;
+  data: T;
 }
 
-test('后台列表操作列：订单发货 / 售后审核 / 客户打标签', async ({ page }) => {
-  await login(page);
+function unwrap<T>(body: unknown): T {
+  return (body as Envelope<T>).data;
+}
+
+async function login(page: import('@playwright/test').Page, request: APIRequestContext) {
+  const res = await request.post(`${API}/admin/auth/login`, {
+    data: { account: 'admin@shanye.com', password: 'admin123' },
+  });
+  expect(res.ok(), await res.text()).toBeTruthy();
+  const session = unwrap<{ token: string; user: Record<string, unknown> }>(await res.json());
+  await page.addInitScript(
+    ({ token, user }) => {
+      localStorage.setItem('shanye_admin_token', token);
+      localStorage.setItem('shanye_admin_user', JSON.stringify(user));
+    },
+    session,
+  );
+  await page.goto(`${ADMIN}/`);
+  await expect(page.getByRole('heading', { name: '数据概览' })).toBeVisible();
+}
+
+test('后台列表操作列：订单发货 / 售后审核 / 客户打标签', async ({ page, request }) => {
+  await login(page, request);
 
   // 订单列表：操作列与查看、发货入口
   await page.goto(`${ADMIN}/orders`);

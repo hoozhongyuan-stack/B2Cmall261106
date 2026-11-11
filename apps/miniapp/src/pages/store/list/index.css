@@ -35,6 +35,24 @@
   font-weight: 600;
 }
 
+.store-logo {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  border-radius: 12px;
+  background: var(--surface-2);
+}
+
+.store-logo--empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--brand-soft);
+  color: var(--brand);
+  font-size: 20px;
+  font-weight: 600;
+}
+
 .store-address {
   line-height: 1.5;
 }

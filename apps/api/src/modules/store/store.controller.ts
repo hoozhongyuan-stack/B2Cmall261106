@@ -50,6 +50,11 @@ export class StoreDto {
 
   @IsOptional()
   @IsString()
+  @Length(1, 300)
+  logoKey?: string | null;
+
+  @IsOptional()
+  @IsString()
   @Length(1, 60)
   region?: string;
 

@@ -10,10 +10,12 @@ import { StoreScopeService } from './store-scope.service';
 import { StoreStockService } from './store-stock.service';
 import { StoreInventoryService } from './store-inventory.service';
 import { JwtAuthGuard, RolesGuard } from '../../common/auth.guards';
+import { AssetModule } from '../assets/asset.module';
 
 /** 轻量多门店：门店配置、门店数据范围与后续库存/看板能力的归属模块 */
 @Module({
   imports: [
+    AssetModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],

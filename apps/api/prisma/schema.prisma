@@ -466,8 +466,63 @@ model User {
   tags               UserTagLink[]
   managedStore       Store?
   consents           UserConsent[]
+  pointsSignIns      PointsSignIn[]
+  pointsShareDailies PointsShareDaily[]
 
   @@index([levelId])
+}
+
+/// 积分规则（单例）：消费、签到、分享的发放口径；不参与订单抵扣
+model PointsConfig {
+  id                      String   @id @default("singleton")
+  /// 消费多少元获得 1 积分
+  yuanPerPoint            Int      @default(1)
+  /// 每日签到基础积分，0 表示关闭签到
+  signInPoints            Int      @default(0)
+  /// 连续签到天数阈值，0 表示不做连续奖励
+  signInStreakDays        Int      @default(0)
+  /// 连续奖励类型：POINTS | COUPON
+  signInStreakBonusType   String   @default("POINTS")
+  /// 连续奖励积分（POINTS）
+  signInStreakBonusPoints Int      @default(0)
+  /// 连续奖励优惠券（COUPON）
+  signInStreakCouponId    String?
+  /// 分享赠送积分，0 表示关闭
+  sharePoints             Int      @default(0)
+  /// 分享每天最多计入次数，0 表示关闭
+  shareDailyLimit         Int      @default(0)
+  updatedAt               DateTime @updatedAt @db.Timestamptz(3)
+}
+
+/// 每日签到记录：用户 + 日期唯一，用于连签与防重复
+model PointsSignIn {
+  id                 String   @id @default(cuid())
+  userId             String
+  /// Asia/Shanghai 的 YYYY-MM-DD
+  date               String
+  points             Int      @default(0)
+  streak             Int      @default(1)
+  bonusPoints        Int      @default(0)
+  bonusCouponClaimId String?
+  createdAt          DateTime @default(now()) @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+  @@index([userId, date])
+}
+
+/// 分享奖励每日计数：用户 + 日期唯一
+model PointsShareDaily {
+  id        String   @id @default(cuid())
+  userId    String
+  date      String
+  count     Int      @default(0)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
 }
 
 /// 协议同意留痕：用户 + 类型 + 版本唯一
@@ -955,6 +1010,8 @@ model Store {
   code                       String   @unique
   name                       String
   phone                      String?
+  /// 门店 Logo（素材库 key）
+  logoKey                    String?
   region                     String
   address                    String
   /// 仅用于展示，不做地图距离计算

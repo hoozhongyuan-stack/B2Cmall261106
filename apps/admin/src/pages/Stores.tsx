@@ -1,6 +1,8 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
-import { api, ApiError, formatDate, money, toCents, toYuan } from '../api/client';
+import { api, ApiError, formatDate, money, toYuan } from '../api/client';
+import { assetPreviewUrl } from '../api/assets';
 import { hasRole } from '../auth';
 import { toast } from '../components/toast';
 import {
@@ -9,7 +11,6 @@ import {
   Card,
   Confirm,
   DataTable,
-  Field,
   Modal,
   PageHeader,
   Pagination,
@@ -20,31 +21,12 @@ import {
   type Column,
 } from '../components/ui';
 
-type DayKey = 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat' | 'sun';
-
-const DAYS: { key: DayKey; label: string }[] = [
-  { key: 'mon', label: '周一' },
-  { key: 'tue', label: '周二' },
-  { key: 'wed', label: '周三' },
-  { key: 'thu', label: '周四' },
-  { key: 'fri', label: '周五' },
-  { key: 'sat', label: '周六' },
-  { key: 'sun', label: '周日' },
-];
-
-interface DayHours {
-  enabled: boolean;
-  open: string;
-  close: string;
-}
-
-type HoursForm = Record<DayKey, DayHours>;
-
 interface StoreRow {
   id: string;
   code: string;
   name: string;
   phone: string | null;
+  logoKey: string | null;
   region: string;
   address: string;
   lat: number | null;
@@ -69,32 +51,6 @@ interface StoreRow {
   manager: { id: string; nickname: string | null; phone: string | null } | null;
   createdAt: string;
   updatedAt: string;
-}
-
-interface StoreFormState {
-  code: string;
-  name: string;
-  phone: string;
-  region: string;
-  address: string;
-  lat: string;
-  lng: string;
-  sort: string;
-  pickupEnabled: boolean;
-  deliveryEnabled: boolean;
-  pickupCompleteDays: string;
-  deliveryFeeYuan: string;
-  freeThresholdYuan: string;
-  deliverySlotsText: string;
-  deliveryCutoff: string;
-  maxOrdersPerSlot: string;
-  deliveryRegionsText: string;
-  notice: string;
-  status: 'ACTIVE' | 'DISABLED';
-  hours: HoursForm;
-  managerUserId: string;
-  managerName: string;
-  managerPhone: string;
 }
 
 interface StockRow {
@@ -165,121 +121,17 @@ const REASON_LABEL: Record<string, string> = {
   RESTOCK: '补货',
 };
 
-function defaultHours(): HoursForm {
-  return {
-    mon: { enabled: true, open: '09:00', close: '18:00' },
-    tue: { enabled: true, open: '09:00', close: '18:00' },
-    wed: { enabled: true, open: '09:00', close: '18:00' },
-    thu: { enabled: true, open: '09:00', close: '18:00' },
-    fri: { enabled: true, open: '09:00', close: '18:00' },
-    sat: { enabled: true, open: '09:00', close: '18:00' },
-    sun: { enabled: false, open: '09:00', close: '18:00' },
-  };
-}
-
-function emptyForm(): StoreFormState {
-  return {
-    code: '',
-    name: '',
-    phone: '',
-    region: '',
-    address: '',
-    lat: '',
-    lng: '',
-    sort: '0',
-    pickupEnabled: true,
-    deliveryEnabled: false,
-    pickupCompleteDays: '7',
-    deliveryFeeYuan: '0',
-    freeThresholdYuan: '0',
-    deliverySlotsText: '',
-    deliveryCutoff: '',
-    maxOrdersPerSlot: '0',
-    deliveryRegionsText: '',
-    notice: '',
-    status: 'ACTIVE',
-    hours: defaultHours(),
-    managerUserId: '',
-    managerName: '',
-    managerPhone: '',
-  };
-}
-
-function parseHours(value: unknown): HoursForm {
-  const hours = defaultHours();
-  if (!value || typeof value !== 'object') return hours;
-
-  for (const day of DAYS) {
-    const ranges = (value as Record<string, unknown>)[day.key];
-    if (!Array.isArray(ranges) || !Array.isArray(ranges[0])) continue;
-    const [open, close] = ranges[0] as [unknown, unknown];
-    if (typeof open === 'string' && typeof close === 'string') {
-      hours[day.key] = { enabled: true, open, close };
-    }
-  }
-  return hours;
-}
-
-function hoursPayload(hours: HoursForm): Record<string, string[][]> {
-  const result: Record<string, string[][]> = {};
-  for (const day of DAYS) {
-    const value = hours[day.key];
-    if (value.enabled && value.open && value.close) {
-      result[day.key] = [[value.open, value.close]];
-    }
-  }
-  return result;
-}
-
-function formFromStore(store: StoreRow): StoreFormState {
-  return {
-    code: store.code,
-    name: store.name,
-    phone: store.phone ?? '',
-    region: store.region,
-    address: store.address,
-    lat: store.lat === null ? '' : String(store.lat),
-    lng: store.lng === null ? '' : String(store.lng),
-    sort: String(store.sort),
-    pickupEnabled: store.pickupEnabled,
-    deliveryEnabled: store.deliveryEnabled,
-    pickupCompleteDays: String(store.pickupCompleteDays),
-    deliveryFeeYuan: toYuan(store.deliveryFeeCents),
-    freeThresholdYuan: toYuan(store.freeDeliveryThresholdCents),
-    deliverySlotsText: store.deliverySlots.join(', '),
-    deliveryCutoff: store.deliveryCutoff ?? '',
-    maxOrdersPerSlot: String(store.maxOrdersPerSlot),
-    deliveryRegionsText: store.deliveryRegions.join('\n'),
-    notice: store.notice ?? '',
-    status: store.status,
-    hours: parseHours(store.businessHours),
-    managerUserId: store.managerUserId ?? '',
-    managerName: store.manager?.nickname ?? '',
-    managerPhone: store.manager?.phone ?? '',
-  };
-}
-
-function splitList(value: string): string[] {
-  return value
-    .split(/[\n,，]/)
-    .map((item) => item.trim())
-    .filter(Boolean);
-}
-
 function errorText(err: unknown): string {
   return err instanceof ApiError ? err.message : '操作失败';
 }
 
 export default function Stores() {
+  const navigate = useNavigate();
   const canWrite = hasRole('SUPER', 'OPS');
   const canDisable = hasRole('SUPER');
   const [items, setItems] = useState<StoreRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [disabling, setDisabling] = useState<StoreRow | null>(null);
-  const [formOpen, setFormOpen] = useState(false);
-  const [editing, setEditing] = useState<StoreRow | null>(null);
-  const [form, setForm] = useState<StoreFormState>(emptyForm());
-  const [saving, setSaving] = useState(false);
 
   const [stockStore, setStockStore] = useState<StoreRow | null>(null);
   const [stockRows, setStockRows] = useState<StockRow[]>([]);
@@ -312,27 +164,6 @@ export default function Stores() {
   const [total, setTotal] = useState(0);
   const [selected, setSelected] = useState<string[]>([]);
   const [batching, setBatching] = useState(false);
-  const [managerKeyword, setManagerKeyword] = useState('');
-  const [managerOptions, setManagerOptions] = useState<
-    { id: string; nickname: string | null; phone: string | null }[]
-  >([]);
-
-  async function searchManagers() {
-    const keyword = managerKeyword.trim();
-    if (!keyword) {
-      setManagerOptions([]);
-      return;
-    }
-    try {
-      const result = await api<{
-        items: { id: string; nickname: string | null; phone: string | null }[];
-      }>('/admin/customers', { query: { keyword, pageSize: 10 } });
-      setManagerOptions(result.items);
-      if (!result.items.length) toast('没有匹配的会员', 'error');
-    } catch (err) {
-      toast(errorText(err), 'error');
-    }
-  }
 
   async function load() {
     setLoading(true);
@@ -386,72 +217,11 @@ export default function Stores() {
   }
 
   function openCreate() {
-    setEditing(null);
-    setForm(emptyForm());
-    setFormOpen(true);
+    navigate('/settings/stores/new');
   }
 
   function openEdit(store: StoreRow) {
-    setEditing(store);
-    setForm(formFromStore(store));
-    setFormOpen(true);
-  }
-
-  async function saveStore(event: FormEvent) {
-    event.preventDefault();
-    if (!form.code.trim() || !form.name.trim() || !form.region.trim() || !form.address.trim()) {
-      toast('请填写门店编码、名称、区域与详细地址', 'error');
-      return;
-    }
-    const slots = splitList(form.deliverySlotsText);
-    if (slots.some((slot) => !/^([01]\d|2[0-3]):[0-5]\d-([01]\d|2[0-3]):[0-5]\d$/.test(slot))) {
-      toast('配送时段格式需为 10:00-12:00', 'error');
-      return;
-    }
-    if (form.deliveryCutoff && !/^([01]\d|2[0-3]):[0-5]\d$/.test(form.deliveryCutoff)) {
-      toast('截单时间格式需为 HH:mm', 'error');
-      return;
-    }
-
-    const payload = {
-      code: form.code.trim(),
-      name: form.name.trim(),
-      phone: form.phone.trim() || undefined,
-      region: form.region.trim(),
-      address: form.address.trim(),
-      ...(form.lat.trim() ? { lat: Number(form.lat) } : {}),
-      ...(form.lng.trim() ? { lng: Number(form.lng) } : {}),
-      sort: Number(form.sort) || 0,
-      pickupEnabled: form.pickupEnabled,
-      deliveryEnabled: form.deliveryEnabled,
-      pickupCompleteDays: Number(form.pickupCompleteDays) || 7,
-      deliveryFeeCents: toCents(form.deliveryFeeYuan),
-      freeDeliveryThresholdCents: toCents(form.freeThresholdYuan),
-      deliverySlots: slots,
-      deliveryCutoff: form.deliveryCutoff || undefined,
-      maxOrdersPerSlot: Number(form.maxOrdersPerSlot) || 0,
-      deliveryRegions: splitList(form.deliveryRegionsText),
-      notice: form.notice.trim() || undefined,
-      status: form.status,
-      businessHours: hoursPayload(form.hours),
-      managerUserId: form.managerUserId || null,
-    };
-
-    setSaving(true);
-    try {
-      if (editing) {
-        await api(`/admin/stores/${editing.id}`, { method: 'PATCH', body: payload });
-      } else {
-        await api('/admin/stores', { method: 'POST', body: payload });
-      }
-      toast('已保存');
-      setFormOpen(false);
-      await load();
-    } catch (err) {
-      toast(errorText(err), 'error');
-    } finally {
-      setSaving(false);
-    }
+    navigate(`/settings/stores/${store.id}/edit`);
   }
 
   async function toggleStatus(store: StoreRow) {
@@ -635,15 +405,30 @@ export default function Stores() {
     {
       key: 'name',
       title: '门店',
-      minWidth: 150,
-      render: (row) => (
-        <div>
-          <div className="cell-title cell-clip" title={row.name}>
-            {row.name}
+      minWidth: 190,
+      render: (row) => {
+        const logo =
+          row.logoKey && /^(?:https?:\/\/|\/api\/)/i.test(row.logoKey)
+            ? assetPreviewUrl(row.logoKey)
+            : '';
+        return (
+          <div className="cell-product">
+            {logo ? (
+              <img className="cell-thumb" src={logo} alt="" loading="lazy" />
+            ) : (
+              <span className="cell-thumb cell-thumb--empty" aria-hidden="true">
+                {row.name.slice(0, 1)}
+              </span>
+            )}
+            <div className="cell-product-text">
+              <div className="cell-title cell-clip" title={row.name}>
+                {row.name}
+              </div>
+              <div className="small muted mono">{row.code}</div>
+            </div>
           </div>
-          <div className="small muted mono">{row.code}</div>
-        </div>
-      ),
+        );
+      },
     },
     {
       key: 'region',
@@ -980,340 +765,6 @@ export default function Stores() {
           { label: '批量停用', onClick: () => void batchStatus('DISABLED'), disabled: batching },
         ]}
       />
-
-      <Modal
-        open={formOpen}
-        wide
-        title={editing ? `编辑门店 · ${editing.name}` : '新建门店'}
-        onClose={() => setFormOpen(false)}
-        footer={
-          <>
-            <Button variant="plain" onClick={() => setFormOpen(false)}>
-              取消
-            </Button>
-            <Button type="submit" form="store-form" loading={saving}>
-              保存
-            </Button>
-          </>
-        }
-      >
-        <form
-          id="store-form"
-          onSubmit={saveStore}
-          style={{ display: 'flex', flexDirection: 'column', gap: 16 }}
-        >
-          <div className="grid grid-3">
-            <Field label="门店编码" hint="2-20 位大写字母、数字、_、-">
-              <input
-                className="input"
-                value={form.code}
-                onChange={(e) => setForm((prev) => ({ ...prev, code: e.target.value }))}
-              />
-            </Field>
-            <Field label="门店名称">
-              <input
-                className="input"
-                value={form.name}
-                onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
-              />
-            </Field>
-            <Field label="联系电话">
-              <input
-                className="input"
-                value={form.phone}
-                onChange={(e) => setForm((prev) => ({ ...prev, phone: e.target.value }))}
-              />
-            </Field>
-            <Field label="所在区域">
-              <input
-                className="input"
-                value={form.region}
-                placeholder="云南省昆明市五华区"
-                onChange={(e) => setForm((prev) => ({ ...prev, region: e.target.value }))}
-              />
-            </Field>
-            <Field label="详细地址" wide>
-              <input
-                className="input"
-                value={form.address}
-                onChange={(e) => setForm((prev) => ({ ...prev, address: e.target.value }))}
-              />
-            </Field>
-            <Field label="纬度" hint="选填，仅展示">
-              <input
-                className="input"
-                value={form.lat}
-                onChange={(e) => setForm((prev) => ({ ...prev, lat: e.target.value }))}
-              />
-            </Field>
-            <Field label="经度" hint="选填，仅展示">
-              <input
-                className="input"
-                value={form.lng}
-                onChange={(e) => setForm((prev) => ({ ...prev, lng: e.target.value }))}
-              />
-            </Field>
-            <Field label="排序">
-              <input
-                className="input"
-                type="number"
-                min={0}
-                value={form.sort}
-                onChange={(e) => setForm((prev) => ({ ...prev, sort: e.target.value }))}
-              />
-            </Field>
-          </div>
-
-          <Field
-            label="关联会员（门店负责人）"
-            hint="该会员登录小程序后，个人中心会出现「门店中心」；需已绑定手机号"
-          >
-            {form.managerUserId ? (
-              <div className="row" style={{ gap: 8 }}>
-                <span className="small">
-                  {form.managerName || form.managerUserId}
-                  {form.managerPhone ? ` · ${form.managerPhone}` : ''}
-                </span>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="ghost"
-                  onClick={() =>
-                    setForm((prev) => ({
-                      ...prev,
-                      managerUserId: '',
-                      managerName: '',
-                      managerPhone: '',
-                    }))
-                  }
-                >
-                  更换
-                </Button>
-              </div>
-            ) : (
-              <>
-                <div className="row" style={{ gap: 8 }}>
-                  <input
-                    className="input"
-                    style={{ width: 240 }}
-                    aria-label="搜索关联会员"
-                    placeholder="输入手机号 / 昵称搜索会员"
-                    value={managerKeyword}
-                    onChange={(e) => setManagerKeyword(e.target.value)}
-                  />
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => void searchManagers()}
-                  >
-                    搜索
-                  </Button>
-                </div>
-                {managerOptions.length > 0 && (
-                  <div className="manager-options">
-                    {managerOptions.map((item) => (
-                      <button
-                        key={item.id}
-                        type="button"
-                        className="manager-option"
-                        onClick={() => {
-                          setForm((prev) => ({
-                            ...prev,
-                            managerUserId: item.id,
-                            managerName: item.nickname ?? '山野顾客',
-                            managerPhone: item.phone ?? '',
-                          }));
-                          setManagerOptions([]);
-                          setManagerKeyword('');
-                        }}
-                      >
-                        <span>{item.nickname ?? '山野顾客'}</span>
-                        <span className="muted tiny">{item.phone ?? '未绑定手机号'}</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </>
-            )}
-          </Field>
-
-          <div className="row" style={{ gap: 20 }}>
-            <label className="row" style={{ gap: 6 }}>
-              <input
-                type="checkbox"
-                checked={form.pickupEnabled}
-                onChange={(e) =>
-                  setForm((prev) => ({ ...prev, pickupEnabled: e.target.checked }))
-                }
-              />
-              <span className="small">开通到店自提</span>
-            </label>
-            <label className="row" style={{ gap: 6 }}>
-              <input
-                type="checkbox"
-                checked={form.deliveryEnabled}
-                onChange={(e) =>
-                  setForm((prev) => ({ ...prev, deliveryEnabled: e.target.checked }))
-                }
-              />
-              <span className="small">开通同城配送</span>
-            </label>
-            <Field label="自提未取自动完成天数">
-              <input
-                className="input"
-                type="number"
-                min={1}
-                max={90}
-                value={form.pickupCompleteDays}
-                onChange={(e) =>
-                  setForm((prev) => ({ ...prev, pickupCompleteDays: e.target.value }))
-                }
-              />
-            </Field>
-            <Field label="门店状态">
-              <select
-                className="select"
-                value={form.status}
-                onChange={(e) =>
-                  setForm((prev) => ({ ...prev, status: e.target.value as 'ACTIVE' | 'DISABLED' }))
-                }
-              >
-                <option value="ACTIVE">启用</option>
-                <option value="DISABLED">停用</option>
-              </select>
-            </Field>
-          </div>
-
-          <Card title="营业时间">
-            <div className="grid grid-2">
-              {DAYS.map((day) => (
-                <div key={day.key} className="row" style={{ gap: 8 }}>
-                  <label className="row" style={{ gap: 6, width: 90 }}>
-                    <input
-                      type="checkbox"
-                      checked={form.hours[day.key].enabled}
-                      onChange={(e) =>
-                        setForm((prev) => ({
-                          ...prev,
-                          hours: {
-                            ...prev.hours,
-                            [day.key]: { ...prev.hours[day.key], enabled: e.target.checked },
-                          },
-                        }))
-                      }
-                    />
-                    <span className="small">{day.label}</span>
-                  </label>
-                  <input
-                    className="input"
-                    type="time"
-                    disabled={!form.hours[day.key].enabled}
-                    value={form.hours[day.key].open}
-                    onChange={(e) =>
-                      setForm((prev) => ({
-                        ...prev,
-                        hours: {
-                          ...prev.hours,
-                          [day.key]: { ...prev.hours[day.key], open: e.target.value },
-                        },
-                      }))
-                    }
-                  />
-                  <span className="muted">至</span>
-                  <input
-                    className="input"
-                    type="time"
-                    disabled={!form.hours[day.key].enabled}
-                    value={form.hours[day.key].close}
-                    onChange={(e) =>
-                      setForm((prev) => ({
-                        ...prev,
-                        hours: {
-                          ...prev.hours,
-                          [day.key]: { ...prev.hours[day.key], close: e.target.value },
-                        },
-                      }))
-                    }
-                  />
-                </div>
-              ))}
-            </div>
-          </Card>
-
-          <Card title="同城配送">
-            <div className="grid grid-3">
-              <Field label="配送费（元）">
-                <input
-                  className="input"
-                  value={form.deliveryFeeYuan}
-                  onChange={(e) =>
-                    setForm((prev) => ({ ...prev, deliveryFeeYuan: e.target.value }))
-                  }
-                />
-              </Field>
-              <Field label="免配送门槛（元）">
-                <input
-                  className="input"
-                  value={form.freeThresholdYuan}
-                  onChange={(e) =>
-                    setForm((prev) => ({ ...prev, freeThresholdYuan: e.target.value }))
-                  }
-                />
-              </Field>
-              <Field label="每日截单时间" hint="HH:mm">
-                <input
-                  className="input"
-                  type="time"
-                  value={form.deliveryCutoff}
-                  onChange={(e) =>
-                    setForm((prev) => ({ ...prev, deliveryCutoff: e.target.value }))
-                  }
-                />
-              </Field>
-              <Field label="每时段最大单量" hint="0 表示不限">
-                <input
-                  className="input"
-                  type="number"
-                  min={0}
-                  value={form.maxOrdersPerSlot}
-                  onChange={(e) =>
-                    setForm((prev) => ({ ...prev, maxOrdersPerSlot: e.target.value }))
-                  }
-                />
-              </Field>
-            </div>
-            <Field label="配送时段" hint="逗号分隔，例如 10:00-12:00, 14:00-18:00">
-              <input
-                className="input"
-                value={form.deliverySlotsText}
-                onChange={(e) =>
-                  setForm((prev) => ({ ...prev, deliverySlotsText: e.target.value }))
-                }
-              />
-            </Field>
-            <Field label="配送区县" hint="每行一个，按收货地址区域匹配">
-              <textarea
-                className="textarea"
-                rows={4}
-                value={form.deliveryRegionsText}
-                onChange={(e) =>
-                  setForm((prev) => ({ ...prev, deliveryRegionsText: e.target.value }))
-                }
-              />
-            </Field>
-          </Card>
-
-          <Field label="门店公告">
-            <textarea
-              className="textarea"
-              rows={3}
-              value={form.notice}
-              onChange={(e) => setForm((prev) => ({ ...prev, notice: e.target.value }))}
-            />
-          </Field>
-        </form>
-      </Modal>
 
       <Modal
         open={Boolean(dashboardStore)}

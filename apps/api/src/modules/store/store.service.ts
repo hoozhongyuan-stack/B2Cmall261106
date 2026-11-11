@@ -8,12 +8,14 @@ import { isDeliveryOverdue } from '@shanye/shared';
 
 import { PrismaService, isUniqueViolation } from '../../prisma/prisma.module';
 import type { AuthUser } from '../../common/auth.guards';
+import { AssetService } from '../assets/asset.service';
 import { StoreScopeService } from './store-scope.service';
 
 export interface StoreInput {
   code?: string;
   name?: string;
   phone?: string;
+  logoKey?: string | null;
   region?: string;
   address?: string;
   lat?: number;
@@ -40,6 +42,7 @@ const STORE_SELECT = {
   code: true,
   name: true,
   phone: true,
+  logoKey: true,
   region: true,
   address: true,
   lat: true,
@@ -75,6 +78,7 @@ export class StoreService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly scopes: StoreScopeService,
+    private readonly assets: AssetService,
   ) {}
 
   /** 小程序：启用中的门店，可按区域与履约能力筛选 */
@@ -171,12 +175,14 @@ export class StoreService {
 
   async create(input: StoreInput) {
     const deliveryRegions = this.regions(input.deliveryRegions) ?? [];
+    await this.checkLogo(input.logoKey);
     try {
       const store = await this.prisma.store.create({
         data: {
           code: this.code(input.code),
           name: this.text(input.name, '门店名称', 40),
           phone: this.optionalText(input.phone, '联系电话', 20),
+          logoKey: this.optionalText(input.logoKey, '门店 Logo', 300),
           region: this.text(input.region, '所在区域', 60),
           address: this.text(input.address, '详细地址', 120),
           lat: input.lat ?? null,
@@ -212,6 +218,7 @@ export class StoreService {
 
   async update(id: string, input: StoreInput) {
     await this.findOne(id);
+    if (input.logoKey !== undefined) await this.checkLogo(input.logoKey);
 
     const deliveryRegions = this.regions(input.deliveryRegions);
     try {
@@ -222,6 +229,9 @@ export class StoreService {
           ...(input.name !== undefined ? { name: this.text(input.name, '门店名称', 40) } : {}),
           ...(input.phone !== undefined
             ? { phone: this.optionalText(input.phone, '联系电话', 20) }
+            : {}),
+          ...(input.logoKey !== undefined
+            ? { logoKey: this.optionalText(input.logoKey, '门店 Logo', 300) }
             : {}),
           ...(input.region !== undefined
             ? { region: this.text(input.region, '所在区域', 60) }
@@ -507,6 +517,11 @@ export class StoreService {
     return user.id;
   }
 
+  private async checkLogo(logoKey?: string | null): Promise<void> {
+    const key = (logoKey ?? '').trim();
+    if (key) await this.assets.assertReference(key);
+  }
+
   private code(value?: string): string {
     const code = (value ?? '').trim().toUpperCase();
     if (!/^[A-Z0-9_-]{2,20}$/.test(code)) {
@@ -523,7 +538,7 @@ export class StoreService {
   }
 
   private optionalText(
-    value: string | undefined,
+    value: string | null | undefined,
     field: string,
     max: number,
   ): string | null {

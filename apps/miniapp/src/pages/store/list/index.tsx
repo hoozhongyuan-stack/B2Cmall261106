@@ -1,9 +1,9 @@
-import { Input, Text, View } from '@tarojs/components';
+import { Image, Input, Text, View } from '@tarojs/components';
 import Taro, { useDidShow, useRouter } from '@tarojs/taro';
 import { useState } from 'react';
 
 import { api, showError } from '../../../api/client';
-import { Empty, Loading } from '../../../components/common';
+import { Empty, Loading, imageSrc } from '../../../components/common';
 import { money } from '../../../utils/format';
 
 import './index.css';
@@ -15,6 +15,7 @@ interface Store {
   id: string;
   name: string;
   phone: string | null;
+  logoKey: string | null;
   region: string;
   address: string;
   businessHours: Record<string, string[][]>;
@@ -115,7 +116,16 @@ export default function Page() {
       {items.map((store) => (
         <View key={store.id} className="card store-card" onClick={() => choose(store)}>
           <View className="row-between">
-            <Text className="store-name">{store.name}</Text>
+            <View className="row" style={{ gap: '12px', alignItems: 'center' }}>
+              {store.logoKey ? (
+                <Image className="store-logo" src={imageSrc(store.logoKey)} mode="aspectFill" />
+              ) : (
+                <View className="store-logo store-logo--empty">
+                  <Text>{store.name.slice(0, 1)}</Text>
+                </View>
+              )}
+              <Text className="store-name">{store.name}</Text>
+            </View>
             <Text className="tag tag--brand">
               {capability === 'DELIVERY' ? '可配送' : '可自提'}
             </Text>

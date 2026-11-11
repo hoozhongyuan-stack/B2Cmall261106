@@ -808,6 +808,64 @@ paths:
       responses:
         '200': { description: OK }
 
+  /member/points/overview:
+    get:
+      tags: [points]
+      summary: 积分概览：规则、签到状态与分享进度
+      security: [{ userToken: [] }]
+      responses:
+        '200': { description: OK }
+
+  /member/points/sign-in:
+    post:
+      tags: [points]
+      summary: 每日签到（连续签到按规则奖励积分或优惠券）
+      security: [{ userToken: [] }]
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /member/points/share:
+    post:
+      tags: [points]
+      summary: 分享奖励（按每日次数上限发放积分）
+      security: [{ userToken: [] }]
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/BadRequest' }
+
+  /admin/points-config:
+    get:
+      tags: [admin-points]
+      summary: 积分规则配置
+      security: [{ adminToken: [] }]
+      responses:
+        '200': { description: OK }
+    put:
+      tags: [admin-points]
+      summary: 保存积分规则配置
+      security: [{ adminToken: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                yuanPerPoint: { type: integer, minimum: 1, maximum: 1000 }
+                signInPoints: { type: integer, minimum: 0, maximum: 1000 }
+                signInStreakDays: { type: integer, minimum: 0, maximum: 365 }
+                signInStreakBonusType: { type: string, enum: [POINTS, COUPON] }
+                signInStreakBonusPoints: { type: integer, minimum: 0, maximum: 10000 }
+                signInStreakCouponId: { type: string, nullable: true }
+                sharePoints: { type: integer, minimum: 0, maximum: 1000 }
+                shareDailyLimit: { type: integer, minimum: 0, maximum: 100 }
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/BadRequest' }
+
   /admin/member-levels:
     get:
       tags: [admin-member]
@@ -4831,6 +4889,7 @@ components:
         code: { type: string }
         name: { type: string }
         phone: { type: string, nullable: true }
+        logoKey: { type: string, nullable: true }
         region: { type: string }
         address: { type: string }
         lat: { type: number, nullable: true }
@@ -4939,6 +4998,7 @@ components:
         code: { type: string, minLength: 2, maxLength: 20 }
         name: { type: string, minLength: 1, maxLength: 40 }
         phone: { type: string, maxLength: 20 }
+        logoKey: { type: string, maxLength: 300 }
         region: { type: string, minLength: 1, maxLength: 60 }
         address: { type: string, minLength: 1, maxLength: 120 }
         lat: { type: number, minimum: -90, maximum: 90 }
@@ -4971,6 +5031,7 @@ components:
         code: { type: string, minLength: 2, maxLength: 20 }
         name: { type: string, minLength: 1, maxLength: 40 }
         phone: { type: string, maxLength: 20 }
+        logoKey: { type: string, maxLength: 300 }
         region: { type: string, minLength: 1, maxLength: 60 }
         address: { type: string, minLength: 1, maxLength: 120 }
         lat: { type: number, minimum: -90, maximum: 90 }

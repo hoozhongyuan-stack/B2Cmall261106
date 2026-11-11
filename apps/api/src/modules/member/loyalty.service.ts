@@ -7,7 +7,6 @@ import {
 import {
   clampPoints,
   nextMemberLevel,
-  pointsForAmount,
   resolveMemberLevel,
 } from '@shanye/shared';
 
@@ -37,7 +36,12 @@ export class LoyaltyService {
       orderBy: { expireAt: 'desc' },
     });
     const pointsRate = card?.pointsRate ?? 1;
-    const delta = Math.round(pointsForAmount(input.payableCents) * pointsRate);
+    const config = await tx.pointsConfig.findUnique({
+      where: { id: 'singleton' },
+      select: { yuanPerPoint: true },
+    });
+    const perYuan = Math.max(config?.yuanPerPoint ?? 1, 1);
+    const delta = Math.round(Math.floor(input.payableCents / (100 * perYuan)) * pointsRate);
     const balance = user.points + delta;
     if (delta > 0) {
       await tx.user.update({ where: { id: input.userId }, data: { points: balance } });
@@ -80,9 +84,14 @@ export class LoyaltyService {
       orderBy: { expireAt: 'desc' },
     });
     const pointsRate = card?.pointsRate ?? 1;
+    const config = await tx.pointsConfig.findUnique({
+      where: { id: 'singleton' },
+      select: { yuanPerPoint: true },
+    });
+    const perYuan = Math.max(config?.yuanPerPoint ?? 1, 1);
     const { balance, applied } = clampPoints(
       user.points,
-      -Math.round(pointsForAmount(input.refundCents) * pointsRate),
+      -Math.round(Math.floor(input.refundCents / (100 * perYuan)) * pointsRate),
     );
     const level = resolveMemberLevel(await tx.memberLevel.findMany(), totalSpentCents);
 

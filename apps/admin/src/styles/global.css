@@ -1699,3 +1699,210 @@ button:focus-visible,
   }
 }
 
+/* 门店编辑：地图选点与表单布局 */
+.store-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.store-logo-preview {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.store-logo-preview img {
+  width: 64px;
+  height: 64px;
+  border-radius: 12px;
+  object-fit: cover;
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+}
+
+.map-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.map-picker-search {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.map-picker-search .input {
+  max-width: 360px;
+}
+
+.map-picker-msg {
+  margin: 0;
+}
+
+.map-picker-results {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  max-width: 720px;
+}
+
+.map-picker-results button {
+  text-align: left;
+  padding: 8px 10px;
+  background: var(--surface);
+  border: none;
+  border-bottom: 1px solid var(--line);
+  font-size: 13px;
+  color: var(--ink-2);
+  cursor: pointer;
+}
+
+.map-picker-results button:last-child {
+  border-bottom: none;
+}
+
+.map-picker-results button:hover {
+  background: var(--surface-2);
+}
+
+.map-picker-canvas {
+  height: 320px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  overflow: hidden;
+  background: var(--surface-2);
+  z-index: 0;
+}
+
+.map-pin {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.map-pin span {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--brand);
+  border: 2px solid var(--on-brand);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+.store-hours {
+  margin-top: 12px;
+}
+
+/* 积分规则配置 */
+.points-rules {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 20px;
+  align-items: start;
+}
+
+.points-rules-main {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.points-rules-readonly {
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  background: var(--warn-soft, #fdf3e2);
+  color: var(--ink-2);
+  font-size: 13px;
+}
+
+.points-rule-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.points-rule-head p {
+  margin: 2px 0 0;
+  line-height: 1.6;
+}
+
+.points-rule-badge {
+  flex: none;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--brand-soft);
+  color: var(--brand);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.points-rule-example {
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--ink-2);
+  font-size: 13px;
+}
+
+.points-rules-aside {
+  position: sticky;
+  top: 16px;
+}
+
+.points-summary {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.points-summary li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 13px;
+}
+
+.points-summary li:last-child {
+  border-bottom: none;
+}
+
+.points-summary span {
+  color: var(--ink-3);
+}
+
+.points-summary strong {
+  color: var(--ink);
+  font-weight: 600;
+  text-align: right;
+}
+
+.points-save {
+  width: 100%;
+  margin-top: 8px;
+}
+
+@media (max-width: 1080px) {
+  .points-rules {
+    grid-template-columns: 1fr;
+  }
+  .points-rules-aside {
+    position: static;
+  }
+}
+
+
+

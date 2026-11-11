@@ -27,12 +27,27 @@ function unwrap<T>(body: unknown): T {
   return (body as Envelope<T>).data;
 }
 
-async function adminToken(request: APIRequestContext): Promise<string> {
+async function adminSession(
+  request: APIRequestContext,
+): Promise<{ token: string; user: Record<string, unknown> }> {
   const res = await request.post(`${API}/admin/auth/login`, {
     data: { account: 'admin@shanye.com', password: 'admin123' },
   });
   expect(res.ok(), await res.text()).toBeTruthy();
-  return unwrap<{ token: string }>(await res.json()).token;
+  return unwrap<{ token: string; user: Record<string, unknown> }>(await res.json());
+}
+
+function injectAdmin(
+  page: import('@playwright/test').Page,
+  session: { token: string; user: Record<string, unknown> },
+): Promise<void> {
+  return page.addInitScript(
+    ({ token, user }) => {
+      localStorage.setItem('shanye_admin_token', token);
+      localStorage.setItem('shanye_admin_user', JSON.stringify(user));
+    },
+    session,
+  );
 }
 
 async function snapshotProfile(
@@ -64,14 +79,12 @@ async function patchProfile(
 }
 
 test('店铺基础信息：后台保存后关于我们与协议页展示主体备案', async ({ page, request }) => {
-  const token = await adminToken(request);
+  const session = await adminSession(request);
+  const token = session.token;
   const original = await snapshotProfile(request, token);
+  await injectAdmin(page, session);
 
   try {
-    await page.goto(`${ADMIN}/login`);
-    await page.getByRole('button', { name: '登录' }).click();
-    await expect(page).toHaveURL(`${ADMIN}/`);
-
     await page.goto(`${ADMIN}/settings/shop`);
     await expect(page.getByRole('heading', { name: '店铺信息' })).toBeVisible();
 
@@ -90,6 +103,13 @@ test('店铺基础信息：后台保存后关于我们与协议页展示主体�
 
     await page.getByRole('button', { name: '保存设置' }).click();
     await expect(page.getByText('已保存')).toBeVisible();
+
+    // 以接口值为准，避免页面缓存造成误判
+    const saved = await request.get(`${API}/admin/shop`, {
+      headers: { authorization: `Bearer ${token}` },
+    });
+    const savedProfile = unwrap<Record<string, unknown>>(await saved.json());
+    expect(savedProfile.serviceEmail).toBe('service@shanye.test');
 
     await page.goto(`${H5}/#/pages/about/index`);
     await expect(page.getByText('云南山野商贸有限公司')).toBeVisible();
