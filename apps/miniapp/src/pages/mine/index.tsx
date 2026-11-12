@@ -191,6 +191,11 @@ export default function Page() {
             onClick={() => Taro.navigateTo({ url: '/pages/points/index' })}
           />
           <Cell
+            title="积分商城"
+            value="积分兑换好物"
+            onClick={() => Taro.navigateTo({ url: '/pages/points-mall/index' })}
+          />
+          <Cell
             title="我的评价"
             onClick={() => Taro.navigateTo({ url: '/pages/review/mine/index' })}
           />

@@ -18,7 +18,7 @@ import { ReviewService } from './review.service';
 import { AssetService, type UploadedImage } from '../assets/asset.service';
 import { RateLimit } from '../../common/rate-limit.guard';
 import { CurrentUser, UserJwtGuard, type MiniappUser } from '../../common/user-auth.guard';
-import { JwtAuthGuard, Roles, RolesGuard } from '../../common/auth.guards';
+import { JwtAuthGuard, RolesGuard, Permission } from '../../common/auth.guards';
 
 class CreateReviewDto {
   @IsString()
@@ -122,7 +122,7 @@ export class AdminReviewController {
   constructor(private readonly reviews: ReviewService) {}
 
   @Get()
-  @Roles('SUPER', 'OPS', 'CS')
+  @Permission('review.manage')
   @ApiOperation({ summary: '评价列表（含各状态数量，分页，可关键词 / 评分 / 时间筛选）' })
   list(
     @Query('status') status?: string,
@@ -143,7 +143,7 @@ export class AdminReviewController {
 
   @Post('batch/moderate')
   @HttpCode(200)
-  @Roles('SUPER', 'CS')
+  @Permission('review.manage')
   @ApiOperation({ summary: '批量审核评价：通过展示 / 隐藏' })
   batchModerate(@Body() dto: BatchModerateDto) {
     return this.reviews.batchModerate(dto.ids, dto.action);
@@ -151,7 +151,7 @@ export class AdminReviewController {
 
   @Post(':id/moderate')
   @HttpCode(200)
-  @Roles('SUPER', 'CS')
+  @Permission('review.manage')
   @ApiOperation({ summary: '审核评价：通过展示 / 隐藏' })
   moderate(@Param('id') id: string, @Body() dto: ModerateReviewDto) {
     return this.reviews.moderate(id, dto.action);
@@ -159,7 +159,7 @@ export class AdminReviewController {
 
   @Post(':id/reply')
   @HttpCode(200)
-  @Roles('SUPER', 'CS')
+  @Permission('review.manage')
   @ApiOperation({ summary: '商家回复评价' })
   reply(@Param('id') id: string, @Body() dto: ReplyReviewDto) {
     return this.reviews.reply(id, dto.content);

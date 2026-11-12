@@ -10,13 +10,7 @@ import {
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { IsString, MaxLength, MinLength } from 'class-validator';
 
-import {
-  CurrentUser,
-  JwtAuthGuard,
-  Roles,
-  RolesGuard,
-  type AuthUser,
-} from '../../common/auth.guards';
+import { CurrentUser, JwtAuthGuard, RolesGuard, type AuthUser, Permission } from '../../common/auth.guards';
 import { RateLimit } from '../../common/rate-limit.guard';
 import { PickupService } from './pickup.service';
 
@@ -27,7 +21,6 @@ class VerifyPickupDto {
   code!: string;
 }
 
-const ALL_ROLES = ['SUPER', 'OPS', 'CS', 'WMS', 'STORE'] as const;
 
 @ApiTags('admin-pickups')
 @ApiBearerAuth()
@@ -37,7 +30,7 @@ export class PickupController {
   constructor(private readonly pickups: PickupService) {}
 
   @Get()
-  @Roles(...ALL_ROLES)
+  @Permission('pickup.verify')
   @ApiOperation({ summary: '自提待核销 / 核销记录（分页）' })
   list(
     @CurrentUser() user: AuthUser,
@@ -62,7 +55,7 @@ export class PickupController {
 
   @Post('verify')
   @HttpCode(200)
-  @Roles(...ALL_ROLES)
+  @Permission('pickup.verify')
   @RateLimit({ limit: 30, windowMs: 60_000 })
   @ApiOperation({ summary: '核销自提码；重复核销返回已核销信息' })
   verify(@CurrentUser() user: AuthUser, @Body() dto: VerifyPickupDto) {

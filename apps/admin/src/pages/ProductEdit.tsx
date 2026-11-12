@@ -1,8 +1,8 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
 import { api, ApiError, toCents, toYuan } from '../api/client';
-import { hasRole } from '../auth';
+import { can } from '../auth';
 import { AssetPicker } from '../components/AssetPicker';
 import { toast } from '../components/toast';
 import { Button, Card, DataTable, Field, PageHeader, Tag, type Column } from '../components/ui';
@@ -18,6 +18,8 @@ interface ProductSku {
   code: string;
   specJson: Record<string, string>;
   priceCents: number;
+  pointsCost: number | null;
+  pointsMoneyCents: number;
   stock: number;
   status: string;
 }
@@ -27,6 +29,8 @@ interface ProductDetail {
   title: string;
   subtitle: string | null;
   status: string;
+  channel: 'NORMAL' | 'POINTS';
+  pointsLimitPerUser: number;
   categoryId: string;
   mainImageKey: string | null;
   mainImageKeys: string[];
@@ -45,6 +49,8 @@ interface SkuForm {
   specs: SpecPair[];
   price: string;
   origin: string;
+  pointsCost: string;
+  pointsMoney: string;
   stock: string;
 }
 
@@ -54,6 +60,7 @@ interface BaseForm {
   categoryId: string;
   status: string;
   sort: string;
+  pointsLimitPerUser: string;
   mainImageKeys: string[];
   detailImageKeys: string[];
   detail: string;
@@ -65,13 +72,21 @@ const EMPTY_FORM: BaseForm = {
   categoryId: '',
   status: 'OFF_SHELF',
   sort: '0',
+  pointsLimitPerUser: '0',
   mainImageKeys: [],
   detailImageKeys: [],
   detail: '',
 };
 
 function emptySku(): SkuForm {
-  return { specs: [{ key: '规格', value: '' }], price: '', origin: '', stock: '0' };
+  return {
+    specs: [{ key: '规格', value: '' }],
+    price: '',
+    origin: '',
+    pointsCost: '',
+    pointsMoney: '',
+    stock: '0',
+  };
 }
 
 function errorText(err: unknown): string {
@@ -80,9 +95,15 @@ function errorText(err: unknown): string {
 
 export default function ProductEdit() {
   const { id } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
   const isNew = !id;
-  const canWrite = hasRole('SUPER', 'OPS');
+  const canWrite = can('product.edit');
   const navigate = useNavigate();
+
+  const [channel, setChannel] = useState<'NORMAL' | 'POINTS'>(
+    searchParams.get('channel') === 'POINTS' ? 'POINTS' : 'NORMAL',
+  );
+  const isPoints = channel === 'POINTS';
 
   const [form, setForm] = useState<BaseForm>(EMPTY_FORM);
   const [categories, setCategories] = useState<CategoryNode[]>([]);
@@ -112,12 +133,14 @@ export default function ProductEdit() {
       try {
         const result = await api<ProductDetail>(`/admin/products/${id}`);
         if (!alive) return;
+        setChannel(result.channel === 'POINTS' ? 'POINTS' : 'NORMAL');
         setForm({
           title: result.title,
           subtitle: result.subtitle ?? '',
           categoryId: result.categoryId,
           status: result.status === 'ON_SALE' ? 'ON_SALE' : 'OFF_SHELF',
           sort: String(result.sort),
+          pointsLimitPerUser: String(result.pointsLimitPerUser ?? 0),
           mainImageKeys:
             result.mainImageKeys?.length > 0
               ? result.mainImageKeys
@@ -223,11 +246,29 @@ export default function ProductEdit() {
             throw new Error(`第 ${index + 1} 个 SKU 请填写规格`);
           }
           const priceCents = toCents(row.price);
-          if (priceCents <= 0) throw new Error(`第 ${index + 1} 个 SKU 价格必须大于 0`);
           const stock = Number(row.stock);
           if (!Number.isInteger(stock) || stock < 0) {
             throw new Error(`第 ${index + 1} 个 SKU 库存必须为非负整数`);
           }
+          if (isPoints) {
+            const pointsCost = Number(row.pointsCost);
+            if (!Number.isInteger(pointsCost) || pointsCost <= 0) {
+              throw new Error(`第 ${index + 1} 个 SKU 兑换积分必须为正整数`);
+            }
+            const pointsMoneyCents = row.pointsMoney.trim() ? toCents(row.pointsMoney) : 0;
+            if (pointsMoneyCents < 0) {
+              throw new Error(`第 ${index + 1} 个 SKU 加价金额不能为负`);
+            }
+            return {
+              specJson,
+              priceCents: pointsMoneyCents,
+              pointsCost,
+              pointsMoneyCents,
+              stock,
+              ...(row.origin.trim() ? { originCents: toCents(row.origin) } : {}),
+            };
+          }
+          if (priceCents <= 0) throw new Error(`第 ${index + 1} 个 SKU 价格必须大于 0`);
           return {
             specJson,
             priceCents,
@@ -236,12 +277,19 @@ export default function ProductEdit() {
           };
         });
 
+        const pointsLimitPerUser = Number(form.pointsLimitPerUser);
+        if (!Number.isInteger(pointsLimitPerUser) || pointsLimitPerUser < 0) {
+          throw new Error('每人限兑必须为非负整数');
+        }
+
         await api('/admin/products', {
           method: 'POST',
           body: {
             title: form.title.trim(),
             subtitle: form.subtitle.trim() || undefined,
             categoryId: form.categoryId,
+            channel,
+            pointsLimitPerUser,
             mainImageKeys: form.mainImageKeys,
             detailImageKeys: form.detailImageKeys,
             detail: form.detail.trim() || undefined,
@@ -257,6 +305,9 @@ export default function ProductEdit() {
             title: form.title.trim(),
             subtitle: form.subtitle.trim(),
             categoryId: form.categoryId,
+            ...(isPoints
+              ? { pointsLimitPerUser: Math.max(Number(form.pointsLimitPerUser) || 0, 0) }
+              : {}),
             mainImageKeys: form.mainImageKeys,
             detailImageKeys: form.detailImageKeys,
             detail: form.detail.trim(),
@@ -266,7 +317,7 @@ export default function ProductEdit() {
         });
       }
       toast('已保存');
-      navigate('/products');
+      navigate(isPoints ? '/marketing/points-mall' : '/products');
     } catch (err) {
       toast(err instanceof Error ? err.message : errorText(err), 'error');
     } finally {
@@ -284,7 +335,19 @@ export default function ProductEdit() {
           .map(([key, value]) => `${key}：${value}`)
           .join(' / ') || '—',
     },
-    { key: 'priceCents', title: '价格', align: 'right', render: (row) => <span className="money">{toYuan(row.priceCents)} 元</span> },
+    { key: 'priceCents', title: isPoints ? '加价金额' : '价格', align: 'right', render: (row) => <span className="money">{toYuan(row.priceCents)} 元</span> },
+    ...(isPoints
+      ? [
+          {
+            key: 'pointsCost',
+            title: '兑换积分',
+            align: 'right' as const,
+            render: (row: ProductSku) => (
+              <span className="mono">{row.pointsCost ?? '—'} 积分</span>
+            ),
+          },
+        ]
+      : []),
     { key: 'stock', title: '库存', align: 'right', render: (row) => <span className="mono">{row.stock}</span> },
     {
       key: 'status',
@@ -320,8 +383,24 @@ export default function ProductEdit() {
   return (
     <>
       <PageHeader
-        title={isNew ? '新建商品' : '编辑商品'}
-        desc={isNew ? '填写基础信息并至少创建一个 SKU' : 'SKU 价格与库存请前往「规格库存」页维护'}
+        title={
+          isPoints
+            ? isNew
+              ? '新建积分商品'
+              : '编辑积分商品'
+            : isNew
+              ? '新建商品'
+              : '编辑商品'
+        }
+        desc={
+          isPoints
+            ? isNew
+              ? '填写基础信息，并按 SKU 设置兑换积分与加价金额'
+              : '兑换积分与库存请前往「规格库存」页维护'
+            : isNew
+              ? '填写基础信息并至少创建一个 SKU'
+              : 'SKU 价格与库存请前往「规格库存」页维护'
+        }
       />
 
       <form onSubmit={handleSubmit}>
@@ -405,6 +484,25 @@ export default function ProductEdit() {
           </div>
         </Card>
 
+        {isPoints && (
+          <Card title="积分兑换">
+            <div className="grid grid-2">
+              <Field label="每人限兑数量" hint="0 表示不限；超过时用户无法继续兑换">
+                <input
+                  className="input"
+                  type="number"
+                  min={0}
+                  value={form.pointsLimitPerUser}
+                  onChange={(e) => setField('pointsLimitPerUser', e.target.value)}
+                />
+              </Field>
+            </div>
+            <p className="small muted" style={{ marginBottom: 0 }}>
+              积分商品仅在积分商城展示，不进入普通商品列表、搜索、购物车与秒杀；兑换单统一包邮。
+            </p>
+          </Card>
+        )}
+
         {isNew ? (
           <Card
             title="SKU 规格"
@@ -467,24 +565,49 @@ export default function ProductEdit() {
                   </div>
 
                   <div className="grid grid-4">
-                    <Field label="价格（元）">
-                      <input
-                        className="input"
-                        type="number"
-                        step="0.01"
-                        value={row.price}
-                        onChange={(e) => updateSku(skuIndex, { price: e.target.value })}
-                      />
-                    </Field>
-                    <Field label="划线价（元）" hint="选填">
-                      <input
-                        className="input"
-                        type="number"
-                        step="0.01"
-                        value={row.origin}
-                        onChange={(e) => updateSku(skuIndex, { origin: e.target.value })}
-                      />
-                    </Field>
+                    {isPoints ? (
+                      <>
+                        <Field label="兑换积分（每件）">
+                          <input
+                            className="input"
+                            type="number"
+                            min={1}
+                            value={row.pointsCost}
+                            onChange={(e) => updateSku(skuIndex, { pointsCost: e.target.value })}
+                          />
+                        </Field>
+                        <Field label="加价金额（元）" hint="纯积分填 0">
+                          <input
+                            className="input"
+                            type="number"
+                            step="0.01"
+                            value={row.pointsMoney}
+                            onChange={(e) => updateSku(skuIndex, { pointsMoney: e.target.value })}
+                          />
+                        </Field>
+                      </>
+                    ) : (
+                      <>
+                        <Field label="价格（元）">
+                          <input
+                            className="input"
+                            type="number"
+                            step="0.01"
+                            value={row.price}
+                            onChange={(e) => updateSku(skuIndex, { price: e.target.value })}
+                          />
+                        </Field>
+                        <Field label="划线价（元）" hint="选填">
+                          <input
+                            className="input"
+                            type="number"
+                            step="0.01"
+                            value={row.origin}
+                            onChange={(e) => updateSku(skuIndex, { origin: e.target.value })}
+                          />
+                        </Field>
+                      </>
+                    )}
                     <Field label="库存">
                       <input
                         className="input"

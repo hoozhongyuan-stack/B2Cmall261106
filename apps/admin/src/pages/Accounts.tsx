@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 
 import { api, ApiError, formatDate } from '../api/client';
-import { hasRole, ROLE_LABEL, type AdminRole } from '../auth';
+import { can } from '../auth';
 import { confirmAction } from '../components/confirm';
 import { toast } from '../components/toast';
 import {
@@ -20,7 +20,10 @@ interface AccountRow {
   id: string;
   account: string;
   displayName: string;
-  role: string;
+  kind: 'PC' | 'STORE';
+  isSuper: boolean;
+  roleId: string | null;
+  roleName: string | null;
   storeIds?: string[];
   status: string;
   failCount: number;
@@ -29,16 +32,22 @@ interface AccountRow {
   createdAt: string;
 }
 
+interface RoleOption {
+  id: string;
+  name: string;
+  permissionCount: number;
+}
+
 interface StoreOption {
   id: string;
   name: string;
 }
 
-const ROLES: AdminRole[] = ['SUPER', 'OPS', 'CS', 'WMS'];
 const EMPTY_CREATE = {
   account: '',
   displayName: '',
-  role: 'CS' as AdminRole,
+  kind: 'PC' as 'PC' | 'STORE',
+  roleId: '',
   password: '',
   storeIds: [] as string[],
 };
@@ -48,8 +57,9 @@ function errorText(err: unknown): string {
 }
 
 export default function Accounts() {
-  const canWrite = hasRole('SUPER');
+  const canWrite = can('account.manage');
   const [items, setItems] = useState<AccountRow[]>([]);
+  const [roles, setRoles] = useState<RoleOption[]>([]);
   const [stores, setStores] = useState<StoreOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [keyword, setKeyword] = useState('');
@@ -66,8 +76,11 @@ export default function Accounts() {
   async function load() {
     setLoading(true);
     try {
-      const [result, storeResult] = await Promise.all([
+      const [result, roleResult, storeResult] = await Promise.all([
         api<{ items: AccountRow[] }>('/admin/accounts'),
+        canWrite
+          ? api<{ items: RoleOption[] }>('/admin/roles')
+          : Promise.resolve({ items: [] as RoleOption[] }),
         canWrite
           ? api<{ items: StoreOption[] }>('/admin/stores', {
               query: { status: 'ACTIVE', pageSize: 200 },
@@ -75,6 +88,7 @@ export default function Accounts() {
           : Promise.resolve({ items: [] as StoreOption[] }),
       ]);
       setItems(result.items);
+      setRoles(roleResult.items);
       setStores(storeResult.items);
     } catch (err) {
       toast(errorText(err), 'error');
@@ -90,7 +104,7 @@ export default function Accounts() {
   async function createAccount(event: FormEvent) {
     event.preventDefault();
     if (!canWrite) {
-      toast('只有超级管理员可以新建子账号', 'error');
+      toast('当前账号没有子账号管理权限', 'error');
       return;
     }
     if (!createForm.account.trim() || !createForm.displayName.trim()) {
@@ -101,7 +115,11 @@ export default function Accounts() {
       toast('密码至少 8 位', 'error');
       return;
     }
-    if (createForm.role === 'STORE' && !createForm.storeIds.length) {
+    if (createForm.kind === 'PC' && !createForm.roleId) {
+      toast('请选择角色', 'error');
+      return;
+    }
+    if (createForm.kind === 'STORE' && !createForm.storeIds.length) {
       toast('门店账号至少绑定一个门店', 'error');
       return;
     }
@@ -112,9 +130,10 @@ export default function Accounts() {
         body: {
           account: createForm.account.trim(),
           displayName: createForm.displayName.trim(),
-          role: createForm.role,
+          kind: createForm.kind,
+          ...(createForm.kind === 'PC' ? { roleId: createForm.roleId } : {}),
           password: createForm.password,
-          ...(createForm.role === 'STORE' ? { storeIds: createForm.storeIds } : {}),
+          ...(createForm.kind === 'STORE' ? { storeIds: createForm.storeIds } : {}),
         },
       });
       toast('已保存');
@@ -198,6 +217,12 @@ export default function Accounts() {
       .join('、');
   }
 
+  function roleLabel(row: AccountRow): string {
+    if (row.isSuper) return '超级管理员';
+    if (row.kind === 'STORE') return '门店账号';
+    return row.roleName ?? '未分配角色';
+  }
+
   const columns: Column<AccountRow>[] = [
     {
       key: 'account',
@@ -212,13 +237,15 @@ export default function Accounts() {
     {
       key: 'role',
       title: '角色',
-      render: (row) => <Tag tone="brand">{ROLE_LABEL[row.role as AdminRole] ?? row.role}</Tag>,
+      render: (row) => (
+        <Tag tone={row.isSuper ? 'gold' : 'brand'}>{roleLabel(row)}</Tag>
+      ),
     },
     {
       key: 'stores',
       title: '绑定门店',
       render: (row) =>
-        row.role === 'STORE' ? (
+        row.kind === 'STORE' ? (
           <span className="small">{storeNames(row.storeIds)}</span>
         ) : (
           <span className="muted">—</span>
@@ -255,7 +282,7 @@ export default function Accounts() {
       render: (row) =>
         canWrite ? (
           <div className="row" style={{ justifyContent: 'flex-end', gap: 6 }}>
-            {row.role === 'STORE' && (
+            {row.kind === 'STORE' && (
               <Button size="sm" variant="ghost" onClick={() => openBind(row)}>
                 绑定门店
               </Button>
@@ -283,7 +310,8 @@ export default function Accounts() {
     ? items.filter(
         (item) =>
           item.account.toLowerCase().includes(applied) ||
-          item.displayName.toLowerCase().includes(applied),
+          item.displayName.toLowerCase().includes(applied) ||
+          roleLabel(item).toLowerCase().includes(applied),
       )
     : items;
 
@@ -291,7 +319,7 @@ export default function Accounts() {
     <>
       <PageHeader
         title="子账号"
-        desc="按角色分配后台权限，停用后立即无法登录"
+        desc="按角色分配后台权限；角色可在「角色」中自定义，停用后立即无法登录"
         actions={canWrite ? <Button onClick={() => setCreateOpen(true)}>新建子账号</Button> : undefined}
       />
 
@@ -301,7 +329,7 @@ export default function Accounts() {
             className="input"
             style={{ width: 240 }}
             aria-label="搜索子账号"
-            placeholder="搜索账号 / 姓名…"
+            placeholder="搜索账号 / 姓名 / 角色…"
             value={keyword}
             onChange={(event) => setKeyword(event.target.value)}
           />
@@ -349,27 +377,43 @@ export default function Accounts() {
               onChange={(e) => setCreateForm((prev) => ({ ...prev, displayName: e.target.value }))}
             />
           </Field>
-          <Field label="角色">
+          <Field label="账号类型" hint="门店账号仅用于小程序门店中心，不能登录 PC 后台">
             <select
               className="select"
-              value={createForm.role}
+              value={createForm.kind}
               onChange={(e) => {
-                const role = e.target.value as AdminRole;
+                const kind = e.target.value as 'PC' | 'STORE';
                 setCreateForm((prev) => ({
                   ...prev,
-                  role,
-                  storeIds: role === 'STORE' ? prev.storeIds : [],
+                  kind,
+                  roleId: kind === 'PC' ? prev.roleId : '',
+                  storeIds: kind === 'STORE' ? prev.storeIds : [],
                 }));
               }}
             >
-              {ROLES.map((role) => (
-                <option key={role} value={role}>
-                  {ROLE_LABEL[role]}
-                </option>
-              ))}
+              <option value="PC">普通账号</option>
+              <option value="STORE">门店账号</option>
             </select>
           </Field>
-          {createForm.role === 'STORE' && (
+          {createForm.kind === 'PC' && (
+            <Field label="角色" hint={roles.length ? '权限由角色决定' : '请先在「账号 → 角色」中创建角色'}>
+              <select
+                className="select"
+                value={createForm.roleId}
+                onChange={(e) =>
+                  setCreateForm((prev) => ({ ...prev, roleId: e.target.value }))
+                }
+              >
+                <option value="">请选择角色</option>
+                {roles.map((role) => (
+                  <option key={role.id} value={role.id}>
+                    {role.name}（{role.permissionCount} 项权限）
+                  </option>
+                ))}
+              </select>
+            </Field>
+          )}
+          {createForm.kind === 'STORE' && (
             <Field label="绑定门店" hint="至少选择一个，可多选">
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {stores.map((store) => (

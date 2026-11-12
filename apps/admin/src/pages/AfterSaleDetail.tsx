@@ -7,7 +7,7 @@ import {
 } from '@shanye/shared/src/orderState';
 
 import { api, ApiError, formatDate, money } from '../api/client';
-import { hasRole } from '../auth';
+import { can } from '../auth';
 import { confirmAction } from '../components/confirm';
 import { toast } from '../components/toast';
 import {
@@ -182,8 +182,8 @@ export default function AfterSaleDetail() {
   }
 
   const status = data.status as AfterSaleStatus;
-  const canModerate = hasRole('SUPER', 'CS');
-  const canReceive = hasRole('SUPER', 'WMS');
+  const canModerate = can('aftersale.audit');
+  const canReceive = can('aftersale.audit');
   const showModerate = status === AFTER_SALE_STATUS.APPLIED && canModerate;
   const showReceive = status === AFTER_SALE_STATUS.WAIT_SELLER_RECEIVE && canReceive;
 

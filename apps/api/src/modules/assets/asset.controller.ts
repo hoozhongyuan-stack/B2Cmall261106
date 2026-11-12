@@ -17,7 +17,7 @@ import { ApiBearerAuth, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagg
 import { IsArray, IsInt, IsOptional, IsString, Length, Min } from 'class-validator';
 
 import { AssetService, type UploadedImage } from './asset.service';
-import { JwtAuthGuard, Roles, RolesGuard } from '../../common/auth.guards';
+import { JwtAuthGuard, RolesGuard, Permission } from '../../common/auth.guards';
 
 class CreateFolderDto {
   @IsString()
@@ -63,7 +63,7 @@ export class AdminAssetController {
   constructor(private readonly assets: AssetService) {}
 
   @Get()
-  @Roles('SUPER', 'OPS', 'CS', 'WMS')
+  @Permission('asset.view')
   @ApiOperation({ summary: '素材列表（按文件夹、类型、关键词筛选，分页）' })
   list(
     @Query('folderId') folderId?: string,
@@ -82,21 +82,21 @@ export class AdminAssetController {
   }
 
   @Get('folders')
-  @Roles('SUPER', 'OPS', 'CS', 'WMS')
+  @Permission('asset.view')
   @ApiOperation({ summary: '一级文件夹列表（含素材数量）' })
   folders() {
     return this.assets.folders();
   }
 
   @Post('folders')
-  @Roles('SUPER', 'OPS')
+  @Permission('asset.manage')
   @ApiOperation({ summary: '新建文件夹' })
   createFolder(@Body() dto: CreateFolderDto) {
     return this.assets.createFolder(dto);
   }
 
   @Patch('folders/:id')
-  @Roles('SUPER', 'OPS')
+  @Permission('asset.manage')
   @ApiOperation({ summary: '重命名或调整文件夹排序' })
   updateFolder(@Param('id') id: string, @Body() dto: UpdateFolderDto) {
     return this.assets.updateFolder(id, dto);
@@ -104,14 +104,14 @@ export class AdminAssetController {
 
   @Delete('folders/:id')
   @HttpCode(200)
-  @Roles('SUPER', 'OPS')
+  @Permission('asset.manage')
   @ApiOperation({ summary: '删除空文件夹' })
   deleteFolder(@Param('id') id: string) {
     return this.assets.deleteFolder(id);
   }
 
   @Post('upload')
-  @Roles('SUPER', 'OPS')
+  @Permission('asset.manage')
   @UseInterceptors(FilesInterceptor('files', 9, { limits: { fileSize: 50 * 1024 * 1024 } }))
   @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: '上传素材（图片 ≤5MB，视频 mp4/mov/webm ≤50MB，最多 9 个）' })
@@ -123,7 +123,7 @@ export class AdminAssetController {
   }
 
   @Patch(':id')
-  @Roles('SUPER', 'OPS')
+  @Permission('asset.manage')
   @ApiOperation({ summary: '移动素材到文件夹' })
   move(@Param('id') id: string, @Body() dto: MoveAssetDto) {
     return this.assets.move(id, dto.folderId);
@@ -131,7 +131,7 @@ export class AdminAssetController {
 
   @Post('batch/delete')
   @HttpCode(200)
-  @Roles('SUPER', 'OPS')
+  @Permission('asset.manage')
   @ApiOperation({ summary: '批量删除素材（被引用的逐条失败并返回原因）' })
   batchRemove(@Body() dto: BatchIdsDto) {
     return this.assets.batchRemove(dto.ids);
@@ -139,7 +139,7 @@ export class AdminAssetController {
 
   @Delete(':id')
   @HttpCode(200)
-  @Roles('SUPER', 'OPS')
+  @Permission('asset.manage')
   @ApiOperation({ summary: '删除素材（被商品或店铺 Logo 引用时拒绝）' })
   remove(@Param('id') id: string) {
     return this.assets.remove(id);

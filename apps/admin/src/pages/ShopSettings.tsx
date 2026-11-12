@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 
 import { api, ApiError, toCents, toYuan } from '../api/client';
 import { assetPreviewUrl } from '../api/assets';
-import { hasRole } from '../auth';
+import { can } from '../auth';
 import { AssetPicker } from '../components/AssetPicker';
 import { toast } from '../components/toast';
 import { Button, Card, Field, PageHeader } from '../components/ui';
@@ -88,7 +88,7 @@ function nullIfBlank(value: string): string | null {
 }
 
 export default function ShopSettings() {
-  const canWrite = hasRole('SUPER');
+  const canWrite = can('shop.manage');
   const [form, setForm] = useState<ShopForm>(EMPTY_FORM);
   const [businessDomain, setBusinessDomain] = useState('');
   const [loading, setLoading] = useState(true);

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import { api, ApiError } from '../api/client';
-import { hasRole } from '../auth';
+import { can } from '../auth';
 import { confirmAction } from '../components/confirm';
 import { toast } from '../components/toast';
 import {
@@ -54,7 +54,7 @@ function errorText(err: unknown): string {
 }
 
 export default function UserTags() {
-  const canWrite = hasRole('SUPER', 'OPS');
+  const canWrite = can('usertag.manage');
   const [tree, setTree] = useState<TagNode[]>([]);
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState<ModalState>(CLOSED_MODAL);

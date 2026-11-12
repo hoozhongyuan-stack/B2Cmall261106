@@ -42,6 +42,7 @@ export const MICRO_LINK_TYPES = [
   'orders',
   'mine',
   'points',
+  'pointsmall',
   'page',
 ] as const;
 
@@ -60,6 +61,7 @@ export const MICRO_LINK_LABELS: Record<MicroLinkType, string> = {
   orders: '我的订单',
   mine: '个人中心',
   points: '积分中心',
+  pointsmall: '积分商城',
   page: '内置页面',
 };
 
@@ -171,6 +173,7 @@ export const MICRO_INNER_PAGES: MicroInnerPage[] = [
   { label: '我的评价', path: '/pages/review/mine/index' },
   { label: '优惠券', path: '/pages/coupon/index' },
   { label: '积分中心', path: '/pages/points/index' },
+  { label: '积分商城', path: '/pages/points-mall/index' },
   { label: '会员中心', path: '/pages/member/index' },
   { label: '会员卡', path: '/pages/member-card/index' },
   { label: '收货地址', path: '/pages/address/list/index' },

@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { api, ApiError, formatDate, money } from '../api/client';
-import { hasRole } from '../auth';
+import { can } from '../auth';
 import { toast } from '../components/toast';
 import {
   Button,
@@ -49,7 +49,7 @@ function errorText(err: unknown): string {
 
 export default function Coupons() {
   const navigate = useNavigate();
-  const canWrite = hasRole('SUPER', 'OPS');
+  const canWrite = can('coupon.edit');
   const [items, setItems] = useState<CouponRow[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);

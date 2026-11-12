@@ -24,7 +24,7 @@ import {
 } from 'class-validator';
 
 import { PromotionService } from './promotion.service';
-import { JwtAuthGuard, Roles, RolesGuard } from '../../common/auth.guards';
+import { JwtAuthGuard, RolesGuard, Permission } from '../../common/auth.guards';
 
 class ScopeDto {
   @IsIn(['CATEGORY', 'PRODUCT'])
@@ -125,21 +125,21 @@ export class AdminPromotionController {
   constructor(private readonly promotions: PromotionService) {}
 
   @Get()
-  @Roles('SUPER', 'OPS', 'CS')
+  @Permission('promotion.view')
   @ApiOperation({ summary: '满减与秒杀活动列表' })
   list() {
     return this.promotions.adminList();
   }
 
   @Post()
-  @Roles('SUPER', 'OPS')
+  @Permission('promotion.manage')
   @ApiOperation({ summary: '新建满减或秒杀活动' })
   create(@Body() dto: PromotionDto) {
     return this.promotions.create(dto);
   }
 
   @Patch(':id')
-  @Roles('SUPER', 'OPS')
+  @Permission('promotion.manage')
   @ApiOperation({ summary: '修改活动（启停 / 时间 / 范围 / 商品）' })
   update(@Param('id') id: string, @Body() dto: PromotionDto) {
     return this.promotions.update(id, dto);
@@ -147,7 +147,7 @@ export class AdminPromotionController {
 
   @Delete(':id')
   @HttpCode(200)
-  @Roles('SUPER')
+  @Permission('promotion.manage')
   @ApiOperation({ summary: '删除活动' })
   remove(@Param('id') id: string) {
     return this.promotions.remove(id);

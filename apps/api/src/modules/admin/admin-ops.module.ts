@@ -4,6 +4,8 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 
 import { AdminAccountController } from './admin-account.controller';
 import { AdminAccountService } from './admin-account.service';
+import { AdminRoleController } from './admin-role.controller';
+import { AdminRoleService } from './admin-role.service';
 import { AdminLogController } from './admin-log.controller';
 import { OperationLogService } from './operation-log.service';
 import { AdminDashboardController } from './admin-dashboard.controller';
@@ -25,9 +27,15 @@ import { JwtAuthGuard, RolesGuard } from '../../common/auth.guards';
       }),
     }),
   ],
-  controllers: [AdminAccountController, AdminLogController, AdminDashboardController],
+  controllers: [
+    AdminAccountController,
+    AdminRoleController,
+    AdminLogController,
+    AdminDashboardController,
+  ],
   providers: [
     AdminAccountService,
+    AdminRoleService,
     OperationLogService,
     AdminDashboardService,
     JwtAuthGuard,

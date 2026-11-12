@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { api, ApiError, toCents } from '../api/client';
-import { hasRole } from '../auth';
+import { can } from '../auth';
 import { toast } from '../components/toast';
 import { Button, Card, Field, PageHeader } from '../components/ui';
 
@@ -22,7 +22,7 @@ function errorText(err: unknown): string {
 
 export default function CouponNew() {
   const navigate = useNavigate();
-  const canWrite = hasRole('SUPER', 'OPS');
+  const canWrite = can('coupon.edit');
   const now = new Date();
   const weekLater = new Date(now.getTime() + 7 * 86_400_000);
 

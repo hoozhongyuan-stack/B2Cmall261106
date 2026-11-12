@@ -4,7 +4,7 @@ import pca from 'china-division/dist/pca-code.json';
 
 import { api, ApiError, toCents, toYuan } from '../api/client';
 import { assetPreviewUrl } from '../api/assets';
-import { hasRole } from '../auth';
+import { can } from '../auth';
 import { AssetPicker } from '../components/AssetPicker';
 import { MapPicker } from '../components/MapPicker';
 import { toast } from '../components/toast';
@@ -193,7 +193,7 @@ export default function StoreEdit() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const editing = Boolean(id);
-  const canWrite = hasRole('SUPER', 'OPS');
+  const canWrite = can('store.edit');
   const [form, setForm] = useState<StoreFormState>(emptyForm());
   const [province, setProvince] = useState<AreaNode | null>(null);
   const [city, setCity] = useState<AreaNode | null>(null);

@@ -4,7 +4,7 @@ import { IsArray, IsIn, IsInt, IsOptional, IsString, Min } from 'class-validator
 
 import { AfterSaleService } from './aftersale.service';
 import { CurrentUser, UserJwtGuard, type MiniappUser } from '../../common/user-auth.guard';
-import { JwtAuthGuard, Roles, RolesGuard } from '../../common/auth.guards';
+import { JwtAuthGuard, RolesGuard, Permission } from '../../common/auth.guards';
 
 class ApplyDto {
   @IsString()
@@ -97,7 +97,7 @@ export class AdminAfterSaleController {
   constructor(private readonly service: AfterSaleService) {}
 
   @Get()
-  @Roles('SUPER', 'OPS', 'CS', 'WMS')
+  @Permission('aftersale.view')
   @ApiOperation({ summary: '售后列表（含各状态数量，分页，可关键词 / 类型 / 时间筛选）' })
   list(
     @Query('status') status?: string,
@@ -117,7 +117,7 @@ export class AdminAfterSaleController {
   }
 
   @Get(':id')
-  @Roles('SUPER', 'OPS', 'CS', 'WMS')
+  @Permission('aftersale.view')
   @ApiOperation({ summary: '售后详情' })
   detail(@Param('id') id: string) {
     return this.service.detailAdmin(id);
@@ -125,7 +125,7 @@ export class AdminAfterSaleController {
 
   @Post(':id/moderate')
   @HttpCode(200)
-  @Roles('SUPER', 'CS')
+  @Permission('aftersale.audit')
   @ApiOperation({ summary: '审核：同意仅退款 / 同意退货 / 拒绝' })
   moderate(@Param('id') id: string, @Body() dto: ModerateDto) {
     return this.service.approve(id, dto.action, dto.rejectReason);
@@ -133,7 +133,7 @@ export class AdminAfterSaleController {
 
   @Post(':id/receive')
   @HttpCode(200)
-  @Roles('SUPER', 'WMS')
+  @Permission('aftersale.audit')
   @ApiOperation({ summary: '确认收到退货并发起退款' })
   receive(@Param('id') id: string) {
     return this.service.receive(id);

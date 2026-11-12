@@ -3,7 +3,7 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import { PrismaService } from '../../prisma/prisma.module';
 import { CurrentUser, UserJwtGuard, type MiniappUser } from '../../common/user-auth.guard';
-import { JwtAuthGuard, Roles, RolesGuard } from '../../common/auth.guards';
+import { JwtAuthGuard, RolesGuard, Permission } from '../../common/auth.guards';
 import { OrderTimeoutService } from '../order/order-timeout.service';
 
 interface TraceNode {
@@ -78,7 +78,7 @@ export class AdminOrderOpsController {
   constructor(private readonly timeout: OrderTimeoutService) {}
 
   @Post('close-expired')
-  @Roles('SUPER')
+  @Permission('order.edit')
   @ApiOperation({ summary: '手动触发超时关单（运维用，定时任务每分钟自动执行）' })
   closeExpired() {
     return this.timeout.closeExpired();

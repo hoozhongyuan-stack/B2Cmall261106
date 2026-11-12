@@ -7,13 +7,18 @@ import {
 
 import { PrismaService, isUniqueViolation } from '../../prisma/prisma.module';
 import { hashPassword } from '../../common/password';
-import type { AdminRole } from '../../common/auth.guards';
+
+export type AccountStatus = 'ACTIVE' | 'DISABLED';
+export type AccountKind = 'PC' | 'STORE';
 
 const ACCOUNT_SELECT = {
   id: true,
   account: true,
   displayName: true,
-  role: true,
+  kind: true,
+  isSuper: true,
+  roleId: true,
+  role: { select: { id: true, name: true } },
   status: true,
   failCount: true,
   lockedUntil: true,
@@ -22,19 +27,19 @@ const ACCOUNT_SELECT = {
   adminStores: { select: { storeId: true } },
 } as const;
 
-export type AccountStatus = 'ACTIVE' | 'DISABLED';
-
 export interface CreateAccountInput {
   account: string;
   displayName: string;
-  role: AdminRole;
+  kind?: AccountKind;
+  roleId?: string;
   password: string;
   storeIds?: string[];
 }
 
 export interface UpdateAccountInput {
   displayName?: string;
-  role?: AdminRole;
+  kind?: AccountKind;
+  roleId?: string;
   storeIds?: string[];
 }
 
@@ -52,7 +57,9 @@ export class AdminAccountService {
 
   async create(input: CreateAccountInput) {
     this.assertPassword(input.password);
-    const storeIds = await this.storeIdsFor(input.role, input.storeIds);
+    const kind = input.kind ?? 'PC';
+    const storeIds = await this.storeIdsFor(kind, input.storeIds);
+    const roleId = await this.roleIdFor(kind, input.roleId);
 
     const exists = await this.prisma.adminUser.findUnique({
       where: { account: input.account },
@@ -65,7 +72,8 @@ export class AdminAccountService {
         data: {
           account: input.account,
           displayName: input.displayName,
-          role: input.role,
+          kind,
+          roleId,
           passwordHash: hashPassword(input.password),
           ...(storeIds.length
             ? { adminStores: { create: storeIds.map((storeId) => ({ storeId })) } }
@@ -83,29 +91,35 @@ export class AdminAccountService {
   async update(id: string, input: UpdateAccountInput) {
     const target = await this.prisma.adminUser.findUnique({
       where: { id },
-      select: { id: true, role: true, status: true },
+      select: { id: true, kind: true, isSuper: true, roleId: true, status: true },
     });
     if (!target) throw new NotFoundException('子账号不存在');
 
-    if (input.role && input.role !== target.role && target.role === 'SUPER' && target.status === 'ACTIVE') {
-      await this.assertNotLastActiveSuper('不能降级最后一个启用中的超级管理员');
+    if (target.isSuper && (input.kind !== undefined || input.roleId !== undefined)) {
+      throw new BadRequestException('超级管理员账号不支持修改账号类型或角色');
     }
 
-    const nextRole = input.role ?? target.role;
-    let storeIds: string[] | undefined;
-    if (input.storeIds !== undefined) {
-      storeIds = await this.storeIdsFor(nextRole, input.storeIds);
-    } else if (input.role !== undefined && nextRole !== 'STORE') {
-      storeIds = [];
-    } else if (input.role !== undefined && nextRole === 'STORE' && target.role !== 'STORE') {
-      throw new BadRequestException('门店账号至少绑定一个门店');
+    const nextKind = input.kind ?? target.kind;
+    const nextRoleId =
+      input.roleId !== undefined ? input.roleId : target.roleId;
+
+    if (input.kind !== undefined && nextKind !== target.kind) {
+      if (target.isSuper) throw new BadRequestException('超级管理员账号不可转为门店账号');
     }
+
+    let storeIds: string[] | undefined;
+    if (input.storeIds !== undefined || input.kind !== undefined) {
+      storeIds = await this.storeIdsFor(nextKind, input.storeIds);
+    }
+
+    const roleId = await this.roleIdFor(nextKind, nextRoleId);
 
     const row = await this.prisma.adminUser.update({
       where: { id },
       data: {
         displayName: input.displayName,
-        role: input.role,
+        ...(input.kind !== undefined ? { kind: nextKind } : {}),
+        ...(input.kind !== undefined || input.roleId !== undefined ? { roleId } : {}),
         ...(storeIds !== undefined
           ? {
               adminStores: {
@@ -123,13 +137,13 @@ export class AdminAccountService {
   async setStatus(id: string, status: AccountStatus, operatorId: string) {
     const target = await this.prisma.adminUser.findUnique({
       where: { id },
-      select: { id: true, role: true, status: true },
+      select: { id: true, isSuper: true, status: true },
     });
     if (!target) throw new NotFoundException('子账号不存在');
 
     if (status === 'DISABLED') {
       if (id === operatorId) throw new BadRequestException('不能停用当前登录账号');
-      if (target.role === 'SUPER' && target.status === 'ACTIVE') {
+      if (target.isSuper && target.status === 'ACTIVE') {
         await this.assertNotLastActiveSuper('不能停用最后一个启用中的超级管理员');
       }
     }
@@ -158,10 +172,10 @@ export class AdminAccountService {
     return { id };
   }
 
-  /** 门店账号至少绑定一个启用中的门店；其他角色不允许绑定门店 */
-  private async storeIdsFor(role: AdminRole, input?: string[]): Promise<string[]> {
+  /** 门店账号至少绑定一个启用中的门店；PC 账号不允许绑定门店 */
+  private async storeIdsFor(kind: AccountKind, input?: string[]): Promise<string[]> {
     const ids = [...new Set((input ?? []).map((value) => value.trim()).filter(Boolean))];
-    if (role !== 'STORE') {
+    if (kind !== 'STORE') {
       if (ids.length) throw new BadRequestException('只有门店账号可以绑定门店');
       return [];
     }
@@ -174,9 +188,31 @@ export class AdminAccountService {
     return ids;
   }
 
-  private view<T extends { adminStores: { storeId: string }[] }>(row: T) {
-    const { adminStores, ...rest } = row;
-    return { ...rest, storeIds: adminStores.map((item) => item.storeId) };
+  /** PC 账号必须绑定存在的角色；门店账号不绑定角色 */
+  private async roleIdFor(
+    kind: AccountKind,
+    roleId: string | undefined | null,
+  ): Promise<string | null> {
+    if (kind === 'STORE') return null;
+    if (!roleId) throw new BadRequestException('请选择角色');
+    const role = await this.prisma.adminRoleDef.findUnique({
+      where: { id: roleId },
+      select: { id: true },
+    });
+    if (!role) throw new BadRequestException('角色不存在');
+    return roleId;
+  }
+
+  private view<T extends { adminStores: { storeId: string }[]; role: { id: string; name: string } | null }>(
+    row: T,
+  ) {
+    const { adminStores, role, ...rest } = row;
+    return {
+      ...rest,
+      roleId: role?.id ?? null,
+      roleName: role?.name ?? null,
+      storeIds: adminStores.map((item) => item.storeId),
+    };
   }
 
   private assertPassword(password: string): void {
@@ -187,7 +223,7 @@ export class AdminAccountService {
 
   private async assertNotLastActiveSuper(message: string): Promise<void> {
     const activeSuperCount = await this.prisma.adminUser.count({
-      where: { role: 'SUPER', status: 'ACTIVE' },
+      where: { isSuper: true, status: 'ACTIVE' },
     });
     if (activeSuperCount <= 1) throw new ConflictException(message);
   }

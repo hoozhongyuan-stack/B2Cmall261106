@@ -22,7 +22,7 @@ import {
 
 import { CouponService } from './coupon.service';
 import { CurrentUser, UserJwtGuard, type MiniappUser } from '../../common/user-auth.guard';
-import { JwtAuthGuard, Roles, RolesGuard } from '../../common/auth.guards';
+import { JwtAuthGuard, RolesGuard, Permission } from '../../common/auth.guards';
 
 class CreateCouponDto {
   @IsString()
@@ -107,7 +107,7 @@ export class AdminCouponController {
   constructor(private readonly coupons: CouponService) {}
 
   @Get()
-  @Roles('SUPER', 'OPS', 'CS')
+  @Permission('coupon.view')
   @ApiOperation({ summary: '优惠券列表（含领取数，分页，可关键词 / 类型 / 状态筛选）' })
   list(
     @Query('enabled') enabled?: string,
@@ -126,7 +126,7 @@ export class AdminCouponController {
   }
 
   @Post()
-  @Roles('SUPER', 'OPS')
+  @Permission('coupon.edit')
   @ApiOperation({ summary: '新建优惠券：满减 / 无门槛' })
   create(@Body() dto: CreateCouponDto) {
     return this.coupons.createAdmin(dto);
@@ -134,7 +134,7 @@ export class AdminCouponController {
 
   @Post(':id/toggle')
   @HttpCode(200)
-  @Roles('SUPER', 'OPS')
+  @Permission('coupon.edit')
   @ApiOperation({ summary: '启用 / 停用优惠券' })
   toggle(@Param('id') id: string) {
     return this.coupons.toggleAdmin(id);
@@ -142,14 +142,14 @@ export class AdminCouponController {
 
   @Post(':id/grant')
   @HttpCode(200)
-  @Roles('SUPER', 'OPS')
+  @Permission('coupon.edit')
   @ApiOperation({ summary: '后台发放：指定客户或全部客户' })
   grant(@Param('id') id: string, @Body() dto: GrantCouponDto) {
     return this.coupons.grantAdmin(id, dto);
   }
 
   @Get(':id/claims')
-  @Roles('SUPER', 'OPS', 'CS')
+  @Permission('coupon.view')
   @ApiOperation({ summary: '发放记录' })
   claims(@Param('id') id: string) {
     return this.coupons.claimsAdmin(id);

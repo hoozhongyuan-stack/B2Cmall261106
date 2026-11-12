@@ -13,7 +13,7 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { IsBoolean, IsInt, IsOptional, IsString, Length, Min } from 'class-validator';
 
 import { ExpressService } from './express.service';
-import { JwtAuthGuard, Roles, RolesGuard } from '../../common/auth.guards';
+import { JwtAuthGuard, RolesGuard, Permission } from '../../common/auth.guards';
 
 class ExpressCompanyDto {
   @IsOptional()
@@ -76,21 +76,21 @@ export class AdminExpressCompanyController {
   constructor(private readonly express: ExpressService) {}
 
   @Get()
-  @Roles('SUPER', 'OPS', 'CS', 'WMS')
+  @Permission('express.view')
   @ApiOperation({ summary: '物流公司列表（含停用项）' })
   list() {
     return this.express.list(true);
   }
 
   @Post()
-  @Roles('SUPER', 'OPS', 'WMS')
+  @Permission('express.manage')
   @ApiOperation({ summary: '新增物流公司' })
   create(@Body() dto: ExpressCompanyDto) {
     return this.express.create(dto);
   }
 
   @Patch(':id')
-  @Roles('SUPER', 'OPS', 'WMS')
+  @Permission('express.manage')
   @ApiOperation({ summary: '修改物流公司名称 / 排序 / 启停' })
   update(@Param('id') id: string, @Body() dto: UpdateExpressCompanyDto) {
     return this.express.update(id, dto);
@@ -98,7 +98,7 @@ export class AdminExpressCompanyController {
 
   @Delete(':id')
   @HttpCode(200)
-  @Roles('SUPER')
+  @Permission('express.manage')
   @ApiOperation({ summary: '删除物流公司（仅用于录入错误时清理）' })
   remove(@Param('id') id: string) {
     return this.express.remove(id);

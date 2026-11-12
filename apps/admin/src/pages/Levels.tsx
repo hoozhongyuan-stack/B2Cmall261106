@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 
 import { api, ApiError, money, toCents, toYuan } from '../api/client';
-import { hasRole } from '../auth';
+import { can } from '../auth';
 import { toast } from '../components/toast';
 import {
   Button,
@@ -43,7 +43,7 @@ function errorText(err: unknown): string {
 }
 
 export default function Levels() {
-  const canWrite = hasRole('SUPER', 'OPS');
+  const canWrite = can('level.manage');
   const [items, setItems] = useState<LevelRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState<ModalState>(CLOSED_MODAL);

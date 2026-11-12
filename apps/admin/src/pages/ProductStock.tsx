@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
 import { api, ApiError, toCents, toYuan } from '../api/client';
-import { hasRole } from '../auth';
+import { can } from '../auth';
 import { toast } from '../components/toast';
 import {
   Button,
@@ -18,6 +18,8 @@ interface SkuData {
   code: string;
   specJson: Record<string, string>;
   priceCents: number;
+  pointsCost: number | null;
+  pointsMoneyCents: number;
   stock: number;
   status: string;
 }
@@ -25,6 +27,7 @@ interface SkuData {
 interface ProductData {
   id: string;
   title: string;
+  channel: 'NORMAL' | 'POINTS';
   priceMinCents: number;
   priceMaxCents: number;
   skus: SkuData[];
@@ -32,6 +35,8 @@ interface ProductData {
 
 interface EditableSku extends SkuData {
   priceYuan: string;
+  pointsCostText: string;
+  pointsMoneyYuan: string;
   stockText: string;
 }
 
@@ -48,7 +53,7 @@ function errorText(err: unknown): string {
 export default function ProductStock() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const canWrite = hasRole('SUPER', 'OPS');
+  const canWrite = can('product.stock');
   const [product, setProduct] = useState<ProductData | null>(null);
   const [rows, setRows] = useState<EditableSku[]>([]);
   const [loading, setLoading] = useState(true);
@@ -65,6 +70,8 @@ export default function ProductStock() {
         result.skus.map((sku) => ({
           ...sku,
           priceYuan: toYuan(sku.priceCents),
+          pointsCostText: sku.pointsCost ? String(sku.pointsCost) : '',
+          pointsMoneyYuan: toYuan(sku.pointsMoneyCents),
           stockText: String(sku.stock),
         })),
       );
@@ -86,9 +93,20 @@ export default function ProductStock() {
 
   async function saveRow(row: EditableSku) {
     if (!id) return;
+    const isPoints = product?.channel === 'POINTS';
     const priceCents = toCents(row.priceYuan);
-    if (priceCents <= 0) {
+    if (!isPoints && priceCents <= 0) {
       toast('价格必须大于 0', 'error');
+      return;
+    }
+    const pointsCost = Number(row.pointsCostText);
+    if (isPoints && (!Number.isInteger(pointsCost) || pointsCost <= 0)) {
+      toast('兑换积分必须为正整数', 'error');
+      return;
+    }
+    const pointsMoneyCents = toCents(row.pointsMoneyYuan || '0');
+    if (isPoints && pointsMoneyCents < 0) {
+      toast('加价金额不能为负', 'error');
       return;
     }
     const stock = Number(row.stockText);
@@ -100,7 +118,9 @@ export default function ProductStock() {
     try {
       await api(`/admin/products/${id}/skus/${row.id}`, {
         method: 'PATCH',
-        body: { priceCents, stock, status: row.status },
+        body: isPoints
+          ? { pointsCost, pointsMoneyCents, stock, status: row.status }
+          : { priceCents, stock, status: row.status },
       });
       toast('已保存');
       await load();
@@ -110,6 +130,8 @@ export default function ProductStock() {
       setSavingId('');
     }
   }
+
+  const isPoints = product?.channel === 'POINTS';
 
   const columns: Column<EditableSku>[] = [
     { key: 'code', title: 'SKU 编码', render: (row) => <span className="mono small">{row.code}</span> },
@@ -121,22 +143,59 @@ export default function ProductStock() {
           .map(([key, value]) => `${key}：${value}`)
           .join(' / ') || '—',
     },
-    {
-      key: 'price',
-      title: '价格（元）',
-      align: 'right',
-      render: (row, index) => (
-        <input
-          className="input"
-          style={{ width: 110, textAlign: 'right' }}
-          type="number"
-          step="0.01"
-          value={row.priceYuan}
-          disabled={!canWrite}
-          onChange={(e) => updateRow(index, { priceYuan: e.target.value })}
-        />
-      ),
-    },
+    ...(isPoints
+      ? ([
+          {
+            key: 'pointsCost',
+            title: '兑换积分',
+            align: 'right',
+            render: (row: EditableSku, index: number) => (
+              <input
+                className="input"
+                style={{ width: 100, textAlign: 'right' }}
+                type="number"
+                min={1}
+                value={row.pointsCostText}
+                disabled={!canWrite}
+                onChange={(e) => updateRow(index, { pointsCostText: e.target.value })}
+              />
+            ),
+          },
+          {
+            key: 'pointsMoney',
+            title: '加价（元）',
+            align: 'right',
+            render: (row: EditableSku, index: number) => (
+              <input
+                className="input"
+                style={{ width: 100, textAlign: 'right' }}
+                type="number"
+                step="0.01"
+                value={row.pointsMoneyYuan}
+                disabled={!canWrite}
+                onChange={(e) => updateRow(index, { pointsMoneyYuan: e.target.value })}
+              />
+            ),
+          },
+        ] as Column<EditableSku>[])
+      : ([
+          {
+            key: 'price',
+            title: '价格（元）',
+            align: 'right',
+            render: (row: EditableSku, index: number) => (
+              <input
+                className="input"
+                style={{ width: 110, textAlign: 'right' }}
+                type="number"
+                step="0.01"
+                value={row.priceYuan}
+                disabled={!canWrite}
+                onChange={(e) => updateRow(index, { priceYuan: e.target.value })}
+              />
+            ),
+          },
+        ] as Column<EditableSku>[])),
     {
       key: 'stock',
       title: '库存',
@@ -214,9 +273,16 @@ export default function ProductStock() {
     <>
       <PageHeader
         title={`规格库存 · ${product.title}`}
-        desc="修改 SKU 价格、库存与状态，保存后商品价格区间会自动重算"
+        desc={
+          isPoints
+            ? '修改 SKU 兑换积分、加价金额、库存与状态，保存后商品价格区间会自动重算'
+            : '修改 SKU 价格、库存与状态，保存后商品价格区间会自动重算'
+        }
         actions={
-          <Button variant="ghost" onClick={() => navigate('/products')}>
+          <Button
+            variant="ghost"
+            onClick={() => navigate(isPoints ? '/marketing/points-mall' : '/products')}
+          >
             返回列表
           </Button>
         }

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import { api, ApiError } from '../api/client';
-import { hasRole } from '../auth';
+import { can } from '../auth';
 import { toast } from '../components/toast';
 import {
   Button,
@@ -26,7 +26,7 @@ function errorText(err: unknown): string {
 }
 
 export default function ExpressSettings() {
-  const canWrite = hasRole('SUPER', 'OPS', 'WMS');
+  const canWrite = can('express.manage');
   const [items, setItems] = useState<ExpressCompany[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);

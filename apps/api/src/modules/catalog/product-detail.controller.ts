@@ -82,6 +82,8 @@ export class ProductDetailController {
             : [],
       detailImageKeys: product.detailImageKeys,
       status: product.status,
+      channel: product.channel,
+      pointsLimitPerUser: product.pointsLimitPerUser,
       category: product.category.name,
       tags: product.tags.map((t) => t.name),
       skus: product.skus.map((s) => ({
@@ -89,6 +91,8 @@ export class ProductDetailController {
         spec: s.specJson,
         priceCents: s.priceCents,
         originCents: s.originCents,
+        pointsCost: s.pointsCost,
+        pointsMoneyCents: s.pointsMoneyCents,
         available: Math.max(s.stock - s.reserved, 0),
         status: s.status,
         seckill: seckillMap.get(s.id) ?? null,

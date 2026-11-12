@@ -1996,3 +1996,75 @@ button:focus-visible,
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* ---------------- 角色与权限 ---------------- */
+.forbidden {
+  max-width: 480px;
+  margin: 80px auto;
+  padding: 32px;
+  text-align: center;
+  background: var(--surface);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card, 0 10px 24px -20px rgba(22, 24, 26, 0.35));
+}
+
+.forbidden h2 {
+  margin: 0 0 8px;
+  font-size: 20px;
+}
+
+.forbidden p {
+  margin: 4px 0;
+  color: var(--ink-2);
+  font-size: var(--text-body);
+}
+
+.forbidden .btn {
+  margin-top: 16px;
+}
+
+.role-editor .perm-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.perm-group {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.perm-group-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: var(--surface-2);
+}
+
+.perm-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px 16px;
+  padding: 14px;
+}
+
+.perm-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--text-body);
+  color: var(--ink-2);
+  cursor: pointer;
+}
+
+.role-save {
+  margin: 4px 0 12px;
+}
+
+@media (max-width: 1080px) {
+  .perm-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

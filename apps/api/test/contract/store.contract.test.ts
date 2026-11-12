@@ -198,7 +198,7 @@ describe('门店账号与多门店筛选', () => {
         body: JSON.stringify({
           account,
           displayName: '契约门店账号',
-          role: 'STORE',
+          kind: 'STORE',
           password,
           storeIds: [first.body.data.id],
         }),
@@ -231,6 +231,8 @@ describe('门店账号与多门店筛选', () => {
       { method: 'POST', body: JSON.stringify(storeBody(uniqueCode('D'))) },
       superToken,
     );
+    const roles = await api('/admin/roles', {}, superToken);
+    const roleId = roles.body.data.items[0]?.id as string;
     const created = await api(
       '/admin/accounts',
       {
@@ -238,7 +240,8 @@ describe('门店账号与多门店筛选', () => {
         body: JSON.stringify({
           account: `ops-${Date.now()}@shanye.com`,
           displayName: '非门店账号',
-          role: 'OPS',
+          kind: 'PC',
+          roleId,
           password: 'ops123456',
           storeIds: [store.body.data.id],
         }),

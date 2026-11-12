@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import { api, ApiError, formatDate } from '../api/client';
-import { hasRole } from '../auth';
+import { can } from '../auth';
 import { toast } from '../components/toast';
 import {
   BulkBar,
@@ -58,7 +58,7 @@ function errorText(err: unknown): string {
 }
 
 export default function Reviews() {
-  const canModerate = hasRole('SUPER', 'CS');
+  const canModerate = can('review.manage');
   const [status, setStatus] = useState('');
   const [data, setData] = useState<ReviewResult>({
     counts: [],

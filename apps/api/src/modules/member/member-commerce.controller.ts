@@ -13,7 +13,7 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { IsBoolean, IsInt, IsNumber, IsOptional, IsString, Length, Min } from 'class-validator';
 
 import { MemberCommerceService } from './member-commerce.service';
-import { JwtAuthGuard, Roles, RolesGuard } from '../../common/auth.guards';
+import { JwtAuthGuard, RolesGuard, Permission } from '../../common/auth.guards';
 import { CurrentUser, UserJwtGuard, type MiniappUser } from '../../common/user-auth.guard';
 
 class PlanIdDto {
@@ -175,21 +175,21 @@ export class AdminCardPlanController {
   constructor(private readonly service: MemberCommerceService) {}
 
   @Get()
-  @Roles('SUPER', 'OPS', 'CS')
+  @Permission('membercard.view')
   @ApiOperation({ summary: '会员卡方案列表（含停用项）' })
   list() {
     return this.service.cardPlans(true);
   }
 
   @Post()
-  @Roles('SUPER', 'OPS')
+  @Permission('membercard.manage')
   @ApiOperation({ summary: '新增会员卡方案' })
   create(@Body() dto: CardPlanDto) {
     return this.service.createCardPlan(dto);
   }
 
   @Patch(':id')
-  @Roles('SUPER', 'OPS')
+  @Permission('membercard.manage')
   @ApiOperation({ summary: '修改会员卡方案' })
   update(@Param('id') id: string, @Body() dto: CardPlanDto) {
     return this.service.updateCardPlan(id, dto);
@@ -204,7 +204,7 @@ export class AdminMemberCardController {
   constructor(private readonly service: MemberCommerceService) {}
 
   @Get()
-  @Roles('SUPER', 'OPS', 'CS')
+  @Permission('membercard.view')
   @ApiOperation({ summary: '用户会员卡台账' })
   list(
     @Query('keyword') keyword?: string,
@@ -227,21 +227,21 @@ export class AdminRechargePlanController {
   constructor(private readonly service: MemberCommerceService) {}
 
   @Get()
-  @Roles('SUPER', 'OPS', 'CS')
+  @Permission('membercard.view')
   @ApiOperation({ summary: '充值套餐列表（含停用项）' })
   list() {
     return this.service.rechargePlans(true);
   }
 
   @Post()
-  @Roles('SUPER', 'OPS')
+  @Permission('membercard.manage')
   @ApiOperation({ summary: '新增充值套餐' })
   create(@Body() dto: RechargePlanDto) {
     return this.service.createRechargePlan(dto);
   }
 
   @Patch(':id')
-  @Roles('SUPER', 'OPS')
+  @Permission('membercard.manage')
   @ApiOperation({ summary: '修改充值套餐' })
   update(@Param('id') id: string, @Body() dto: RechargePlanDto) {
     return this.service.updateRechargePlan(id, dto);
@@ -256,7 +256,7 @@ export class AdminStoredValueController {
   constructor(private readonly service: MemberCommerceService) {}
 
   @Get('accounts')
-  @Roles('SUPER', 'OPS', 'CS')
+  @Permission('membercard.view')
   @ApiOperation({ summary: '储值账户台账' })
   accounts(
     @Query('keyword') keyword?: string,
@@ -271,7 +271,7 @@ export class AdminStoredValueController {
   }
 
   @Get('ledger')
-  @Roles('SUPER', 'OPS', 'CS')
+  @Permission('membercard.view')
   @ApiOperation({ summary: '储值流水（可按用户筛选）' })
   ledger(
     @Query('userId') userId?: string,
@@ -287,7 +287,7 @@ export class AdminStoredValueController {
 
   @Post('adjust')
   @HttpCode(200)
-  @Roles('SUPER')
+  @Permission('membercard.manage')
   @ApiOperation({ summary: '后台调整储值余额（记流水）' })
   adjust(@Body() dto: AdjustBalanceDto) {
     return this.service.adjustBalance(dto.userId, dto.deltaCents, dto.reason);
@@ -302,7 +302,7 @@ export class AdminRechargeOrderController {
   constructor(private readonly service: MemberCommerceService) {}
 
   @Get()
-  @Roles('SUPER', 'OPS', 'CS')
+  @Permission('membercard.view')
   @ApiOperation({ summary: '充值记录' })
   list(@Query('page') page?: string, @Query('pageSize') pageSize?: string) {
     return this.service.adminRechargeOrders(Number(page) || 1, Number(pageSize) || 20);

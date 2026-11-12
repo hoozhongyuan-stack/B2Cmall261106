@@ -4,7 +4,7 @@ import { Type } from 'class-transformer';
 import { IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
 
 import { OperationLogService } from './operation-log.service';
-import { JwtAuthGuard, Roles, RolesGuard } from '../../common/auth.guards';
+import { JwtAuthGuard, RolesGuard, Permission } from '../../common/auth.guards';
 
 class ListLogQueryDto {
   @IsOptional()
@@ -49,7 +49,7 @@ export class AdminLogController {
   constructor(private readonly logs: OperationLogService) {}
 
   @Get()
-  @Roles('SUPER', 'OPS', 'CS')
+  @Permission('log.view')
   @ApiOperation({ summary: '操作日志：按操作人、模块、关键词与时间筛选' })
   list(@Query() query: ListLogQueryDto) {
     return this.logs.list(query);

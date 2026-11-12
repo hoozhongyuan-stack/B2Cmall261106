@@ -27,6 +27,7 @@ function isActive(item: ShopTabbarItem, route: string, code: string): boolean {
   if (!link) return false;
   if (link.type === 'page') return route === (link.value ?? '').replace(/^\//, '');
   if (link.type === 'micro') return route === 'pages/micro/index' && code === link.value;
+  if (link.type === 'pointsmall') return route === 'pages/points-mall/index';
   return false;
 }
 
@@ -63,6 +64,10 @@ export function AppTabBar() {
     }
     if (link.type === 'micro' && link.value) {
       void Taro.reLaunch({ url: `/pages/micro/index?code=${encodeURIComponent(link.value)}` });
+      return;
+    }
+    if (link.type === 'pointsmall') {
+      void Taro.reLaunch({ url: '/pages/points-mall/index' });
       return;
     }
     void openMicroLink(link);

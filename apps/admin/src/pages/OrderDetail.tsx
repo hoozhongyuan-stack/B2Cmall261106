@@ -4,7 +4,7 @@ import { ORDER_STATUS_LABEL, can, type OrderStatus } from '@shanye/shared/src/or
 
 import { api, ApiError, formatDate, money } from '../api/client';
 import { assetPreviewUrl } from '../api/assets';
-import { hasRole } from '../auth';
+import { can as canPermission } from '../auth';
 import { toast } from '../components/toast';
 import {
   Button,
@@ -72,6 +72,8 @@ interface OrderDetailData {
   id: string;
   orderNo: string;
   status: string;
+  orderType?: string;
+  pointsUsed?: number;
   goodsCents: number;
   memberDiscountCents: number;
   couponCents: number;
@@ -138,6 +140,8 @@ export default function OrderDetail() {
   const [shipping, setShipping] = useState(false);
   const [remark, setRemark] = useState('');
   const [remarkSaving, setRemarkSaving] = useState(false);
+  const [refundOpen, setRefundOpen] = useState(false);
+  const [refunding, setRefunding] = useState(false);
 
   async function load() {
     if (!id) return;
@@ -219,8 +223,30 @@ export default function OrderDetail() {
   }
 
   const status = data.status as OrderStatus;
-  const canShip = can(status, 'ship') && hasRole('SUPER', 'WMS');
-  const canRemark = hasRole('SUPER', 'CS');
+  const canShip = can(status, 'ship') && canPermission('order.ship');
+  const canRemark = canPermission('order.edit');
+  const canRefund =
+    data?.orderType === 'POINTS' &&
+    canPermission('order.refund') &&
+    ['PAID', 'SHIPPED', 'COMPLETED'].includes(data.status);
+
+  async function refundExchange() {
+    if (!id) return;
+    setRefunding(true);
+    try {
+      const result = await api<{ pointsRefunded: number }>(
+        `/admin/points-mall/orders/${id}/refund`,
+        { method: 'POST' },
+      );
+      toast(`已退款，返还 ${result.pointsRefunded} 积分`);
+      setRefundOpen(false);
+      await load();
+    } catch (err) {
+      toast(errorText(err), 'error');
+    } finally {
+      setRefunding(false);
+    }
+  }
 
   const itemColumns: Column<OrderItemRow>[] = [
     {
@@ -324,6 +350,11 @@ export default function OrderDetail() {
             <Button variant="ghost" onClick={() => navigate('/orders')}>
               返回列表
             </Button>
+            {canRefund && (
+              <Button variant="ghost" onClick={() => setRefundOpen(true)}>
+                整单退款
+              </Button>
+            )}
             {canShip && <Button onClick={() => setShipOpen(true)}>发货</Button>}
           </div>
         }
@@ -334,6 +365,13 @@ export default function OrderDetail() {
           items={[
             { label: '订单号', value: <span className="mono">{data.orderNo}</span> },
             { label: '订单状态', value: <Tag tone={statusTone(data.status)}>{ORDER_STATUS_LABEL[status]}</Tag> },
+            {
+              label: '订单类型',
+              value:
+                data.orderType === 'POINTS'
+                  ? `积分兑换${data.pointsUsed ? ` · 消耗 ${data.pointsUsed} 积分` : ''}`
+                  : '普通订单',
+            },
             {
               label: '履约方式',
               value:
@@ -366,6 +404,9 @@ export default function OrderDetail() {
               { label: '会员优惠', value: `-${money(data.memberDiscountCents)}` },
               { label: '优惠券', value: `-${money(data.couponCents)}` },
               { label: '运费', value: money(data.freightCents) },
+              ...(data.orderType === 'POINTS'
+                ? [{ label: '消耗积分', value: `${data.pointsUsed ?? 0} 积分` }]
+                : []),
               { label: '应付金额', value: <strong className="money">{money(data.payableCents)}</strong> },
               { label: '已退款', value: money(data.refundedCents) },
             ]}
@@ -466,6 +507,28 @@ export default function OrderDetail() {
           </div>
         </Card>
       )}
+
+      <Modal
+        open={refundOpen}
+        title="积分兑换整单退款"
+        onClose={() => setRefundOpen(false)}
+        footer={
+          <>
+            <Button variant="plain" onClick={() => setRefundOpen(false)}>
+              取消
+            </Button>
+            <Button loading={refunding} onClick={() => void refundExchange()}>
+              确认退款
+            </Button>
+          </>
+        }
+      >
+        <p className="small">
+          将退还实付金额 <strong>{money(data.payableCents)}</strong>，返还{' '}
+          <strong>{data.pointsUsed ?? 0} 积分</strong>，未发货订单同时回补库存。
+        </p>
+        <p className="small muted">退款后订单不可恢复，用户端不开放积分订单售后。</p>
+      </Modal>
 
       <Modal
         open={shipOpen}

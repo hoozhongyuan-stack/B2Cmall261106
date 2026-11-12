@@ -6,7 +6,7 @@ import {
 } from '@shanye/shared/src/orderState';
 
 import { api, ApiError, formatDate, money } from '../api/client';
-import { hasRole } from '../auth';
+import { can } from '../auth';
 import { confirmAction } from '../components/confirm';
 import { toast } from '../components/toast';
 import {
@@ -245,8 +245,8 @@ export default function AfterSales() {
       title: '操作',
       width: '190px',
       render: (row) => {
-        const canModerate = row.status === 'APPLIED' && hasRole('SUPER', 'CS');
-        const canReceive = row.status === 'WAIT_SELLER_RECEIVE' && hasRole('SUPER', 'WMS');
+        const canModerate = row.status === 'APPLIED' && can('aftersale.audit');
+        const canReceive = row.status === 'WAIT_SELLER_RECEIVE' && can('aftersale.audit');
         return (
           <div
             className="row"

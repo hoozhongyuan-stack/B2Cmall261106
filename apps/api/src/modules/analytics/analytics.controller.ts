@@ -2,7 +2,7 @@ import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import { AnalyticsService } from './analytics.service';
-import { JwtAuthGuard, Roles, RolesGuard } from '../../common/auth.guards';
+import { JwtAuthGuard, RolesGuard, Permission } from '../../common/auth.guards';
 
 @ApiTags('admin-analytics')
 @ApiBearerAuth()
@@ -12,7 +12,7 @@ export class AnalyticsController {
   constructor(private readonly analytics: AnalyticsService) {}
 
   @Get('overview')
-  @Roles('SUPER', 'OPS', 'CS')
+  @Permission('analytics.view')
   @ApiOperation({ summary: '经营看板：活动效果、会员贡献、复购与商品排行' })
   overview(@Query('days') days?: string) {
     return this.analytics.overview(Number(days) || 30);

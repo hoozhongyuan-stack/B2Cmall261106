@@ -63,12 +63,14 @@ enum ReviewStatus {
   HIDDEN
 }
 
-enum AdminRole {
-  SUPER
-  OPS
-  CS
-  WMS
+enum AdminUserKind {
+  PC
   STORE
+}
+
+enum ProductChannel {
+  NORMAL
+  POINTS
 }
 
 model Product {
@@ -76,6 +78,10 @@ model Product {
   title           String
   subtitle        String?
   categoryId      String
+  /// 渠道：NORMAL 普通商城；POINTS 积分商城（不进入普通列表/购物车/搜索）
+  channel         ProductChannel @default(NORMAL)
+  /// 每人限兑数量；0 表示不限
+  pointsLimitPerUser Int        @default(0)
   /// 标题 + 副标题 + 分类 + 标签 + 拼音全拼/首字母（服务端生成）
   searchText      String        @default("")
   status          ProductStatus @default(OFF_SHELF)
@@ -98,6 +104,7 @@ model Product {
   tags     ProductTag[]
 
   @@index([categoryId, status])
+  @@index([channel, status])
   @@index([sort])
   @@index([searchText(ops: raw("gin_trgm_ops"))], type: Gin)
 }
@@ -145,6 +152,10 @@ model Sku {
   specJson    Json
   priceCents  Int
   originCents Int?
+  /// 积分兑换所需积分（每件）；null 表示该规格不参与兑换
+  pointsCost       Int?
+  /// 积分 + 钱时的加价金额（分/件），纯积分时为 0
+  pointsMoneyCents Int   @default(0)
   stock       Int           @default(0)
   reserved    Int           @default(0)
   status      ProductStatus @default(ON_SALE)
@@ -181,6 +192,10 @@ model Order {
   orderNo        String      @unique
   userId         String
   status         OrderStatus @default(PENDING_PAYMENT)
+  /// NORMAL 普通订单；POINTS 积分兑换订单
+  orderType      String      @default("NORMAL")
+  /// 积分兑换消耗的积分
+  pointsUsed     Int         @default(0)
   version        Int         @default(0)
   /**
    * 客户端幂等键：同一用户重复提交返回同一订单
@@ -247,6 +262,8 @@ model OrderItem {
   priceCents    Int
   quantity      Int
   subtotalCents Int
+  /// 积分兑换单：该行每件消耗积分快照
+  pointsCost    Int     @default(0)
   /**
    * 分摊后的行实付（不含运费）：退款上限与默认退款额以它为准
    */
@@ -624,6 +641,18 @@ model PointsLedger {
   @@index([userId, createdAt])
 }
 
+// 积分商城每人限兑计数：下单占用，取消/退款回补
+model PointsMallQuota {
+  id        String   @id @default(cuid())
+  userId    String
+  productId String
+  usedQty   Int      @default(0)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  @@unique([userId, productId])
+  @@index([productId])
+}
+
 model MemberLevel {
   id             String @id @default(cuid())
   name           String
@@ -725,20 +754,37 @@ model RechargeOrder {
   @@index([userId, createdAt])
 }
 
+model AdminRoleDef {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String   @default("")
+  permissions String[]
+  createdAt   DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @db.Timestamptz(3)
+
+  users AdminUser[]
+}
+
 model AdminUser {
-  id           String    @id @default(cuid())
-  account      String    @unique
+  id           String        @id @default(cuid())
+  account      String        @unique
   passwordHash String
   displayName  String
-  role         AdminRole @default(CS)
-  status       String    @default("ACTIVE")
-  failCount    Int       @default(0)
-  lockedUntil  DateTime? @db.Timestamptz(3)
-  lastLoginAt  DateTime? @db.Timestamptz(3)
-  createdAt    DateTime  @default(now()) @db.Timestamptz(3)
+  kind         AdminUserKind @default(PC)
+  /// 超级管理员：跳过权限校验，仅用于兜底
+  isSuper      Boolean       @default(false)
+  roleId       String?
+  role         AdminRoleDef? @relation(fields: [roleId], references: [id])
+  status       String        @default("ACTIVE")
+  failCount    Int           @default(0)
+  lockedUntil  DateTime?     @db.Timestamptz(3)
+  lastLoginAt  DateTime?     @db.Timestamptz(3)
+  createdAt    DateTime      @default(now()) @db.Timestamptz(3)
 
   logs        OperationLog[]
   adminStores AdminStore[]
+
+  @@index([roleId])
 }
 
 model OperationLog {

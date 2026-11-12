@@ -27,6 +27,8 @@ interface OrderRow {
   id: string;
   orderNo: string;
   status: string;
+  orderType?: string;
+  pointsUsed?: number;
   payableCents: number;
   createdAt: string;
   payDeadlineAt: string;
@@ -45,14 +47,15 @@ const TABS = [
 export default function Page() {
   const router = useRouter();
   const [status, setStatus] = useState(router.params.status ?? '');
+  const [orderType, setOrderType] = useState(router.params.orderType ?? '');
   const [items, setItems] = useState<OrderRow[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const load = async (nextStatus: string) => {
+  const load = async (nextStatus: string, nextType = orderType) => {
     setLoading(true);
     try {
       const res = await api<{ items: OrderRow[] }>('/orders', {
-        query: { status: nextStatus || undefined },
+        query: { status: nextStatus || undefined, orderType: nextType || undefined },
       });
       setItems(res.items);
     } catch (err) {
@@ -133,6 +136,19 @@ export default function Page() {
         ))}
       </View>
 
+      <View className="order-type-filter">
+        <Text
+          className={`tag ${orderType === 'POINTS' ? 'tag--brand' : 'tag--muted'}`}
+          onClick={() => {
+            const next = orderType === 'POINTS' ? '' : 'POINTS';
+            setOrderType(next);
+            void load(status, next);
+          }}
+        >
+          {orderType === 'POINTS' ? '仅看积分兑换' : '只看积分兑换'}
+        </Text>
+      </View>
+
       {loading && !items.length && <Loading />}
       {!loading && !items.length && <Empty text="暂时没有相关订单" />}
 
@@ -147,7 +163,10 @@ export default function Page() {
               }
             >
               <Text className="muted tiny">{order.orderNo}</Text>
-              <Text className="order-status">{ORDER_STATUS_LABEL[order.status as OrderStatus]}</Text>
+              <View className="row" style={{ gap: 8 }}>
+                {order.orderType === 'POINTS' && <Text className="tag tag--brand">兑换</Text>}
+                <Text className="order-status">{ORDER_STATUS_LABEL[order.status as OrderStatus]}</Text>
+              </View>
             </View>
             <Text className="muted tiny order-date">{formatDate(order.createdAt, true)}</Text>
 
@@ -175,6 +194,9 @@ export default function Page() {
             <View className="row-between order-total">
               <Text className="muted tiny">共 {order.itemCount} 件</Text>
               <View className="row">
+                {order.orderType === 'POINTS' ? (
+                  <Text className="small order-points-used">{order.pointsUsed ?? 0} 积分</Text>
+                ) : null}
                 <Text className="tiny muted">实付</Text>
                 <Price cents={order.payableCents} />
               </View>

@@ -2,7 +2,7 @@ import { Controller, Get, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import { AdminDashboardService } from './admin-dashboard.service';
-import { JwtAuthGuard, Roles, RolesGuard } from '../../common/auth.guards';
+import { JwtAuthGuard, RolesGuard, Permission } from '../../common/auth.guards';
 
 @ApiTags('admin-dashboard')
 @ApiBearerAuth()
@@ -12,7 +12,7 @@ export class AdminDashboardController {
   constructor(private readonly dashboard: AdminDashboardService) {}
 
   @Get()
-  @Roles('SUPER', 'OPS', 'CS', 'WMS')
+  @Permission('dashboard.view')
   @ApiOperation({ summary: '数据概览：今日指标、待办、7 日趋势与热销商品' })
   overview() {
     return this.dashboard.overview();

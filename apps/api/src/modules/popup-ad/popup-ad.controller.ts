@@ -15,7 +15,7 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { IsBoolean, IsInt, IsObject, IsOptional, IsString, Length } from 'class-validator';
 
 import { PopupAdService } from './popup-ad.service';
-import { JwtAuthGuard, Roles, RolesGuard } from '../../common/auth.guards';
+import { JwtAuthGuard, RolesGuard, Permission } from '../../common/auth.guards';
 
 class SavePopupAdDto {
   @IsString()
@@ -77,7 +77,7 @@ export class AdminPopupAdController {
   constructor(private readonly popupAds: PopupAdService) {}
 
   @Get()
-  @Roles('SUPER', 'OPS', 'CS')
+  @Permission('popupad.view')
   @ApiOperation({ summary: '弹窗广告列表' })
   list(
     @Query('keyword') keyword?: string,
@@ -94,28 +94,28 @@ export class AdminPopupAdController {
   }
 
   @Post()
-  @Roles('SUPER', 'OPS')
+  @Permission('popupad.manage')
   @ApiOperation({ summary: '新建弹窗广告' })
   create(@Body() dto: SavePopupAdDto) {
     return this.popupAds.create(dto);
   }
 
   @Get(':id')
-  @Roles('SUPER', 'OPS', 'CS')
+  @Permission('popupad.view')
   @ApiOperation({ summary: '弹窗广告详情' })
   detail(@Param('id') id: string) {
     return this.popupAds.detail(id);
   }
 
   @Put(':id')
-  @Roles('SUPER', 'OPS')
+  @Permission('popupad.manage')
   @ApiOperation({ summary: '保存弹窗广告' })
   update(@Param('id') id: string, @Body() dto: SavePopupAdDto) {
     return this.popupAds.update(id, dto);
   }
 
   @Patch(':id/enabled')
-  @Roles('SUPER', 'OPS')
+  @Permission('popupad.manage')
   @ApiOperation({ summary: '启用 / 停用弹窗广告' })
   toggle(@Param('id') id: string, @Body() dto: TogglePopupAdDto) {
     return this.popupAds.setEnabled(id, dto.enabled);
@@ -123,7 +123,7 @@ export class AdminPopupAdController {
 
   @Delete(':id')
   @HttpCode(200)
-  @Roles('SUPER', 'OPS')
+  @Permission('popupad.manage')
   @ApiOperation({ summary: '删除弹窗广告（软删除）' })
   remove(@Param('id') id: string) {
     return this.popupAds.remove(id);

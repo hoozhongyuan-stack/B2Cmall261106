@@ -554,6 +554,7 @@ export interface paths {
             parameters: {
                 query?: {
                     status?: "PENDING_PAYMENT" | "PAID" | "SHIPPED" | "COMPLETED" | "REFUNDING" | "REFUNDED" | "CLOSED";
+                    orderType?: "NORMAL" | "POINTS";
                 };
                 header?: never;
                 path?: never;
@@ -1931,6 +1932,183 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/points-mall/products": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 积分商品列表（仅上架且有库存） */
+        get: {
+            parameters: {
+                query?: {
+                    page?: number;
+                    pageSize?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: {
+                                total?: number;
+                                page?: number;
+                                pageSize?: number;
+                                items?: components["schemas"]["PointsMallProduct"][];
+                            };
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/member/points-mall/limits": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 当前用户已兑 / 剩余可兑与积分余额 */
+        get: {
+            parameters: {
+                query: {
+                    productId: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: components["schemas"]["PointsMallLimits"];
+                        };
+                    };
+                };
+                /** @description 积分商品不存在 */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/member/points-mall/orders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 积分兑换下单（纯积分直接完成，积分+钱返回待支付订单） */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    "Idempotency-Key": string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["PointsMallExchangeInput"];
+                };
+            };
+            responses: {
+                /** @description 兑换成功 */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: components["schemas"]["PointsMallExchangeResult"];
+                        };
+                    };
+                };
+                400: components["responses"]["BadRequest"];
+                409: components["responses"]["Conflict"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/points-mall/orders/{id}/refund": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 积分兑换单整单退款：返还积分、回补库存、回退限兑 */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                400: components["responses"]["BadRequest"];
+                409: components["responses"]["Conflict"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/points-config": {
         parameters: {
             query?: never;
@@ -3041,6 +3219,7 @@ export interface paths {
                     keyword?: string;
                     status?: "ON_SALE" | "OFF_SHELF" | "SOLD_OUT";
                     categoryId?: string;
+                    channel?: "NORMAL" | "POINTS";
                     minPriceCents?: number;
                     maxPriceCents?: number;
                     sort?: "newest" | "price_asc" | "price_desc" | "sales";
@@ -4187,8 +4366,13 @@ export interface paths {
                     "application/json": {
                         account: string;
                         displayName: string;
-                        /** @enum {string} */
-                        role: "SUPER" | "OPS" | "CS" | "WMS" | "STORE";
+                        /**
+                         * @default PC
+                         * @enum {string}
+                         */
+                        kind?: "PC" | "STORE";
+                        /** @description PC 账号必填；门店账号不传 */
+                        roleId?: string;
                         password: string;
                         storeIds?: string[];
                     };
@@ -4239,7 +4423,8 @@ export interface paths {
                     "application/json": {
                         displayName?: string;
                         /** @enum {string} */
-                        role?: "SUPER" | "OPS" | "CS" | "WMS" | "STORE";
+                        kind?: "PC" | "STORE";
+                        roleId?: string;
                         storeIds?: string[];
                     };
                 };
@@ -4342,6 +4527,204 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/admin/permissions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 权限目录（按分组） */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: {
+                                groups?: components["schemas"]["PermissionGroup"][];
+                            };
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/roles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 角色列表 */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: {
+                                items?: components["schemas"]["AdminRole"][];
+                            };
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** 新建角色 */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        name: string;
+                        description: string;
+                        permissions: string[];
+                    };
+                };
+            };
+            responses: {
+                /** @description 创建成功 */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                409: components["responses"]["Conflict"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/roles/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 角色详情 */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: components["schemas"]["AdminRole"];
+                        };
+                    };
+                };
+                404: components["responses"]["NotFound"];
+            };
+        };
+        put?: never;
+        post?: never;
+        /** 删除角色（仍有账号使用时拒绝） */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                409: components["responses"]["Conflict"];
+            };
+        };
+        options?: never;
+        head?: never;
+        /** 编辑角色 */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        name: string;
+                        description: string;
+                        permissions: string[];
+                    };
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                409: components["responses"]["Conflict"];
+            };
+        };
         trace?: never;
     };
     "/admin/logs": {
@@ -8750,11 +9133,16 @@ export interface components {
             priceCents?: number;
             quantity?: number;
             subtotalCents?: number;
+            /** @description 积分兑换单单件积分快照 */
+            pointsCost?: number;
         };
         AdminOrderListItem: {
             id?: string;
             orderNo?: string;
             status?: string;
+            /** @enum {string} */
+            orderType?: "NORMAL" | "POINTS";
+            pointsUsed?: number;
             payableCents?: number;
             /** Format: date-time */
             createdAt?: string;
@@ -8780,6 +9168,9 @@ export interface components {
             orderNo: string;
             /** @enum {string} */
             status: "PENDING_PAYMENT" | "PAID" | "SHIPPED" | "COMPLETED" | "REFUNDING" | "REFUNDED" | "CLOSED";
+            /** @enum {string} */
+            orderType?: "NORMAL" | "POINTS";
+            pointsUsed?: number;
             /** @enum {string} */
             fulfillmentType?: "EXPRESS" | "DELIVERY" | "PICKUP";
             storeId?: string | null;
@@ -9046,11 +9437,57 @@ export interface components {
             detail: string;
             isDefault?: boolean;
         };
+        PointsMallProduct: {
+            id?: string;
+            title?: string;
+            subtitle?: string | null;
+            mainImageKey?: string | null;
+            pointsCostMin?: number;
+            pointsMoneyCentsMin?: number;
+            stock?: number;
+            pointsLimitPerUser?: number;
+            soldCount?: number;
+            skuCount?: number;
+        };
+        PointsMallLimits: {
+            /** @description 0 表示不限 */
+            limit?: number;
+            used?: number;
+            remaining?: number | null;
+            balance?: number;
+        };
+        PointsMallExchangeInput: {
+            skuId: string;
+            quantity: number;
+            addressId?: string;
+            /** @enum {string} */
+            fulfillmentType?: "EXPRESS";
+            contactPhone?: string;
+            remark?: string;
+        };
+        PointsMallExchangeResult: {
+            orderId?: string;
+            orderNo?: string;
+            status?: string;
+            payableCents?: number;
+            pointsUsed?: number;
+            needsPay?: boolean;
+            items?: {
+                title?: string;
+                specText?: string;
+                imageKey?: string | null;
+                quantity?: number;
+                priceCents?: number;
+                pointsCost?: number;
+            }[];
+        };
         AdminProduct: {
             id?: string;
             title?: string;
             /** @enum {string} */
             status?: "ON_SALE" | "OFF_SHELF" | "SOLD_OUT";
+            /** @enum {string} */
+            channel?: "NORMAL" | "POINTS";
             categoryName?: string;
             mainImageKey?: string | null;
             priceMinCents?: number;
@@ -9059,6 +9496,11 @@ export interface components {
             /** @description 所有 SKU 库存合计 */
             stock?: number;
             skuCount?: number;
+            pointsCostMin?: number | null;
+            pointsCostMax?: number | null;
+            pointsMoneyCentsMin?: number | null;
+            pointsLimitPerUser?: number;
+            exchangedQty?: number;
             /** Format: date-time */
             createdAt?: string;
         };
@@ -9070,6 +9512,8 @@ export interface components {
             };
             priceCents?: number;
             originCents?: number | null;
+            pointsCost?: number | null;
+            pointsMoneyCents?: number;
             stock?: number;
             /** @enum {string} */
             status?: "ON_SALE" | "OFF_SHELF" | "SOLD_OUT";
@@ -9079,6 +9523,9 @@ export interface components {
             title: string;
             subtitle?: string | null;
             categoryId?: string;
+            /** @enum {string} */
+            channel?: "NORMAL" | "POINTS";
+            pointsLimitPerUser?: number;
             mainImageKey?: string | null;
             mainImageKeys?: string[];
             detailImageKeys?: string[];
@@ -9096,6 +9543,9 @@ export interface components {
             title: string;
             subtitle?: string;
             categoryId: string;
+            /** @enum {string} */
+            channel?: "NORMAL" | "POINTS";
+            pointsLimitPerUser?: number;
             mainImageKey?: string;
             mainImageKeys?: string[];
             detailImageKeys?: string[];
@@ -9109,8 +9559,13 @@ export interface components {
                 specJson: {
                     [key: string]: string;
                 };
+                /** @description 普通商品为售价；积分商品为加价金额 */
                 priceCents: number;
                 originCents?: number;
+                /** @description 积分商品必填 */
+                pointsCost?: number;
+                /** @description 积分+钱加价金额 */
+                pointsMoneyCents?: number;
                 stock: number;
                 /** @enum {string} */
                 status?: "ON_SALE" | "OFF_SHELF" | "SOLD_OUT";
@@ -9562,7 +10017,10 @@ export interface components {
             account?: string;
             displayName?: string;
             /** @enum {string} */
-            role?: "SUPER" | "OPS" | "CS" | "WMS" | "STORE";
+            kind?: "PC" | "STORE";
+            isSuper?: boolean;
+            roleId?: string | null;
+            roleName?: string | null;
             storeIds?: string[];
             /** @enum {string} */
             status?: "ACTIVE" | "DISABLED";
@@ -9573,6 +10031,25 @@ export interface components {
             lastLoginAt?: string | null;
             /** Format: date-time */
             createdAt?: string;
+        };
+        AdminRole: {
+            id?: string;
+            name?: string;
+            description?: string;
+            permissions?: string[];
+            permissionCount?: number;
+            memberCount?: number;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        PermissionItem: {
+            key?: string;
+            name?: string;
+        };
+        PermissionGroup: {
+            key?: string;
+            name?: string;
+            items?: components["schemas"]["PermissionItem"][];
         };
         OperationLog: {
             id?: string;

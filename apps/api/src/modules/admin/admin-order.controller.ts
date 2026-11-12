@@ -24,13 +24,7 @@ import {
 import { can, nextStatus } from '@shanye/shared';
 
 import { PrismaService } from '../../prisma/prisma.module';
-import {
-  CurrentUser,
-  JwtAuthGuard,
-  Roles,
-  RolesGuard,
-  type AuthUser,
-} from '../../common/auth.guards';
+import { CurrentUser, JwtAuthGuard, RolesGuard, type AuthUser, Permission } from '../../common/auth.guards';
 import { NotificationService } from '../notification/notification.service';
 import { ExpressService } from '../express/express.service';
 import { StoreScopeService } from '../store/store-scope.service';
@@ -91,7 +85,7 @@ export class AdminOrderController {
   ) {}
 
   @Get()
-  @Roles('SUPER', 'OPS', 'CS', 'WMS', 'STORE')
+  @Permission('order.view')
   @ApiOperation({ summary: '订单列表：状态 / 门店 / 履约方式 / 时间与金额区间筛选，支持关键词' })
   async list(
     @CurrentUser() user: AuthUser,
@@ -185,6 +179,8 @@ export class AdminOrderController {
         id: o.id,
         orderNo: o.orderNo,
         status: o.status,
+        orderType: o.orderType,
+        pointsUsed: o.pointsUsed,
         payableCents: o.payableCents,
         createdAt: o.createdAt,
         paidAt: o.paidAt,
@@ -200,7 +196,7 @@ export class AdminOrderController {
   }
 
   @Get(':id')
-  @Roles('SUPER', 'OPS', 'CS', 'WMS', 'STORE')
+  @Permission('order.view')
   @ApiOperation({ summary: '订单详情（后台视图，门店账号仅授权门店）' })
   async detail(@CurrentUser() user: AuthUser, @Param('id') id: string) {
     const scope = await this.storeScope.resolve(user);
@@ -224,7 +220,7 @@ export class AdminOrderController {
 
   @Post(':id/ship')
   @HttpCode(200)
-  @Roles('SUPER', 'WMS')
+  @Permission('order.ship')
   @ApiOperation({ summary: '发货：写入物流信息并把订单推进到待收货' })
   async ship(@Param('id') id: string, @Body() dto: ShipDto) {
     const order = await this.prisma.order.findUnique({
@@ -276,7 +272,7 @@ export class AdminOrderController {
 
   @Post('batch-ship')
   @HttpCode(200)
-  @Roles('SUPER', 'WMS')
+  @Permission('order.ship')
   @ApiOperation({ summary: '批量发货：逐单事务，返回成功/失败明细（最多 200 单）' })
   async batchShip(@Body() dto: BatchShipDto) {
     if (!dto.items.length) throw new ConflictException('请提供发货明细');
@@ -361,7 +357,7 @@ export class AdminOrderController {
 
   @Post(':id/remark')
   @HttpCode(200)
-  @Roles('SUPER', 'CS')
+  @Permission('order.edit')
   @ApiOperation({ summary: '添加商家备注（仅后台可见）' })
   async remark(@Param('id') id: string, @Body() body: { remark: string }) {
     await this.prisma.order.update({ where: { id }, data: { adminRemark: body.remark } });

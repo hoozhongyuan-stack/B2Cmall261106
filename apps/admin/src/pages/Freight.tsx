@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import { api, ApiError, money, toCents, toYuan } from '../api/client';
-import { hasRole } from '../auth';
+import { can } from '../auth';
 import { confirmAction } from '../components/confirm';
 import { toast } from '../components/toast';
 import {
@@ -32,7 +32,7 @@ function errorText(err: unknown): string {
 }
 
 export default function Freight() {
-  const canWrite = hasRole('SUPER');
+  const canWrite = can('freight.manage');
   const [thresholdYuan, setThresholdYuan] = useState('0');
   const [flatFreightYuan, setFlatFreightYuan] = useState('0');
   const [regions, setRegions] = useState<RegionRow[]>([]);

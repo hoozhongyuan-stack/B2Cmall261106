@@ -70,10 +70,10 @@ export class CatalogController {
       orderBy: { sort: 'asc' },
       include: {
         children: { orderBy: { sort: 'asc' } },
-        _count: { select: { products: true } },
+        _count: { select: { products: { where: { channel: 'NORMAL' } } } },
         // 未单独配置图标时，用该分类首个在售商品图兜底
         products: {
-          where: { status: 'ON_SALE' },
+          where: { status: 'ON_SALE', channel: 'NORMAL' },
           orderBy: { sort: 'asc' },
           take: 1,
           select: { mainImageKey: true },
@@ -97,7 +97,7 @@ export class CatalogController {
   @ApiOperation({ summary: '标签列表（仅包含在售商品）' })
   async tags() {
     return this.prisma.productTag.findMany({
-      where: { product: { status: 'ON_SALE' } },
+      where: { product: { status: 'ON_SALE', channel: 'NORMAL' } },
       orderBy: { name: 'asc' },
       select: { id: true, name: true },
       take: 50,
@@ -130,7 +130,7 @@ export class CatalogController {
       if (!list.length) return { total: 0, page: 1, pageSize: 0, items: [] };
 
       const rows = await this.prisma.product.findMany({
-        where: { id: { in: list }, status: 'ON_SALE' },
+        where: { id: { in: list }, status: 'ON_SALE', channel: 'NORMAL' },
         select: {
           id: true,
           title: true,

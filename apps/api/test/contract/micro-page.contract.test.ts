@@ -186,6 +186,11 @@ describe('微页面：草稿与发布', () => {
         (item: { value: string }) => item.value === '/pages/after-sale/list/index',
       ),
     ).toBe(true);
+    expect(
+      pageLink.body.data.items.some(
+        (item: { value: string }) => item.value === '/pages/points-mall/index',
+      ),
+    ).toBe(true);
 
     // 内置页面允许附加查询参数，但路径必须在白名单内
     const pageWithQuery = await api(
@@ -256,6 +261,38 @@ describe('微页面：草稿与发布', () => {
     expect(publishedFixed.status, JSON.stringify(publishedFixed.body)).toBe(200);
     const publicFixed = await api(`/micro-pages/${page.code}`);
     expect(publicFixed.body.data.components[0].props.link).toEqual({ type: 'points', value: null });
+
+    // 积分商城同为固定去向，不需要目标值
+    const mallLink = await api(
+      `/admin/micro-pages/${page.id}`,
+      {
+        method: 'PUT',
+        body: JSON.stringify({
+          components: [
+            {
+              ...textComponent('去积分商城'),
+              props: {
+                ...textComponent('去积分商城').props,
+                link: { type: 'pointsmall', value: '' },
+              },
+            },
+          ],
+        }),
+      },
+      admin,
+    );
+    expect(mallLink.status, JSON.stringify(mallLink.body)).toBe(200);
+    const publishedMall = await api(
+      `/admin/micro-pages/${page.id}/publish`,
+      { method: 'POST' },
+      admin,
+    );
+    expect(publishedMall.status, JSON.stringify(publishedMall.body)).toBe(200);
+    const publicMall = await api(`/micro-pages/${page.code}`);
+    expect(publicMall.body.data.components[0].props.link).toEqual({
+      type: 'pointsmall',
+      value: null,
+    });
 
     // 搜索 / 优惠券 / 门店允许不选具体目标，直接进入列表页
     await api(

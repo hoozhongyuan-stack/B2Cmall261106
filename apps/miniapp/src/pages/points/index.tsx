@@ -59,6 +59,8 @@ const SOURCE_LABEL: Record<string, string> = {
   ADMIN: '后台调整',
   SIGN_IN: '每日签到',
   SHARE: '分享奖励',
+  EXCHANGE: '积分兑换',
+  EXCHANGE_REFUND: '兑换退回',
 };
 
 export default function Page() {
@@ -154,6 +156,12 @@ export default function Page() {
         <Text className="points-note">
           消费每 {overview?.config.yuanPerPoint ?? 1} 元得 1 分 · 积分仅记录，不参与抵扣
         </Text>
+        <Button
+          className="points-mall-entry"
+          onClick={() => void Taro.navigateTo({ url: '/pages/points-mall/index' })}
+        >
+          积分商城
+        </Button>
       </View>
 
       {signInState?.enabled && (

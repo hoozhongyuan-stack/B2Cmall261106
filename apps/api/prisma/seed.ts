@@ -112,21 +112,62 @@ async function main(): Promise<void> {
     skipDuplicates: true,
   });
 
-  // 四个角色各一个账号，用于权限验收
+  // 演示用角色：正式环境可在「账号 → 角色」中自由调整或删除
+  const defaultRoles = [
+    {
+      name: '商品运营',
+      description: '商品、营销、装修与门店运营',
+      permissions: [
+        'aftersale.view', 'analytics.view', 'asset.manage', 'asset.view', 'category.manage', 'category.view', 'coupon.edit', 'coupon.view', 'customer.edit', 'customer.view', 'dashboard.view', 'delivery.manage', 'express.manage', 'express.view', 'level.manage', 'level.view', 'log.view', 'membercard.manage', 'membercard.view', 'micropage.manage', 'micropage.view', 'miniapp.view', 'notification.manage', 'order.refund', 'order.view', 'pickup.verify', 'points.manage', 'points.view', 'popupad.manage', 'popupad.view', 'product.edit', 'product.stock', 'product.view', 'promotion.manage', 'promotion.view', 'review.manage', 'store.edit', 'store.view', 'system.view', 'tabbar.manage', 'tabbar.view', 'tag.manage', 'tag.view', 'usertag.manage', 'usertag.view', 'integration.view', 'shop.view', 'freight.manage', 'pointsmall.manage', 'pointsmall.view',
+      ],
+    },
+    {
+      name: '客服',
+      description: '订单查看、售后审核与客户服务',
+      permissions: [
+        'aftersale.audit', 'aftersale.view', 'analytics.view', 'category.view', 'coupon.view', 'customer.edit', 'customer.view', 'dashboard.view', 'delivery.manage', 'express.view', 'level.view', 'log.view', 'membercard.view', 'order.edit', 'order.refund', 'order.view', 'pickup.verify', 'points.view', 'product.stock', 'product.view', 'promotion.view', 'review.manage', 'store.view', 'tag.view', 'usertag.view', 'asset.view', 'integration.view', 'micropage.view', 'popupad.view', 'shop.view', 'tabbar.view', 'freight.manage', 'pointsmall.view',
+      ],
+    },
+    {
+      name: '仓储',
+      description: '发货、库存、核销与同城配送',
+      permissions: [
+        'aftersale.audit', 'aftersale.view', 'dashboard.view', 'delivery.manage', 'express.manage', 'express.view', 'order.ship', 'order.view', 'pickup.verify', 'product.stock', 'product.view', 'store.view', 'asset.view', 'integration.view', 'shop.view', 'freight.manage',
+      ],
+    },
+  ];
+  for (const role of defaultRoles) {
+    const exists = await prisma.adminRoleDef.findUnique({
+      where: { name: role.name },
+      select: { id: true },
+    });
+    if (!exists) await prisma.adminRoleDef.create({ data: role });
+  }
+
+  const roleIdByName = new Map(
+    (await prisma.adminRoleDef.findMany({ select: { id: true, name: true } })).map((role) => [
+      role.name,
+      role.id,
+    ]),
+  );
+
+  // 超级管理员 + 三个演示角色账号
   const admins = [
-    { account: 'admin@shanye.com', name: '王管理员', role: 'SUPER' as const, pwd: 'admin123' },
-    { account: 'ops@shanye.com', name: '小林', role: 'OPS' as const, pwd: 'ops12345' },
-    { account: 'cs@shanye.com', name: '小周', role: 'CS' as const, pwd: 'cs123456' },
-    { account: 'wms@shanye.com', name: '老陈', role: 'WMS' as const, pwd: 'wms12345' },
+    { account: 'admin@shanye.com', name: '王管理员', isSuper: true, roleName: null, pwd: 'admin123' },
+    { account: 'ops@shanye.com', name: '小林', isSuper: false, roleName: '商品运营', pwd: 'ops12345' },
+    { account: 'cs@shanye.com', name: '小周', isSuper: false, roleName: '客服', pwd: 'cs123456' },
+    { account: 'wms@shanye.com', name: '老陈', isSuper: false, roleName: '仓储', pwd: 'wms12345' },
   ];
   for (const a of admins) {
+    const roleId = a.roleName ? roleIdByName.get(a.roleName) ?? null : null;
     await prisma.adminUser.upsert({
       where: { account: a.account },
-      update: { displayName: a.name, role: a.role },
+      update: { displayName: a.name, isSuper: a.isSuper, roleId },
       create: {
         account: a.account,
         displayName: a.name,
-        role: a.role,
+        isSuper: a.isSuper,
+        roleId,
         passwordHash: hashPassword(a.pwd),
       },
     });

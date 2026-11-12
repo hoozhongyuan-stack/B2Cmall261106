@@ -14,7 +14,7 @@ import { IsIn, IsObject, IsOptional, IsString, Length, ValidateNested } from 'cl
 import { Type } from 'class-transformer';
 
 import { IntegrationService } from './integration.service';
-import { JwtAuthGuard, Roles, RolesGuard } from '../../common/auth.guards';
+import { JwtAuthGuard, RolesGuard, Permission } from '../../common/auth.guards';
 
 class SubscribeTemplatesDto {
   @IsOptional()
@@ -131,21 +131,21 @@ export class AdminIntegrationController {
   constructor(private readonly service: IntegrationService) {}
 
   @Get()
-  @Roles('SUPER', 'OPS', 'CS', 'WMS')
+  @Permission('integration.view')
   @ApiOperation({ summary: '集成配置（密钥只返回是否已配置与文件名）' })
   detail() {
     return this.service.detail();
   }
 
   @Patch()
-  @Roles('SUPER')
+  @Permission('integration.manage')
   @ApiOperation({ summary: '修改集成配置（小程序 / 支付 / 订阅消息 / 域名）' })
   update(@Body() dto: UpdateIntegrationDto) {
     return this.service.update(dto);
   }
 
   @Post('secrets/:field')
-  @Roles('SUPER')
+  @Permission('integration.manage')
   @ApiOperation({ summary: '上传密钥或证书文件（base64）' })
   upload(@Param('field') field: string, @Body() dto: UploadSecretDto) {
     return this.service.uploadSecret(field, dto.fileName, dto.contentBase64);
@@ -153,7 +153,7 @@ export class AdminIntegrationController {
 
   @Delete('secrets/:field')
   @HttpCode(200)
-  @Roles('SUPER')
+  @Permission('integration.manage')
   @ApiOperation({ summary: '删除已上传的密钥或证书' })
   remove(@Param('field') field: string) {
     return this.service.removeSecret(field);

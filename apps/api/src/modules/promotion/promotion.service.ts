@@ -133,7 +133,7 @@ export class PromotionService {
 
     const items = promotions.flatMap((promotion) =>
       promotion.skus
-        .filter((row) => row.sold < row.stock)
+        .filter((row) => row.sold < row.stock && row.sku.product.channel === 'NORMAL')
         .map((row) => ({
           promotionId: promotion.id,
           promotionName: promotion.name,

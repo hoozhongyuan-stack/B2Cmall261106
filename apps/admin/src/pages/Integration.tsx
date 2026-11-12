@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
 import { api, ApiError, formatDate } from '../api/client';
-import { hasRole } from '../auth';
+import { can } from '../auth';
 import { confirmAction } from '../components/confirm';
 import { toast } from '../components/toast';
 import { Button, Card, Field, PageHeader, Tabs, Tag } from '../components/ui';
@@ -143,7 +143,7 @@ function StatusItem({
 }
 
 export default function IntegrationSettings() {
-  const canWrite = hasRole('SUPER');
+  const canWrite = can('integration.manage');
   const [searchParams, setSearchParams] = useSearchParams();
   const requested = searchParams.get('tab');
   const tab: TabValue = TABS.some((item) => item.value === requested)

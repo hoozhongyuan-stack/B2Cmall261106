@@ -55,6 +55,12 @@ describe('微页面共享定义', () => {
     expect(MICRO_VIDEO_RATIOS.length).toBeGreaterThan(0);
   });
 
+  it('内置页面包含积分商城，可被微页面与底部导航选择', () => {
+    expect(MICRO_LINK_LABELS.pointsmall).toBe('积分商城');
+    expect(MICRO_INNER_PAGE_PATHS).toContain('/pages/points-mall/index');
+    expect(isMicroPagePathAllowed('/pages/points-mall/index')).toBe(true);
+  });
+
   it('内置页面允许查询参数，但路径必须在白名单内', () => {
     expect(isMicroPagePathAllowed('/pages/orders/index')).toBe(true);
     expect(isMicroPagePathAllowed('/pages/orders/index?status=PAID')).toBe(true);

@@ -10,7 +10,7 @@ import {
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import { PrismaService } from '../../prisma/prisma.module';
-import { JwtAuthGuard, Roles, RolesGuard } from '../../common/auth.guards';
+import { JwtAuthGuard, RolesGuard, Permission } from '../../common/auth.guards';
 import { RefundReconcileService } from './refund-reconcile.service';
 
 @ApiTags('admin-refunds')
@@ -24,7 +24,7 @@ export class AdminRefundController {
   ) {}
 
   @Get()
-  @Roles('SUPER', 'OPS', 'CS')
+  @Permission('order.view')
   @ApiOperation({ summary: '退款单列表：按状态/渠道状态筛选，用于对账' })
   async list(
     @Query('status') status?: string,
@@ -73,7 +73,7 @@ export class AdminRefundController {
 
   @Post(':id/query')
   @HttpCode(200)
-  @Roles('SUPER', 'OPS', 'CS')
+  @Permission('order.refund')
   @ApiOperation({ summary: '立即查询微信退款状态并同步' })
   query(@Param('id') id: string) {
     return this.reconcile.queryOne(id);

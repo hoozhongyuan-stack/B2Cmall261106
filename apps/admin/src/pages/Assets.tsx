@@ -16,7 +16,7 @@ import {
   type AssetItem,
 } from '../api/assets';
 import { ApiError, formatDate } from '../api/client';
-import { hasRole } from '../auth';
+import { can } from '../auth';
 import { confirmAction } from '../components/confirm';
 import { toast } from '../components/toast';
 import {
@@ -38,7 +38,7 @@ function errorText(err: unknown): string {
 }
 
 export default function Assets() {
-  const canWrite = hasRole('SUPER', 'OPS');
+  const canWrite = can('asset.manage');
   const [folders, setFolders] = useState<AssetFolder[]>([]);
   const [uncategorized, setUncategorized] = useState(0);
   const [folder, setFolder] = useState('all');

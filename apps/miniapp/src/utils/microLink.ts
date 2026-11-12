@@ -66,6 +66,9 @@ export async function openMicroLink(link: MicroLink | null | undefined): Promise
     case 'points':
       void Taro.navigateTo({ url: '/pages/points/index' });
       return;
+    case 'pointsmall':
+      void Taro.navigateTo({ url: '/pages/points-mall/index' });
+      return;
     case 'page':
       if (!value || !value.startsWith('/pages/')) return;
       void Taro.navigateTo({ url: value });

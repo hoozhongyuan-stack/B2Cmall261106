@@ -4,7 +4,7 @@ import { IsIn, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
 
 import { PointsService } from './points.service';
 import { CurrentUser, UserJwtGuard, type MiniappUser } from '../../common/user-auth.guard';
-import { JwtAuthGuard, Roles, RolesGuard } from '../../common/auth.guards';
+import { JwtAuthGuard, RolesGuard, Permission } from '../../common/auth.guards';
 
 class UpdatePointsConfigDto {
   @IsOptional()
@@ -88,14 +88,14 @@ export class AdminPointsConfigController {
   constructor(private readonly points: PointsService) {}
 
   @Get()
-  @Roles('SUPER', 'OPS', 'CS')
+  @Permission('points.view')
   @ApiOperation({ summary: '积分规则配置' })
   detail() {
     return this.points.config();
   }
 
   @Put()
-  @Roles('SUPER', 'OPS')
+  @Permission('points.manage')
   @ApiOperation({ summary: '保存积分规则配置' })
   save(@Body() dto: UpdatePointsConfigDto) {
     return this.points.updateConfig(dto);

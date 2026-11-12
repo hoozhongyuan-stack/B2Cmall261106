@@ -3,7 +3,7 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { IsString, Length } from 'class-validator';
 
 import { AdminAuthService } from './admin-auth.service';
-import { CurrentUser, JwtAuthGuard, Roles, RolesGuard, type AuthUser } from '../../common/auth.guards';
+import { CurrentUser, JwtAuthGuard, type AuthUser } from '../../common/auth.guards';
 import { RateLimit } from '../../common/rate-limit.guard';
 
 class LoginDto {
@@ -30,11 +30,10 @@ export class AdminAuthController {
   }
 
   @Get('me')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('SUPER', 'OPS', 'CS', 'WMS', 'STORE')
+  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: '当前登录账号' })
+  @ApiOperation({ summary: '当前登录账号（含最新角色与权限）' })
   me(@CurrentUser() user: AuthUser) {
-    return { id: user.sub, account: user.account, role: user.role, name: user.name };
+    return this.auth.me(user.sub);
   }
 }

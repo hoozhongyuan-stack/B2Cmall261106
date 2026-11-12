@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 
 import { api, ApiError, money } from '../api/client';
-import { hasRole } from '../auth';
+import { can } from '../auth';
 import { toast } from '../components/toast';
 import { Button, Card, Field, PageHeader, Tag } from '../components/ui';
 
@@ -63,7 +63,7 @@ function errorText(err: unknown): string {
 }
 
 export default function PointsRules() {
-  const canWrite = hasRole('SUPER', 'OPS');
+  const canWrite = can('points.manage');
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [coupons, setCoupons] = useState<CouponOption[]>([]);
   const [loading, setLoading] = useState(true);

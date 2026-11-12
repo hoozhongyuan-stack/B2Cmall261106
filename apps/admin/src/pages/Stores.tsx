@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 
 import { api, ApiError, formatDate, money, toYuan } from '../api/client';
 import { assetPreviewUrl } from '../api/assets';
-import { hasRole } from '../auth';
+import { can } from '../auth';
 import { toast } from '../components/toast';
 import {
   BulkBar,
@@ -127,8 +127,8 @@ function errorText(err: unknown): string {
 
 export default function Stores() {
   const navigate = useNavigate();
-  const canWrite = hasRole('SUPER', 'OPS');
-  const canDisable = hasRole('SUPER');
+  const canWrite = can('store.edit');
+  const canDisable = can('store.edit');
   const [items, setItems] = useState<StoreRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [disabling, setDisabling] = useState<StoreRow | null>(null);

@@ -106,8 +106,12 @@ export class OrderController {
 
   @Get()
   @ApiOperation({ summary: '我的订单列表' })
-  list(@CurrentUser() user: MiniappUser, @Query('status') status?: string) {
-    return this.orders.list(user.sub, status);
+  list(
+    @CurrentUser() user: MiniappUser,
+    @Query('status') status?: string,
+    @Query('orderType') orderType?: string,
+  ) {
+    return this.orders.list(user.sub, status, orderType);
   }
 
   @Get(':id')

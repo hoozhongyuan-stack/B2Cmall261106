@@ -21,13 +21,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 
-import {
-  CurrentUser,
-  JwtAuthGuard,
-  Roles,
-  RolesGuard,
-  type AuthUser,
-} from '../../common/auth.guards';
+import { CurrentUser, JwtAuthGuard, RolesGuard, type AuthUser, Permission } from '../../common/auth.guards';
 import { StoreStockService } from './store-stock.service';
 
 class StockListQueryDto {
@@ -91,7 +85,6 @@ class BatchStockDto {
   items!: BatchStockItemDto[];
 }
 
-const ALL_ROLES = ['SUPER', 'OPS', 'CS', 'WMS', 'STORE'] as const;
 
 @ApiTags('admin-store-stock')
 @ApiBearerAuth()
@@ -101,7 +94,7 @@ export class StoreStockController {
   constructor(private readonly stock: StoreStockService) {}
 
   @Get(':storeId/skus')
-  @Roles(...ALL_ROLES)
+  @Permission('product.stock')
   @ApiOperation({ summary: '门店可售库存列表' })
   list(
     @CurrentUser() user: AuthUser,
@@ -112,7 +105,7 @@ export class StoreStockController {
   }
 
   @Get(':storeId/sku-options')
-  @Roles(...ALL_ROLES)
+  @Permission('product.stock')
   @ApiOperation({ summary: '可添加到门店的 SKU（按编码/商品名搜索）' })
   skuOptions(
     @CurrentUser() user: AuthUser,
@@ -123,7 +116,7 @@ export class StoreStockController {
   }
 
   @Patch(':storeId/skus/:skuId')
-  @Roles(...ALL_ROLES)
+  @Permission('product.stock')
   @ApiOperation({ summary: '调整门店单 SKU 库存 / 安全库存 / 状态' })
   adjust(
     @CurrentUser() user: AuthUser,
@@ -135,7 +128,7 @@ export class StoreStockController {
   }
 
   @Post(':storeId/skus/batch')
-  @Roles(...ALL_ROLES)
+  @Permission('product.stock')
   @ApiOperation({ summary: '批量设置门店库存（最多 100 个 SKU）' })
   batch(
     @CurrentUser() user: AuthUser,
@@ -146,7 +139,7 @@ export class StoreStockController {
   }
 
   @Get(':storeId/stock-logs')
-  @Roles(...ALL_ROLES)
+  @Permission('product.stock')
   @ApiOperation({ summary: '门店库存流水（可售库存口径）' })
   logs(
     @CurrentUser() user: AuthUser,

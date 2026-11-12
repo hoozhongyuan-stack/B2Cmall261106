@@ -26,6 +26,8 @@ export default defineAppConfig({
     'pages/member/index',
     'pages/member-card/index',
     'pages/points/index',
+    'pages/points-mall/index',
+    'pages/points-product/index',
     'pages/coupon/index',
     'pages/address/list/index',
     'pages/address/edit/index',

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 
 import { api, ApiError, formatDate } from '../api/client';
-import { hasRole } from '../auth';
+import { can } from '../auth';
 import { confirmAction } from '../components/confirm';
 import { toast } from '../components/toast';
 import { Button, Card, Field, Modal, PageHeader, Tag } from '../components/ui';
@@ -51,7 +51,7 @@ function sizeText(size: number): string {
 }
 
 export default function MiniappRelease() {
-  const canWrite = hasRole('SUPER');
+  const canWrite = can('miniapp.release');
   const [readiness, setReadiness] = useState<Readiness | null>(null);
   const [releases, setReleases] = useState<ReleaseView[]>([]);
   const [loading, setLoading] = useState(true);

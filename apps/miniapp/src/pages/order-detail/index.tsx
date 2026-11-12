@@ -40,6 +40,8 @@ interface OrderDetail {
   id: string;
   orderNo: string;
   status: string;
+  orderType?: string;
+  pointsUsed?: number;
   fulfillmentType: 'EXPRESS' | 'DELIVERY' | 'PICKUP';
   storeId: string | null;
   storeName: string | null;
@@ -218,7 +220,7 @@ export default function Page() {
   const isPickup = order.fulfillmentType === 'PICKUP';
   const isDelivery = order.fulfillmentType === 'DELIVERY';
   const actions = buyerActions(order.status as OrderStatus, order.fulfillmentType);
-  const canApplyAfterSale = actions.includes('refund_apply');
+  const canApplyAfterSale = actions.includes('refund_apply') && order.orderType !== 'POINTS';
   const statusLabel =
     isPickup && order.status === ORDER_STATUS.PAID
       ? '待自提'
@@ -430,6 +432,12 @@ export default function Page() {
           <Text className="small muted">运费</Text>
           <Text className="small">{money(order.amount.freightCents)}</Text>
         </View>
+        {order.orderType === 'POINTS' && (
+          <View className="row-between">
+            <Text className="small muted">消耗积分</Text>
+            <Text className="small od-points">{order.pointsUsed ?? 0} 积分</Text>
+          </View>
+        )}
         {!!order.amount.refundedCents && (
           <View className="row-between">
             <Text className="small muted">已退款</Text>

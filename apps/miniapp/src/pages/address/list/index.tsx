@@ -19,6 +19,7 @@ interface Address {
 export default function Page() {
   const router = useRouter();
   const selectMode = router.params.select === '1';
+  const storageKey = router.params.key || 'checkout_address_id';
   const [items, setItems] = useState<Address[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -39,7 +40,7 @@ export default function Page() {
 
   const pick = (address: Address) => {
     if (!selectMode) return;
-    Taro.setStorageSync('checkout_address_id', address.id);
+    Taro.setStorageSync(storageKey, address.id);
     void Taro.navigateBack();
   };
 

@@ -170,7 +170,7 @@ test('门店账号：PC 登录被拒绝并引导到小程序门店中心', async
     data: {
       account,
       displayName: 'E2E 门店账号',
-      role: 'STORE',
+      kind: 'STORE',
       password,
       storeIds: [store.id],
     },

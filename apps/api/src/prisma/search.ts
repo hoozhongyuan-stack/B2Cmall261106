@@ -51,7 +51,11 @@ export function keywordCondition(keyword: string): Prisma.Sql {
 }
 
 function buildWhere(keyword: string | undefined, params: ProductSearchParams): Prisma.Sql {
-  const conditions: Prisma.Sql[] = [Prisma.sql`p."status" = 'ON_SALE'`];
+  const conditions: Prisma.Sql[] = [
+    Prisma.sql`p."status" = 'ON_SALE'`,
+    // 积分商品只在积分商城展示，普通列表/搜索/分类/选品全部排除
+    Prisma.sql`p."channel" = 'NORMAL'`,
+  ];
 
   if (keyword) conditions.push(keywordCondition(keyword));
   if (params.categoryId) conditions.push(Prisma.sql`p."categoryId" = ${params.categoryId}`);

@@ -26,6 +26,25 @@
   opacity: 0.78;
 }
 
+.points-mall-entry {
+  margin: 16px 0 0;
+  padding: 0 28px;
+  height: 60px;
+  line-height: 60px;
+  border-radius: 30px;
+  background: rgba(255, 255, 255, 0.18);
+  color: var(--on-brand);
+  font-size: var(--fs-secondary);
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.points-mall-entry::after {
+  border: none;
+}
+
 .points-right {
   align-items: flex-end;
   gap: 4px;

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import { api, ApiError, formatDate, money, toCents, toYuan } from '../api/client';
-import { hasRole } from '../auth';
+import { can } from '../auth';
 import { toast } from '../components/toast';
 import {
   Button,
@@ -84,7 +84,7 @@ function discountText(rate: number): string {
 }
 
 export default function MemberCommerce() {
-  const canWrite = hasRole('SUPER', 'OPS');
+  const canWrite = can('membercard.manage');
   const [cardPlans, setCardPlans] = useState<CardPlan[]>([]);
   const [rechargePlans, setRechargePlans] = useState<RechargePlan[]>([]);
   const [accounts, setAccounts] = useState<PageResult<AccountRow> | null>(null);

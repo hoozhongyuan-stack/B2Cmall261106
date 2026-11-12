@@ -31,6 +31,8 @@ const MiniappRelease = lazy(() => import('./pages/MiniappRelease'));
 const Freight = lazy(() => import('./pages/Freight'));
 const Assets = lazy(() => import('./pages/Assets'));
 const Accounts = lazy(() => import('./pages/Accounts'));
+const Roles = lazy(() => import('./pages/Roles'));
+const RoleEdit = lazy(() => import('./pages/RoleEdit'));
 const Logs = lazy(() => import('./pages/Logs'));
 const SystemStatus = lazy(() => import('./pages/SystemStatus'));
 const MicroPages = lazy(() => import('./pages/MicroPages'));
@@ -40,6 +42,7 @@ const PopupAds = lazy(() => import('./pages/PopupAds'));
 const ExpressSettings = lazy(() => import('./pages/ExpressSettings'));
 const MemberCommerce = lazy(() => import('./pages/MemberCommerce'));
 const Promotions = lazy(() => import('./pages/Promotions'));
+const PointsMall = lazy(() => import('./pages/PointsMall'));
 const Analytics = lazy(() => import('./pages/Analytics'));
 const Stores = lazy(() => import('./pages/Stores'));
 const StoreEdit = lazy(() => import('./pages/StoreEdit'));
@@ -85,6 +88,7 @@ export function App() {
           <Route path="points-rules" element={<PointsRules />} />
           <Route path="coupons" element={<Coupons />} />
           <Route path="marketing/promotions" element={<Promotions />} />
+          <Route path="marketing/points-mall" element={<PointsMall />} />
           <Route path="analytics" element={<Analytics />} />
           <Route path="coupons/new" element={<CouponNew />} />
           <Route path="coupons/:id/claims" element={<CouponClaims />} />
@@ -109,6 +113,9 @@ export function App() {
           <Route path="settings/express" element={<ExpressSettings />} />
           <Route path="assets" element={<Assets />} />
           <Route path="accounts" element={<Accounts />} />
+          <Route path="accounts/roles" element={<Roles />} />
+          <Route path="accounts/roles/new" element={<RoleEdit />} />
+          <Route path="accounts/roles/:id/edit" element={<RoleEdit />} />
           <Route path="logs" element={<Logs />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />

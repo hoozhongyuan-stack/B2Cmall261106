@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { ORDER_STATUS_LABEL, type OrderStatus } from '@shanye/shared/src/orderState';
 
 import { api, ApiError, formatDate, money } from '../api/client';
-import { hasRole } from '../auth';
+import { can } from '../auth';
 import { toast } from '../components/toast';
 import { TagPicker, type TagOption } from '../components/TagPicker';
 import {
@@ -192,7 +192,7 @@ export default function CustomerDetail() {
     );
   }
 
-  const canAdjust = hasRole('SUPER', 'CS');
+  const canAdjust = can('customer.edit');
 
   const orderColumns: Column<RecentOrder>[] = [
     { key: 'orderNo', title: '订单号', render: (row) => <span className="mono small">{row.orderNo}</span> },
@@ -324,7 +324,7 @@ export default function CustomerDetail() {
       <Card
         title="客户标签"
         extra={
-          hasRole('SUPER', 'OPS', 'CS') ? (
+          can('customer.edit') ? (
             <Button
               size="sm"
               variant="ghost"

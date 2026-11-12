@@ -18,6 +18,8 @@ export interface AdminSkuInput {
   specJson: Record<string, string>;
   priceCents: number;
   originCents?: number;
+  pointsCost?: number;
+  pointsMoneyCents?: number;
   stock: number;
   status?: string;
 }
@@ -26,6 +28,8 @@ export interface CreateProductInput {
   title: string;
   subtitle?: string;
   categoryId: string;
+  channel?: string;
+  pointsLimitPerUser?: number;
   mainImageKey?: string;
   mainImageKeys?: string[];
   detailImageKeys?: string[];
@@ -39,6 +43,7 @@ export interface UpdateProductInput {
   title?: string;
   subtitle?: string;
   categoryId?: string;
+  pointsLimitPerUser?: number;
   mainImageKey?: string;
   mainImageKeys?: string[];
   detailImageKeys?: string[];
@@ -50,6 +55,8 @@ export interface UpdateProductInput {
 export interface UpdateSkuInput {
   priceCents?: number;
   originCents?: number;
+  pointsCost?: number;
+  pointsMoneyCents?: number;
   stock?: number;
   status?: string;
 }
@@ -73,6 +80,7 @@ export class AdminProductService {
     keyword?: string;
     status?: string;
     categoryId?: string;
+    channel?: string;
     minPriceCents?: number;
     maxPriceCents?: number;
     sort?: string;
@@ -80,6 +88,7 @@ export class AdminProductService {
     pageSize?: number;
   }) {
     const status = this.parseStatus(query.status, PRODUCT_STATUSES, '商品状态不合法');
+    const channel = this.parseChannel(query.channel) ?? 'NORMAL';
     const keyword = query.keyword?.trim();
     const page = Math.max(query.page ?? 1, 1);
     const pageSize = Math.min(Math.max(query.pageSize ?? 20, 1), 100);
@@ -97,6 +106,7 @@ export class AdminProductService {
 
     const where = {
       ...(status ? { status: status as never } : {}),
+      ...(channel ? { channel: channel as never } : {}),
       ...(query.categoryId ? { categoryId: query.categoryId } : {}),
       ...(keyword ? { title: { contains: keyword, mode: 'insensitive' as const } } : {}),
       ...(query.minPriceCents !== undefined ? { priceMaxCents: { gte: query.minPriceCents } } : {}),
@@ -109,28 +119,68 @@ export class AdminProductService {
         orderBy,
         skip: (page - 1) * pageSize,
         take: pageSize,
-        include: { category: true, skus: { select: { stock: true } } },
+        include: {
+          category: true,
+          skus: { select: { id: true, stock: true, pointsCost: true, pointsMoneyCents: true } },
+        },
       }),
       this.prisma.product.count({ where }),
     ]);
+
+    // 积分商品补充「已兑数量」：统计未关闭/未退款的兑换单
+    const exchanged = new Map<string, number>();
+    if (channel === 'POINTS' && products.length > 0) {
+      const skuToProduct = new Map(
+        products.flatMap((p) => p.skus.map((sku) => [sku.id, p.id] as const)),
+      );
+      const rows = await this.prisma.orderItem.groupBy({
+        by: ['skuId'],
+        where: {
+          skuId: { in: [...skuToProduct.keys()] },
+          order: { orderType: 'POINTS', status: { notIn: ['CLOSED', 'REFUNDED'] } },
+        },
+        _sum: { quantity: true },
+      });
+      for (const row of rows) {
+        const productId = skuToProduct.get(row.skuId);
+        if (!productId) continue;
+        exchanged.set(productId, (exchanged.get(productId) ?? 0) + (row._sum.quantity ?? 0));
+      }
+    }
 
     return {
       total,
       page,
       pageSize,
-      items: products.map((p) => ({
-        id: p.id,
-        title: p.title,
-        status: p.status,
-        categoryName: p.category.name,
-        mainImageKey: p.mainImageKey,
-        priceMinCents: p.priceMinCents,
-        priceMaxCents: p.priceMaxCents,
-        soldCount: p.soldCount,
-        stock: p.skus.reduce((sum, sku) => sum + sku.stock, 0),
-        skuCount: p.skus.length,
-        createdAt: p.createdAt,
-      })),
+      items: products.map((p) => {
+        const points = p.skus.map((sku) => sku.pointsCost).filter((v): v is number => v !== null);
+        const pointsCostMin = points.length ? Math.min(...points) : null;
+        const moneyOfMinPoints =
+          pointsCostMin === null
+            ? []
+            : p.skus
+                .filter((sku) => sku.pointsCost === pointsCostMin)
+                .map((sku) => sku.pointsMoneyCents);
+        return {
+          id: p.id,
+          title: p.title,
+          status: p.status,
+          channel: p.channel,
+          categoryName: p.category.name,
+          mainImageKey: p.mainImageKey,
+          priceMinCents: p.priceMinCents,
+          priceMaxCents: p.priceMaxCents,
+          soldCount: p.soldCount,
+          stock: p.skus.reduce((sum, sku) => sum + sku.stock, 0),
+          skuCount: p.skus.length,
+          pointsCostMin,
+          pointsCostMax: points.length ? Math.max(...points) : null,
+          pointsMoneyCentsMin: moneyOfMinPoints.length ? Math.min(...moneyOfMinPoints) : null,
+          pointsLimitPerUser: p.pointsLimitPerUser,
+          exchangedQty: exchanged.get(p.id) ?? 0,
+          createdAt: p.createdAt,
+        };
+      }),
     };
   }
 
@@ -182,6 +232,11 @@ export class AdminProductService {
       throw new BadRequestException('至少需要一个 SKU');
     }
     const status = this.parseStatus(input.status ?? 'OFF_SHELF', WRITABLE_PRODUCT_STATUSES, '商品状态不合法');
+    const channel = this.parseChannel(input.channel) ?? 'NORMAL';
+    const pointsLimitPerUser = this.nonNegativeInt(
+      input.pointsLimitPerUser ?? 0,
+      '每人限兑数量',
+    );
 
     const category = await this.prisma.category.findUnique({ where: { id: input.categoryId } });
     if (!category) throw new NotFoundException('分类不存在');
@@ -191,7 +246,10 @@ export class AdminProductService {
     const codes = new Set<string>();
     const skus = input.skus.map((sku, index) => {
       const position = `第 ${index + 1} 个 SKU`;
-      const priceCents = this.positiveInt(sku.priceCents, `${position} 价格`);
+      const points = channel === 'POINTS' ? this.resolvePointsSku(sku, position) : null;
+      const priceCents = points
+        ? points.pointsMoneyCents
+        : this.positiveInt(sku.priceCents, `${position} 价格`);
       const stock = this.nonNegativeInt(sku.stock, `${position} 库存`);
       const originCents =
         sku.originCents === undefined
@@ -213,6 +271,8 @@ export class AdminProductService {
         specJson: sku.specJson,
         priceCents,
         originCents,
+        pointsCost: points?.pointsCost ?? null,
+        pointsMoneyCents: points?.pointsMoneyCents ?? 0,
         stock,
         status: (this.parseStatus(sku.status, PRODUCT_STATUSES, 'SKU 状态不合法') ??
           'ON_SALE') as never,
@@ -229,6 +289,8 @@ export class AdminProductService {
             title,
             subtitle: input.subtitle,
             categoryId: input.categoryId,
+            channel: channel as never,
+            pointsLimitPerUser,
             searchText: buildProductSearchText({
               title,
               subtitle: input.subtitle,
@@ -266,6 +328,10 @@ export class AdminProductService {
       throw new BadRequestException('排序必须为整数');
     }
     const status = this.parseStatus(input.status, WRITABLE_PRODUCT_STATUSES, '商品状态不合法');
+    const pointsLimitPerUser =
+      input.pointsLimitPerUser === undefined
+        ? undefined
+        : this.nonNegativeInt(input.pointsLimitPerUser, '每人限兑数量');
     const gallery =
       input.mainImageKeys !== undefined || input.mainImageKey !== undefined
         ? await this.resolveGallery(input)
@@ -297,6 +363,7 @@ export class AdminProductService {
         ...(input.subtitle !== undefined ? { subtitle: input.subtitle } : {}),
         ...(searchText !== undefined ? { searchText } : {}),
         ...(input.categoryId !== undefined ? { categoryId: input.categoryId } : {}),
+        ...(pointsLimitPerUser !== undefined ? { pointsLimitPerUser } : {}),
         ...(gallery
           ? { mainImageKey: gallery.mainImageKey, mainImageKeys: gallery.mainImageKeys }
           : {}),
@@ -316,8 +383,21 @@ export class AdminProductService {
     const sku = await this.prisma.sku.findFirst({ where: { id: skuId, productId } });
     if (!sku) throw new NotFoundException('SKU 不存在');
 
+    const isPoints = product.channel === 'POINTS';
     const priceCents =
-      input.priceCents === undefined ? undefined : this.positiveInt(input.priceCents, 'SKU 价格');
+      input.priceCents === undefined
+        ? undefined
+        : isPoints
+          ? this.nonNegativeInt(input.priceCents, 'SKU 加价金额')
+          : this.positiveInt(input.priceCents, 'SKU 价格');
+    const pointsCost =
+      input.pointsCost === undefined
+        ? undefined
+        : this.positiveInt(input.pointsCost, '兑换积分');
+    const pointsMoneyCents =
+      input.pointsMoneyCents === undefined
+        ? undefined
+        : this.nonNegativeInt(input.pointsMoneyCents, 'SKU 加价金额');
     const originCents =
       input.originCents === undefined
         ? undefined
@@ -331,6 +411,12 @@ export class AdminProductService {
         where: { id: skuId },
         data: {
           ...(priceCents !== undefined ? { priceCents } : {}),
+          ...(pointsMoneyCents !== undefined
+            ? { pointsMoneyCents, priceCents: pointsMoneyCents }
+            : isPoints && priceCents !== undefined
+              ? { pointsMoneyCents: priceCents }
+              : {}),
+          ...(pointsCost !== undefined ? { pointsCost } : {}),
           ...(originCents !== undefined ? { originCents } : {}),
           ...(stock !== undefined ? { stock } : {}),
           ...(status !== undefined ? { status: status as never } : {}),
@@ -338,7 +424,7 @@ export class AdminProductService {
       });
 
       // 改价后重算商品价格区间，列表与详情才能同步
-      if (priceCents !== undefined) {
+      if (priceCents !== undefined || pointsMoneyCents !== undefined) {
         const agg = await tx.sku.aggregate({
           where: { productId },
           _min: { priceCents: true },
@@ -442,6 +528,30 @@ export class AdminProductService {
     const cleaned = keys.map((key) => key.trim()).filter(Boolean);
     await this.assets.assertReferences(cleaned);
     return cleaned;
+  }
+
+  private parseChannel(value: string | undefined): 'NORMAL' | 'POINTS' | undefined {
+    if (value === undefined || value === '') return undefined;
+    if (value !== 'NORMAL' && value !== 'POINTS') {
+      throw new BadRequestException('商品渠道不合法');
+    }
+    return value;
+  }
+
+  /** 积分商品 SKU：兑换积分必填，加价金额可 0；价格字段与加价保持同步 */
+  private resolvePointsSku(
+    sku: AdminSkuInput,
+    position: string,
+  ): { pointsCost: number; pointsMoneyCents: number } {
+    const pointsCostRaw = sku.pointsCost ?? 0;
+    if (!Number.isInteger(pointsCostRaw) || pointsCostRaw <= 0) {
+      throw new BadRequestException(`${position} 兑换积分必须为正整数`);
+    }
+    const pointsMoneyCents = this.nonNegativeInt(
+      sku.pointsMoneyCents ?? 0,
+      `${position} 加价金额`,
+    );
+    return { pointsCost: pointsCostRaw, pointsMoneyCents };
   }
 
   private parseStatus(

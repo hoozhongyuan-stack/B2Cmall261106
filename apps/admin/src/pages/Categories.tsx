@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 
 import { api, ApiError } from '../api/client';
 import { assetPreviewUrl } from '../api/assets';
-import { hasRole } from '../auth';
+import { can } from '../auth';
 import { AssetPicker } from '../components/AssetPicker';
 import { confirmAction } from '../components/confirm';
 import { toast } from '../components/toast';
@@ -60,7 +60,7 @@ function errorText(err: unknown): string {
 }
 
 export default function Categories() {
-  const canWrite = hasRole('SUPER', 'OPS');
+  const canWrite = can('category.manage');
   const [tree, setTree] = useState<CategoryNode[]>([]);
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState<ModalState>(CLOSED_MODAL);

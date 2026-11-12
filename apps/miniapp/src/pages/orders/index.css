@@ -45,3 +45,14 @@
 .order-btn {
   flex: 0 0 auto;
 }
+
+.order-type-filter {
+  display: flex;
+  justify-content: flex-end;
+  padding: 8px 0 0;
+}
+
+.order-points-used {
+  color: var(--brand);
+  margin-right: 8px;
+}

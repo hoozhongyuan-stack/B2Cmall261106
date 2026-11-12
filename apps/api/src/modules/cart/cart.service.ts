@@ -45,6 +45,7 @@ export class CartService {
       };
       // 失效区：已下架 / 售罄 / 库存不足，前端单独成区
       const usable =
+        item.sku.product.channel !== 'POINTS' &&
         item.sku.status === 'ON_SALE' &&
         item.sku.product.status === 'ON_SALE' &&
         available >= item.quantity;
@@ -52,11 +53,13 @@ export class CartService {
         ...row,
         invalidReason: usable
           ? undefined
-          : item.sku.status !== 'ON_SALE' || item.sku.product.status !== 'ON_SALE'
-            ? '已下架'
-            : available === 0
-              ? '已售罄'
-              : `仅剩 ${available} 件`,
+          : item.sku.product.channel === 'POINTS'
+            ? '积分商品请到积分商城兑换'
+            : item.sku.status !== 'ON_SALE' || item.sku.product.status !== 'ON_SALE'
+              ? '已下架'
+              : available === 0
+                ? '已售罄'
+                : `仅剩 ${available} 件`,
       });
     }
 
@@ -72,8 +75,14 @@ export class CartService {
   }
 
   async add(userId: string, skuId: string, quantity: number) {
-    const sku = await this.prisma.sku.findUnique({ where: { id: skuId } });
+    const sku = await this.prisma.sku.findUnique({
+      where: { id: skuId },
+      include: { product: { select: { channel: true } } },
+    });
     if (!sku || sku.status !== 'ON_SALE') throw new NotFoundException('商品不存在或已下架');
+    if (sku.product.channel === 'POINTS') {
+      throw new NotFoundException('积分商品请到积分商城兑换');
+    }
 
     const available = Math.max(sku.stock - sku.reserved, 0);
     if (available <= 0) throw new NotFoundException('已售罄');

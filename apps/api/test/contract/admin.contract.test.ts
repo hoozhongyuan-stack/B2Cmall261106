@@ -353,6 +353,9 @@ describe('子账号与操作日志契约', () => {
 
   it('超管可建子账号、停用并重置密码', async () => {
     const account = `contract${Date.now()}@shanye.com`;
+    const roles = await api('/admin/roles', {}, superToken);
+    const roleId = roles.body.data.items[0]?.id as string;
+    expect(roleId).toBeTruthy();
     const created = await api(
       '/admin/accounts',
       {
@@ -360,7 +363,8 @@ describe('子账号与操作日志契约', () => {
         body: JSON.stringify({
           account,
           displayName: '契约客服',
-          role: 'CS',
+          kind: 'PC',
+          roleId,
           password: 'contract123',
         }),
       },

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import { api, ApiError, formatDate, money, toCents } from '../api/client';
-import { hasRole } from '../auth';
+import { can } from '../auth';
 import { toast } from '../components/toast';
 import {
   Button,
@@ -65,7 +65,7 @@ function localDateTime(hoursFromNow: number): string {
 }
 
 export default function Promotions() {
-  const canWrite = hasRole('SUPER', 'OPS');
+  const canWrite = can('promotion.manage');
   const [items, setItems] = useState<PromotionRow[]>([]);
   const [products, setProducts] = useState<ProductOption[]>([]);
   const [categories, setCategories] = useState<CategoryOption[]>([]);
@@ -245,7 +245,7 @@ export default function Promotions() {
             <Button size="sm" variant="ghost" onClick={() => void toggle(row)}>
               {row.enabled ? '停用' : '启用'}
             </Button>
-            {hasRole('SUPER') && (
+            {can('promotion.manage') && (
               <Button size="sm" variant="ghost" onClick={() => void remove(row)}>
                 删除
               </Button>

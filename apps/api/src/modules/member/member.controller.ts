@@ -4,7 +4,7 @@ import { IsInt, IsNumber, IsOptional, IsString, Max, Min } from 'class-validator
 
 import { LoyaltyService } from './loyalty.service';
 import { CurrentUser, UserJwtGuard, type MiniappUser } from '../../common/user-auth.guard';
-import { JwtAuthGuard, Roles, RolesGuard } from '../../common/auth.guards';
+import { JwtAuthGuard, RolesGuard, Permission } from '../../common/auth.guards';
 
 class LevelDto {
   @IsString()
@@ -65,21 +65,21 @@ export class AdminMemberLevelController {
   constructor(private readonly loyalty: LoyaltyService) {}
 
   @Get()
-  @Roles('SUPER', 'OPS', 'CS')
+  @Permission('level.view')
   @ApiOperation({ summary: '等级规则列表（含各等级人数）' })
   list() {
     return this.loyalty.listLevels();
   }
 
   @Post()
-  @Roles('SUPER', 'OPS')
+  @Permission('level.manage')
   @ApiOperation({ summary: '新建等级规则' })
   create(@Body() dto: LevelDto) {
     return this.loyalty.createLevel(dto);
   }
 
   @Patch(':id')
-  @Roles('SUPER', 'OPS')
+  @Permission('level.manage')
   @ApiOperation({ summary: '修改等级门槛或折扣' })
   update(@Param('id') id: string, @Body() dto: UpdateLevelDto) {
     return this.loyalty.updateLevel(id, dto);

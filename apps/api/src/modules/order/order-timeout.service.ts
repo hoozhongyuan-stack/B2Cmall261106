@@ -4,6 +4,7 @@ import { nextStatus } from '@shanye/shared';
 import { PrismaService } from '../../prisma/prisma.module';
 import { CouponService } from '../coupon/coupon.service';
 import { StoreInventoryService } from '../store/store-inventory.service';
+import { revertPointsExchange } from '../points-mall/points-order.util';
 
 const INTERVAL_MS = 60_000;
 
@@ -85,6 +86,8 @@ export class OrderTimeoutService implements OnModuleInit, OnModuleDestroy {
 
         // 超时关单等同取消：已锁定的券在有效期内退回
         await this.coupons.releaseForOrder(tx, order.id);
+        // 积分兑换单：返还积分并回退每人限兑计数
+        await revertPointsExchange(tx, order);
         return true;
       });
 

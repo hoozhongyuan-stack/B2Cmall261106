@@ -14,7 +14,7 @@ import { ArrayMinSize, IsArray, IsIn, IsInt, IsOptional, IsString } from 'class-
 import { CustomerService } from './customer.service';
 import { UserTagService } from './user-tag.service';
 import { LoyaltyService } from '../member/loyalty.service';
-import { JwtAuthGuard, Roles, RolesGuard } from '../../common/auth.guards';
+import { JwtAuthGuard, RolesGuard, Permission } from '../../common/auth.guards';
 
 class AdjustPointsDto {
   @IsInt()
@@ -52,7 +52,7 @@ export class AdminCustomerController {
   ) {}
 
   @Get()
-  @Roles('SUPER', 'OPS', 'CS')
+  @Permission('customer.view')
   @ApiOperation({ summary: '客户列表：消费统计与等级（分页，可按标签 / 时间 / 消费区间筛选）' })
   list(
     @Query('keyword') keyword?: string,
@@ -80,14 +80,14 @@ export class AdminCustomerController {
 
   @Post('batch/tags')
   @HttpCode(200)
-  @Roles('SUPER', 'OPS', 'CS')
+  @Permission('customer.edit')
   @ApiOperation({ summary: '批量打标签：add 追加 / remove 移除 / replace 覆盖' })
   batchTags(@Body() dto: BatchTagsDto) {
     return this.userTags.assign(dto);
   }
 
   @Get(':id')
-  @Roles('SUPER', 'OPS', 'CS')
+  @Permission('customer.view')
   @ApiOperation({ summary: '客户详情：资产、最近订单与积分流水' })
   detail(@Param('id') id: string) {
     return this.customers.detail(id);
@@ -95,7 +95,7 @@ export class AdminCustomerController {
 
   @Post(':id/points')
   @HttpCode(200)
-  @Roles('SUPER', 'CS')
+  @Permission('customer.edit')
   @ApiOperation({ summary: '手动发放 / 扣减积分（记入流水）' })
   adjustPoints(@Param('id') id: string, @Body() dto: AdjustPointsDto) {
     return this.loyalty.adjustPoints(id, dto.delta, dto.reason);

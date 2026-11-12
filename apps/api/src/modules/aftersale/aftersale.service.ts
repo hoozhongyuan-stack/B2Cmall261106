@@ -82,6 +82,9 @@ export class AfterSaleService {
       include: { order: true, afterSale: true },
     });
     if (!item) throw new NotFoundException('订单商品不存在');
+    if (item.order.orderType === 'POINTS') {
+      throw new ConflictException('积分兑换单请联系客服处理');
+    }
     if (item.afterSale) throw new ConflictException('该商品已有售后单');
 
     const config = await this.prisma.shopConfig.findFirst();

@@ -85,9 +85,47 @@ async function purgeTestAds(request: APIRequestContext, token: string): Promise<
   }
 }
 
+/** 暂时停用非 E2E 广告，避免真实投放干扰断言；用例结束后恢复 */
+async function suppressOtherAds(
+  request: APIRequestContext,
+  token: string,
+): Promise<string[]> {
+  const res = await request.get(`${API}/admin/popup-ads?pageSize=100`, {
+    headers: { authorization: `Bearer ${token}` },
+  });
+  if (!res.ok()) return [];
+  const items =
+    unwrap<{ items: { id: string; name: string; enabled: boolean }[] }>(await res.json()).items ??
+    [];
+  const disabled: string[] = [];
+  for (const item of items) {
+    if (!item.enabled || item.name.startsWith('E2E ')) continue;
+    const toggled = await request.patch(`${API}/admin/popup-ads/${item.id}/enabled`, {
+      headers: { authorization: `Bearer ${token}` },
+      data: { enabled: false },
+    });
+    if (toggled.ok()) disabled.push(item.id);
+  }
+  return disabled;
+}
+
+async function restoreAds(
+  request: APIRequestContext,
+  token: string,
+  ids: string[],
+): Promise<void> {
+  for (const id of ids) {
+    await request.patch(`${API}/admin/popup-ads/${id}/enabled`, {
+      headers: { authorization: `Bearer ${token}` },
+      data: { enabled: true },
+    });
+  }
+}
+
 test('弹窗广告：多条依次弹出，每天一次，次日恢复', async ({ page, request }) => {
   const token = await adminToken(request);
   await purgeTestAds(request, token);
+  const suppressed = await suppressOtherAds(request, token);
   const asset = await uploadImage(request, token);
   const ads: string[] = [];
 
@@ -136,6 +174,7 @@ test('弹窗广告：多条依次弹出，每天一次，次日恢复', async ({
     await request.delete(`${API}/admin/assets/${asset.id}`, {
       headers: { authorization: `Bearer ${token}` },
     });
+    await restoreAds(request, token, suppressed);
   }
 });
 

@@ -26,6 +26,7 @@ const TARGET_TYPE_BY_SEGMENT: Record<string, string> = {
   shop: 'ShopSetting',
   assets: 'Asset',
   accounts: 'AdminAccount',
+  roles: 'AdminRole',
   integration: 'Integration',
   miniapp: 'MiniappRelease',
   stores: 'Store',

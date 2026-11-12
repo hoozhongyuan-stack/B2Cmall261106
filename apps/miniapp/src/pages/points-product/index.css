@@ -1,0 +1,165 @@
+.pp {
+  padding-bottom: 160px;
+}
+
+.pp-gallery {
+  border-radius: 24px;
+  overflow: hidden;
+  background: var(--surface-2);
+}
+
+.pp-cover {
+  width: 100%;
+  height: 560px;
+  display: block;
+}
+
+.pp-cover--empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 64px;
+  color: var(--ink-3);
+}
+
+.pp-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pp-price-row {
+  align-items: baseline;
+  gap: 6px;
+}
+
+.pp-points {
+  font-size: 48px;
+  font-weight: 700;
+  color: var(--brand);
+  font-variant-numeric: tabular-nums;
+}
+
+.pp-unit {
+  font-size: var(--fs-caption);
+  color: var(--ink-3);
+}
+
+.pp-money {
+  font-size: var(--fs-secondary);
+  color: var(--ink-2);
+}
+
+.pp-title {
+  font-size: var(--fs-section);
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.pp-tags {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pp-address {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pp-address-name {
+  font-size: var(--fs-secondary);
+  font-weight: 600;
+}
+
+.pp-address-detail {
+  line-height: 1.4;
+}
+
+.pp-address-empty {
+  font-size: var(--fs-secondary);
+  color: var(--brand);
+}
+
+.pp-label {
+  font-size: var(--fs-secondary);
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.pp-sku-list {
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.pp-sku {
+  padding: 10px 22px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  font-size: var(--fs-caption);
+  color: var(--ink-2);
+}
+
+.pp-sku.is-active {
+  background: var(--brand-soft);
+  color: var(--brand);
+  font-weight: 600;
+}
+
+.pp-quantity {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.pp-stepper {
+  align-items: center;
+  gap: 18px;
+}
+
+.pp-step {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--surface-2);
+  text-align: center;
+  line-height: 48px;
+  font-size: 28px;
+  color: var(--ink);
+}
+
+.pp-step-value {
+  min-width: 40px;
+  text-align: center;
+  font-size: var(--fs-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.pp-total {
+  gap: 2px;
+}
+
+.pp-total-row {
+  align-items: baseline;
+  gap: 4px;
+}
+
+.pp-total-points {
+  font-size: 34px;
+  font-weight: 700;
+  color: var(--brand);
+}
+
+.pp-total-money {
+  font-size: var(--fs-caption);
+  color: var(--ink-2);
+}
+
+.pp-submit {
+  min-width: 220px;
+}
+
+.pp-submit.is-disabled {
+  opacity: 0.5;
+}

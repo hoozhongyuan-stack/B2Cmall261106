@@ -11,7 +11,7 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { IsString, Length } from 'class-validator';
 
 import { MiniappReleaseService } from './miniapp-release.service';
-import { CurrentUser, JwtAuthGuard, Roles, RolesGuard, type AuthUser } from '../../common/auth.guards';
+import { CurrentUser, JwtAuthGuard, RolesGuard, type AuthUser, Permission } from '../../common/auth.guards';
 import { RateLimit } from '../../common/rate-limit.guard';
 
 class CreateReleaseDto {
@@ -32,21 +32,21 @@ export class AdminMiniappReleaseController {
   constructor(private readonly service: MiniappReleaseService) {}
 
   @Get('readiness')
-  @Roles('SUPER', 'OPS')
+  @Permission('miniapp.view')
   @ApiOperation({ summary: '发布环境检查：AppID / 上传密钥 / API 地址 / 建议版本号' })
   readiness() {
     return this.service.readiness();
   }
 
   @Get('releases')
-  @Roles('SUPER', 'OPS')
+  @Permission('miniapp.view')
   @ApiOperation({ summary: '发布记录（最近 20 条）' })
   list() {
     return this.service.list();
   }
 
   @Get('releases/:id')
-  @Roles('SUPER', 'OPS')
+  @Permission('miniapp.view')
   @ApiOperation({ summary: '发布记录详情（含构建日志）' })
   detail(@Param('id') id: string) {
     return this.service.detail(id);
@@ -54,7 +54,7 @@ export class AdminMiniappReleaseController {
 
   @Post('releases')
   @HttpCode(202)
-  @Roles('SUPER')
+  @Permission('miniapp.release')
   @RateLimit({ limit: 3, windowMs: 60_000 })
   @ApiOperation({ summary: '构建并上传开发版（异步，约 1-2 分钟）' })
   create(@CurrentUser() user: AuthUser, @Body() dto: CreateReleaseDto) {
@@ -62,7 +62,7 @@ export class AdminMiniappReleaseController {
   }
 
   @Get('releases/:id/qrcode')
-  @Roles('SUPER', 'OPS')
+  @Permission('miniapp.view')
   @ApiOperation({ summary: '体验版二维码（base64 data URL）' })
   qrcode(@Param('id') id: string) {
     return this.service.qrcode(id);
@@ -70,7 +70,7 @@ export class AdminMiniappReleaseController {
 
   @Post('releases/:id/released')
   @HttpCode(200)
-  @Roles('SUPER')
+  @Permission('miniapp.release')
   @ApiOperation({ summary: '标记为已发布（审核与发布在微信后台完成）' })
   markReleased(@Param('id') id: string) {
     return this.service.markReleased(id);

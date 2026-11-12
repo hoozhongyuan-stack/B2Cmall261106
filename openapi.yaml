@@ -312,6 +312,7 @@ paths:
       security: [{ userToken: [] }]
       parameters:
         - { name: status, in: query, schema: { type: string, enum: [PENDING_PAYMENT, PAID, SHIPPED, COMPLETED, REFUNDING, REFUNDED, CLOSED] } }
+        - { name: orderType, in: query, schema: { type: string, enum: [NORMAL, POINTS] } }
       responses:
         '200': { description: OK }
 
@@ -835,6 +836,88 @@ paths:
         '200': { description: OK }
         '400': { $ref: '#/components/responses/BadRequest' }
 
+  /points-mall/products:
+    get:
+      tags: [points-mall]
+      summary: 积分商品列表（仅上架且有库存）
+      parameters:
+        - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+        - { name: pageSize, in: query, schema: { type: integer, minimum: 1, maximum: 50, default: 20 } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      total: { type: integer }
+                      page: { type: integer }
+                      pageSize: { type: integer }
+                      items:
+                        type: array
+                        items: { $ref: '#/components/schemas/PointsMallProduct' }
+
+  /member/points-mall/limits:
+    get:
+      tags: [points-mall]
+      summary: 当前用户已兑 / 剩余可兑与积分余额
+      security: [{ userToken: [] }]
+      parameters:
+        - { name: productId, in: query, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/PointsMallLimits' }
+        '404': { description: 积分商品不存在 }
+
+  /member/points-mall/orders:
+    post:
+      tags: [points-mall]
+      summary: 积分兑换下单（纯积分直接完成，积分+钱返回待支付订单）
+      security: [{ userToken: [] }]
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PointsMallExchangeInput' }
+      responses:
+        '201':
+          description: 兑换成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/PointsMallExchangeResult' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /admin/points-mall/orders/{id}/refund:
+    post:
+      tags: [admin-points-mall]
+      summary: 积分兑换单整单退款：返还积分、回补库存、回退限兑
+      security: [{ adminToken: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
   /admin/points-config:
     get:
       tags: [admin-points]
@@ -1347,6 +1430,7 @@ paths:
         - { name: keyword, in: query, schema: { type: string } }
         - { name: status, in: query, schema: { type: string, enum: [ON_SALE, OFF_SHELF, SOLD_OUT] } }
         - { name: categoryId, in: query, schema: { type: string } }
+        - { name: channel, in: query, schema: { type: string, enum: [NORMAL, POINTS], default: NORMAL } }
         - { name: minPriceCents, in: query, schema: { type: integer, minimum: 0 } }
         - { name: maxPriceCents, in: query, schema: { type: integer, minimum: 0 } }
         - { name: sort, in: query, schema: { type: string, enum: [newest, price_asc, price_desc, sales] } }
@@ -1940,11 +2024,12 @@ paths:
             schema:
               type: object
               additionalProperties: false
-              required: [account, displayName, role, password]
+              required: [account, displayName, password]
               properties:
                 account: { type: string }
                 displayName: { type: string }
-                role: { type: string, enum: [SUPER, OPS, CS, WMS, STORE] }
+                kind: { type: string, enum: [PC, STORE], default: PC }
+                roleId: { type: string, description: 'PC 账号必填；门店账号不传' }
                 password: { type: string, minLength: 8 }
                 storeIds:
                   type: array
@@ -1970,7 +2055,8 @@ paths:
               additionalProperties: false
               properties:
                 displayName: { type: string }
-                role: { type: string, enum: [SUPER, OPS, CS, WMS, STORE] }
+                kind: { type: string, enum: [PC, STORE] }
+                roleId: { type: string }
                 storeIds:
                   type: array
                   maxItems: 20
@@ -2020,6 +2106,121 @@ paths:
                 password: { type: string, minLength: 8 }
       responses:
         '200': { description: OK }
+
+  /admin/permissions:
+    get:
+      tags: [admin-roles]
+      summary: 权限目录（按分组）
+      security: [{ adminToken: [] }]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      groups:
+                        type: array
+                        items: { $ref: '#/components/schemas/PermissionGroup' }
+
+  /admin/roles:
+    get:
+      tags: [admin-roles]
+      summary: 角色列表
+      security: [{ adminToken: [] }]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      items:
+                        type: array
+                        items: { $ref: '#/components/schemas/AdminRole' }
+    post:
+      tags: [admin-roles]
+      summary: 新建角色
+      security: [{ adminToken: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [name, description, permissions]
+              properties:
+                name: { type: string, maxLength: 20 }
+                description: { type: string, maxLength: 200 }
+                permissions:
+                  type: array
+                  minItems: 1
+                  maxItems: 100
+                  items: { type: string }
+      responses:
+        '201': { description: 创建成功 }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /admin/roles/{id}:
+    get:
+      tags: [admin-roles]
+      summary: 角色详情
+      security: [{ adminToken: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/AdminRole' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    patch:
+      tags: [admin-roles]
+      summary: 编辑角色
+      security: [{ adminToken: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [name, description, permissions]
+              properties:
+                name: { type: string, maxLength: 20 }
+                description: { type: string, maxLength: 200 }
+                permissions:
+                  type: array
+                  minItems: 1
+                  maxItems: 100
+                  items: { type: string }
+      responses:
+        '200': { description: OK }
+        '409': { $ref: '#/components/responses/Conflict' }
+    delete:
+      tags: [admin-roles]
+      summary: 删除角色（仍有账号使用时拒绝）
+      security: [{ adminToken: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { description: OK }
+        '409': { $ref: '#/components/responses/Conflict' }
 
   /admin/logs:
     get:
@@ -4324,6 +4525,7 @@ components:
         priceCents: { type: integer }
         quantity: { type: integer }
         subtotalCents: { type: integer }
+        pointsCost: { type: integer, description: 积分兑换单单件积分快照 }
 
     AdminOrderListItem:
       type: object
@@ -4331,6 +4533,8 @@ components:
         id: { type: string }
         orderNo: { type: string }
         status: { type: string }
+        orderType: { type: string, enum: [NORMAL, POINTS] }
+        pointsUsed: { type: integer }
         payableCents: { type: integer }
         createdAt: { type: string, format: date-time }
         paidAt: { type: string, format: date-time, nullable: true }
@@ -4355,6 +4559,8 @@ components:
         status:
           type: string
           enum: [PENDING_PAYMENT, PAID, SHIPPED, COMPLETED, REFUNDING, REFUNDED, CLOSED]
+        orderType: { type: string, enum: [NORMAL, POINTS] }
+        pointsUsed: { type: integer }
         fulfillmentType: { type: string, enum: [EXPRESS, DELIVERY, PICKUP] }
         storeId: { type: string, nullable: true }
         storeName: { type: string, nullable: true }
@@ -4636,12 +4842,68 @@ components:
         detail: { type: string }
         isDefault: { type: boolean }
 
+    PointsMallProduct:
+      type: object
+      properties:
+        id: { type: string }
+        title: { type: string }
+        subtitle: { type: string, nullable: true }
+        mainImageKey: { type: string, nullable: true }
+        pointsCostMin: { type: integer }
+        pointsMoneyCentsMin: { type: integer }
+        stock: { type: integer }
+        pointsLimitPerUser: { type: integer }
+        soldCount: { type: integer }
+        skuCount: { type: integer }
+
+    PointsMallLimits:
+      type: object
+      properties:
+        limit: { type: integer, description: 0 表示不限 }
+        used: { type: integer }
+        remaining: { type: integer, nullable: true }
+        balance: { type: integer }
+
+    PointsMallExchangeInput:
+      type: object
+      additionalProperties: false
+      required: [skuId, quantity]
+      properties:
+        skuId: { type: string }
+        quantity: { type: integer, minimum: 1 }
+        addressId: { type: string }
+        fulfillmentType: { type: string, enum: [EXPRESS] }
+        contactPhone: { type: string }
+        remark: { type: string }
+
+    PointsMallExchangeResult:
+      type: object
+      properties:
+        orderId: { type: string }
+        orderNo: { type: string }
+        status: { type: string }
+        payableCents: { type: integer }
+        pointsUsed: { type: integer }
+        needsPay: { type: boolean }
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              title: { type: string }
+              specText: { type: string }
+              imageKey: { type: string, nullable: true }
+              quantity: { type: integer }
+              priceCents: { type: integer }
+              pointsCost: { type: integer }
+
     AdminProduct:
       type: object
       properties:
         id: { type: string }
         title: { type: string }
         status: { type: string, enum: [ON_SALE, OFF_SHELF, SOLD_OUT] }
+        channel: { type: string, enum: [NORMAL, POINTS] }
         categoryName: { type: string }
         mainImageKey: { type: string, nullable: true }
         priceMinCents: { type: integer }
@@ -4649,6 +4911,11 @@ components:
         soldCount: { type: integer }
         stock: { type: integer, description: 所有 SKU 库存合计 }
         skuCount: { type: integer }
+        pointsCostMin: { type: integer, nullable: true }
+        pointsCostMax: { type: integer, nullable: true }
+        pointsMoneyCentsMin: { type: integer, nullable: true }
+        pointsLimitPerUser: { type: integer }
+        exchangedQty: { type: integer }
         createdAt: { type: string, format: date-time }
 
     AdminSku:
@@ -4659,6 +4926,8 @@ components:
         specJson: { type: object, additionalProperties: { type: string } }
         priceCents: { type: integer }
         originCents: { type: integer, nullable: true }
+        pointsCost: { type: integer, nullable: true }
+        pointsMoneyCents: { type: integer }
         stock: { type: integer }
         status: { type: string, enum: [ON_SALE, OFF_SHELF, SOLD_OUT] }
 
@@ -4670,6 +4939,8 @@ components:
         title: { type: string }
         subtitle: { type: string, nullable: true }
         categoryId: { type: string }
+        channel: { type: string, enum: [NORMAL, POINTS] }
+        pointsLimitPerUser: { type: integer }
         mainImageKey: { type: string, nullable: true }
         mainImageKeys:
           type: array
@@ -4698,6 +4969,8 @@ components:
         title: { type: string }
         subtitle: { type: string }
         categoryId: { type: string }
+        channel: { type: string, enum: [NORMAL, POINTS] }
+        pointsLimitPerUser: { type: integer, minimum: 0 }
         mainImageKey: { type: string }
         mainImageKeys:
           type: array
@@ -4718,8 +4991,10 @@ components:
             properties:
               code: { type: string, description: 缺省自动生成 }
               specJson: { type: object, additionalProperties: { type: string } }
-              priceCents: { type: integer, minimum: 1 }
+              priceCents: { type: integer, minimum: 0, description: 普通商品为售价；积分商品为加价金额 }
               originCents: { type: integer, minimum: 0 }
+              pointsCost: { type: integer, minimum: 1, description: 积分商品必填 }
+              pointsMoneyCents: { type: integer, minimum: 0, description: 积分+钱加价金额 }
               stock: { type: integer, minimum: 0 }
               status: { type: string, enum: [ON_SALE, OFF_SHELF, SOLD_OUT] }
 
@@ -5240,7 +5515,10 @@ components:
         id: { type: string }
         account: { type: string }
         displayName: { type: string }
-        role: { type: string, enum: [SUPER, OPS, CS, WMS, STORE] }
+        kind: { type: string, enum: [PC, STORE] }
+        isSuper: { type: boolean }
+        roleId: { type: string, nullable: true }
+        roleName: { type: string, nullable: true }
         storeIds:
           type: array
           items: { type: string }
@@ -5249,6 +5527,34 @@ components:
         lockedUntil: { type: string, format: date-time, nullable: true }
         lastLoginAt: { type: string, format: date-time, nullable: true }
         createdAt: { type: string, format: date-time }
+
+    AdminRole:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        description: { type: string }
+        permissions:
+          type: array
+          items: { type: string }
+        permissionCount: { type: integer }
+        memberCount: { type: integer }
+        updatedAt: { type: string, format: date-time }
+
+    PermissionItem:
+      type: object
+      properties:
+        key: { type: string }
+        name: { type: string }
+
+    PermissionGroup:
+      type: object
+      properties:
+        key: { type: string }
+        name: { type: string }
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/PermissionItem' }
 
     OperationLog:
       type: object

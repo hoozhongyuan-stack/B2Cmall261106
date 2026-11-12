@@ -30,6 +30,7 @@ import {
   type FulfillmentStore,
   type FulfillmentType,
 } from '../store/store-inventory.service';
+import { revertPointsExchange } from '../points-mall/points-order.util';
 
 export interface OrderLineInput {
   skuId: string;
@@ -214,11 +215,14 @@ export class OrderService {
               stock: row.stock,
               reserved: row.reserved,
               priceCents: row.priceCents,
+              pointsCost: row.pointsCost,
+              pointsMoneyCents: row.pointsMoneyCents,
               status: row.status,
               code: row.code,
               specJson: row.specJson,
               productId: row.productId,
               categoryId: row.product.categoryId,
+              channel: row.product.channel,
               title: row.product.title,
               imageKey: row.product.mainImageKey,
             });
@@ -246,6 +250,9 @@ export class OrderService {
         }> = [];
         for (const line of source) {
           const sku = byId.get(line.skuId)!;
+          if (sku.channel === 'POINTS') {
+            throw new ConflictException('积分商品请到积分商城兑换');
+          }
           if (sku.status !== 'ON_SALE') throw new ConflictException('商品已下架');
           const available = storeAvailable
             ? (storeAvailable.get(sku.id) ?? 0)
@@ -457,9 +464,13 @@ export class OrderService {
     }
   }
 
-  async list(userId: string, status?: string) {
+  async list(userId: string, status?: string, orderType?: string) {
     const orders = await this.prisma.order.findMany({
-      where: { userId, ...(status ? { status: status as never } : {}) },
+      where: {
+        userId,
+        ...(status ? { status: status as never } : {}),
+        ...(orderType ? { orderType } : {}),
+      },
       orderBy: { createdAt: 'desc' },
       include: { items: true },
       take: 50,
@@ -494,6 +505,8 @@ export class OrderService {
       id: order.id,
       orderNo: order.orderNo,
       status: order.status,
+      orderType: order.orderType,
+      pointsUsed: order.pointsUsed,
       fulfillmentType: order.fulfillmentType,
       storeId: order.storeId,
       storeName: order.store?.name ?? null,
@@ -535,6 +548,7 @@ export class OrderService {
         priceCents: i.priceCents,
         quantity: i.quantity,
         subtotalCents: i.subtotalCents,
+        pointsCost: i.pointsCost,
         isSeckill: i.isSeckill,
       })),
       shipment: order.shipment
@@ -611,6 +625,9 @@ export class OrderService {
 
       // 取消未支付订单：已锁定的券在有效期内退回
       await this.coupons.releaseForOrder(tx, orderId);
+
+      // 积分兑换单：返还积分并回退每人限兑计数
+      await revertPointsExchange(tx, order);
     });
 
     return this.view(orderId, userId);
@@ -716,11 +733,14 @@ export class OrderService {
       });
 
       // 支付成功：累计消费与积分入账，并按累计消费重算会员等级
-      await this.loyalty.grantForOrder(tx, {
-        userId: order.userId,
-        orderId,
-        payableCents: order.payableCents,
-      });
+      // 积分兑换单不发放消费积分，避免「积分换积分」
+      if (order.orderType !== 'POINTS') {
+        await this.loyalty.grantForOrder(tx, {
+          userId: order.userId,
+          orderId,
+          payableCents: order.payableCents,
+        });
+      }
     });
 
     return this.view(orderId);
@@ -732,6 +752,8 @@ export class OrderService {
     id: string;
     orderNo: string;
     status: string;
+    orderType: string;
+    pointsUsed: number;
     payableCents: number;
     createdAt: Date;
     payDeadlineAt: Date;
@@ -741,6 +763,8 @@ export class OrderService {
       id: order.id,
       orderNo: order.orderNo,
       status: order.status,
+      orderType: order.orderType,
+      pointsUsed: order.pointsUsed,
       payableCents: order.payableCents,
       createdAt: order.createdAt,
       payDeadlineAt: order.payDeadlineAt,

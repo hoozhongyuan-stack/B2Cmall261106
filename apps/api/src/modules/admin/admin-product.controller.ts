@@ -20,11 +20,12 @@ import {
   IsObject,
   IsOptional,
   IsString,
+  Min,
   ValidateNested,
 } from 'class-validator';
 
 import { AdminProductService } from './admin-product.service';
-import { JwtAuthGuard, Roles, RolesGuard } from '../../common/auth.guards';
+import { JwtAuthGuard, RolesGuard, Permission } from '../../common/auth.guards';
 
 class CreateSkuDto {
   @IsOptional()
@@ -40,6 +41,16 @@ class CreateSkuDto {
   @IsOptional()
   @IsInt()
   originCents?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  pointsCost?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  pointsMoneyCents?: number;
 
   @IsInt()
   stock!: number;
@@ -59,6 +70,15 @@ class CreateProductDto {
 
   @IsString()
   categoryId!: string;
+
+  @IsOptional()
+  @IsIn(['NORMAL', 'POINTS'])
+  channel?: 'NORMAL' | 'POINTS';
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  pointsLimitPerUser?: number;
 
   /** 兼容旧字段：单张主图，等价于 mainImageKeys[0] */
   @IsOptional()
@@ -110,6 +130,11 @@ class UpdateProductDto {
   categoryId?: string;
 
   @IsOptional()
+  @IsInt()
+  @Min(0)
+  pointsLimitPerUser?: number;
+
+  @IsOptional()
   @IsString()
   mainImageKey?: string;
 
@@ -144,6 +169,16 @@ class UpdateSkuDto {
   @IsOptional()
   @IsInt()
   originCents?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  pointsCost?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  pointsMoneyCents?: number;
 
   @IsOptional()
   @IsInt()
@@ -185,12 +220,13 @@ export class AdminProductController {
   constructor(private readonly service: AdminProductService) {}
 
   @Get()
-  @Roles('SUPER', 'OPS', 'CS', 'WMS')
+  @Permission('product.view')
   @ApiOperation({ summary: '商品列表：关键词 / 状态 / 分类 / 价格区间筛选，支持排序与分页' })
   list(
     @Query('keyword') keyword?: string,
     @Query('status') status?: string,
     @Query('categoryId') categoryId?: string,
+    @Query('channel') channel?: string,
     @Query('minPriceCents') minPriceCents?: string,
     @Query('maxPriceCents') maxPriceCents?: string,
     @Query('sort') sort?: string,
@@ -201,6 +237,7 @@ export class AdminProductController {
       keyword,
       status,
       categoryId,
+      channel,
       minPriceCents: minPriceCents === undefined ? undefined : Number(minPriceCents),
       maxPriceCents: maxPriceCents === undefined ? undefined : Number(maxPriceCents),
       sort,
@@ -210,14 +247,14 @@ export class AdminProductController {
   }
 
   @Post()
-  @Roles('SUPER', 'OPS')
+  @Permission('product.edit')
   @ApiOperation({ summary: '新建商品（同时创建 SKU）' })
   create(@Body() dto: CreateProductDto) {
     return this.service.create(dto);
   }
 
   @Patch('batch/status')
-  @Roles('SUPER', 'OPS')
+  @Permission('product.edit')
   @ApiOperation({ summary: '批量上架 / 下架' })
   batchStatus(@Body() dto: BatchStatusDto) {
     return this.service.batchStatus(dto.ids, dto.status);
@@ -225,28 +262,28 @@ export class AdminProductController {
 
   @Post('batch/delete')
   @HttpCode(200)
-  @Roles('SUPER', 'OPS')
+  @Permission('product.edit')
   @ApiOperation({ summary: '批量删除商品（有订单的逐条失败并返回原因）' })
   batchRemove(@Body() dto: BatchIdsDto) {
     return this.service.batchRemove(dto.ids);
   }
 
   @Get(':id')
-  @Roles('SUPER', 'OPS', 'CS', 'WMS')
+  @Permission('product.view')
   @ApiOperation({ summary: '商品详情（含 SKU、分类与标签）' })
   detail(@Param('id') id: string) {
     return this.service.detail(id);
   }
 
   @Patch(':id')
-  @Roles('SUPER', 'OPS')
+  @Permission('product.edit')
   @ApiOperation({ summary: '修改商品基础信息与状态' })
   update(@Param('id') id: string, @Body() dto: UpdateProductDto) {
     return this.service.update(id, dto);
   }
 
   @Patch(':id/skus/:skuId')
-  @Roles('SUPER', 'OPS')
+  @Permission('product.stock')
   @ApiOperation({ summary: '修改 SKU 价格 / 库存 / 状态' })
   updateSku(
     @Param('id') id: string,
@@ -257,14 +294,14 @@ export class AdminProductController {
   }
 
   @Patch(':id/tags')
-  @Roles('SUPER', 'OPS')
+  @Permission('product.edit')
   @ApiOperation({ summary: '重置商品标签绑定' })
   updateTags(@Param('id') id: string, @Body() dto: UpdateTagsDto) {
     return this.service.updateTags(id, dto.tagIds);
   }
 
   @Delete(':id')
-  @Roles('SUPER', 'OPS')
+  @Permission('product.edit')
   @ApiOperation({ summary: '删除商品（已产生订单的只能下架）' })
   remove(@Param('id') id: string) {
     return this.service.remove(id);

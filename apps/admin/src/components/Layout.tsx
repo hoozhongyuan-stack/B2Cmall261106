@@ -1,7 +1,10 @@
-import { useState } from 'react';
-import { NavLink, Outlet, useLocation } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 
-import { getSession, logout, ROLE_LABEL, type AdminRole } from '../auth';
+import { permissionName, type PermissionKey } from '@shanye/shared/src/permissions';
+
+import { can, getSession, logout, refreshSession } from '../auth';
+import { requiredPermission } from '../permissions';
 import { ConfirmHost } from './confirm';
 import { Toaster } from './toast';
 
@@ -20,7 +23,7 @@ type IconName =
 interface MenuItem {
   to: string;
   label: string;
-  roles: AdminRole[];
+  permission: PermissionKey;
   end?: boolean;
 }
 
@@ -30,92 +33,92 @@ interface MenuGroup {
   items: MenuItem[];
 }
 
-const ALL: AdminRole[] = ['SUPER', 'OPS', 'CS', 'WMS'];
-
 const MENU: MenuGroup[] = [
   {
     group: '经营',
     icon: 'overview',
     items: [
-      { to: '/', label: '数据概览', roles: ALL, end: true },
-      { to: '/analytics', label: '经营看板', roles: ['SUPER', 'OPS', 'CS'] },
+      { to: '/', label: '数据概览', permission: 'dashboard.view', end: true },
+      { to: '/analytics', label: '经营看板', permission: 'analytics.view' },
     ],
   },
   {
     group: '商品',
     icon: 'product',
     items: [
-      { to: '/products', label: '商品列表', roles: ALL },
-      { to: '/categories', label: '分类管理', roles: ['SUPER', 'OPS', 'CS'] },
-      { to: '/tags', label: '标签管理', roles: ['SUPER', 'OPS', 'CS'] },
+      { to: '/products', label: '商品列表', permission: 'product.view' },
+      { to: '/categories', label: '分类管理', permission: 'category.view' },
+      { to: '/tags', label: '标签管理', permission: 'tag.view' },
     ],
   },
   {
     group: '交易',
     icon: 'order',
     items: [
-      { to: '/orders', label: '所有订单', roles: ALL },
-      { to: '/orders/batch-ship', label: '批量发货', roles: ['SUPER', 'WMS'] },
-      { to: '/after-sales', label: '售后管理', roles: ALL },
-      { to: '/reviews', label: '评价管理', roles: ['SUPER', 'OPS', 'CS'] },
+      { to: '/orders', label: '所有订单', permission: 'order.view' },
+      { to: '/orders/batch-ship', label: '批量发货', permission: 'order.ship' },
+      { to: '/after-sales', label: '售后管理', permission: 'aftersale.view' },
+      { to: '/reviews', label: '评价管理', permission: 'review.manage' },
     ],
   },
   {
     group: '客户',
     icon: 'customer',
     items: [
-      { to: '/customers', label: '客户列表', roles: ['SUPER', 'OPS', 'CS'] },
-      { to: '/user-tags', label: '用户标签', roles: ['SUPER', 'OPS', 'CS'] },
-      { to: '/levels', label: '等级规则', roles: ['SUPER', 'OPS', 'CS'] },
-      { to: '/member-commerce', label: '会员卡与储值', roles: ['SUPER', 'OPS', 'CS'] },
-      { to: '/points-rules', label: '积分规则', roles: ['SUPER', 'OPS', 'CS'] },
+      { to: '/customers', label: '客户列表', permission: 'customer.view' },
+      { to: '/user-tags', label: '用户标签', permission: 'usertag.view' },
+      { to: '/levels', label: '等级规则', permission: 'level.view' },
+      { to: '/member-commerce', label: '会员卡与储值', permission: 'membercard.view' },
+      { to: '/points-rules', label: '积分规则', permission: 'points.view' },
     ],
   },
   {
     group: '营销',
     icon: 'promotion',
     items: [
-      { to: '/coupons', label: '优惠券', roles: ['SUPER', 'OPS', 'CS'] },
-      { to: '/marketing/promotions', label: '满减与秒杀', roles: ['SUPER', 'OPS', 'CS'] },
+      { to: '/coupons', label: '优惠券', permission: 'coupon.view' },
+      { to: '/marketing/promotions', label: '满减与秒杀', permission: 'promotion.view' },
+      { to: '/marketing/points-mall', label: '积分商城', permission: 'pointsmall.view' },
     ],
   },
   {
     group: '门店履约',
     icon: 'store',
     items: [
-      { to: '/settings/stores', label: '门店管理', roles: ALL },
-      { to: '/fulfillment/pickups', label: '自提核销', roles: ALL },
-      { to: '/fulfillment/deliveries', label: '同城配送', roles: ALL },
+      { to: '/settings/stores', label: '门店管理', permission: 'store.view' },
+      { to: '/fulfillment/pickups', label: '自提核销', permission: 'pickup.verify' },
+      { to: '/fulfillment/deliveries', label: '同城配送', permission: 'delivery.manage' },
     ],
   },
   {
     group: '装修',
     icon: 'decoration',
     items: [
-      { to: '/settings/home', label: '页面装修', roles: ['SUPER', 'OPS'] },
-      { to: '/settings/home/tabbar', label: '底部导航', roles: ['SUPER', 'OPS'] },
-      { to: '/settings/home/popup-ads', label: '弹窗广告', roles: ['SUPER', 'OPS'] },
-      { to: '/assets', label: '素材库', roles: ['SUPER', 'OPS'] },
+      { to: '/settings/home', label: '页面装修', permission: 'micropage.manage' },
+      { to: '/settings/home/tabbar', label: '底部导航', permission: 'tabbar.manage' },
+      { to: '/settings/home/popup-ads', label: '弹窗广告', permission: 'popupad.manage' },
+      { to: '/assets', label: '素材库', permission: 'asset.manage' },
     ],
   },
   {
     group: '设置',
     icon: 'settings',
     items: [
-      { to: '/settings/shop', label: '店铺信息', roles: ['SUPER'] },
-      { to: '/settings/integration', label: '小程序与支付', roles: ['SUPER'] },
-      { to: '/settings/miniapp-release', label: '小程序发布', roles: ['SUPER', 'OPS'] },
-      { to: '/settings/freight', label: '运费模板', roles: ALL },
-      { to: '/settings/system', label: '系统状态', roles: ['SUPER', 'OPS'] },
-      { to: '/settings/express', label: '物流公司', roles: ALL },
+      { to: '/settings/shop', label: '店铺信息', permission: 'shop.manage' },
+      { to: '/settings/integration', label: '小程序与支付', permission: 'integration.manage' },
+      { to: '/settings/miniapp-release', label: '小程序发布', permission: 'miniapp.view' },
+      { to: '/settings/freight', label: '运费模板', permission: 'freight.manage' },
+      { to: '/settings/system', label: '系统状态', permission: 'system.view' },
+      { to: '/settings/express', label: '物流公司', permission: 'express.view' },
     ],
   },
   {
     group: '账号',
     icon: 'account',
     items: [
-      { to: '/accounts', label: '子账号', roles: ['SUPER'] },
-      { to: '/logs', label: '操作日志', roles: ['SUPER', 'OPS', 'CS'] },
+      { to: '/accounts', label: '子账号', permission: 'account.view' },
+      { to: '/accounts/roles', label: '角色', permission: 'role.view' },
+      { to: '/logs', label: '操作日志', permission: 'log.view' },
     ],
   },
 ];
@@ -181,19 +184,41 @@ const CRUMB_OVERRIDES: [RegExp, string][] = [
   [/^\/settings\/home\/[^/]+$/, '编辑微页面'],
   [/^\/settings\/stores\/new$/, '新建门店'],
   [/^\/settings\/stores\/[^/]+\/edit$/, '编辑门店'],
+  [/^\/accounts\/roles\/new$/, '新建角色'],
+  [/^\/accounts\/roles\/[^/]+\/edit$/, '编辑角色'],
 ];
+
+function Forbidden({ permission }: { permission: PermissionKey }) {
+  return (
+    <div className="forbidden">
+      <h2>无权限访问</h2>
+      <p>
+        当前账号缺少权限：<strong>{permissionName(permission)}</strong>
+      </p>
+      <p className="small muted">如需访问，请联系超级管理员调整角色权限。</p>
+      <Link className="btn btn-primary btn-md" to="/">
+        返回工作台
+      </Link>
+    </div>
+  );
+}
 
 export function Layout() {
   const session = getSession();
   const location = useLocation();
-  const role = session?.role;
-  const can = (roles: AdminRole[]) => Boolean(role && roles.includes(role));
   const [userOpen, setUserOpen] = useState(false);
+  const [, setRevision] = useState(0);
 
-  // 面包屑：取当前路由命中的最长菜单项
+  useEffect(() => {
+    void refreshSession().then(() => setRevision((value) => value + 1));
+  }, []);
+
+  const roleName = session?.role?.name ?? (session?.isSuper ? '超级管理员' : '未分配角色');
+
+  // 面包屑与菜单：按当前账号权限过滤
   const visibleGroups = MENU.map((section) => ({
     ...section,
-    items: section.items.filter((item) => can(item.roles)),
+    items: section.items.filter((item) => can(item.permission)),
   })).filter((section) => section.items.length > 0);
 
   let best: { group: string; label: string; length: number } | null = null;
@@ -208,6 +233,9 @@ export function Layout() {
   const activeGroup = best?.group ?? '工作台';
   const override = CRUMB_OVERRIDES.find(([pattern]) => pattern.test(location.pathname))?.[1];
   const activeLabel = override ?? best?.label ?? '数据概览';
+
+  const required = requiredPermission(location.pathname);
+  const denied = Boolean(required && !can(required));
 
   return (
     <div className="app">
@@ -274,7 +302,7 @@ export function Layout() {
                 </span>
                 <span className="user-meta">
                   <strong>{session?.name ?? '未登录'}</strong>
-                  <span>{role ? ROLE_LABEL[role] : ''}</span>
+                  <span>{roleName}</span>
                 </span>
                 <span className="user-caret" aria-hidden="true">
                   ▾
@@ -284,7 +312,7 @@ export function Layout() {
                 <div className="user-pop" role="menu" onMouseLeave={() => setUserOpen(false)}>
                   <div className="user-pop-head">
                     <strong>{session?.name ?? '未登录'}</strong>
-                    <span>{role ? ROLE_LABEL[role] : ''}</span>
+                    <span>{roleName}</span>
                   </div>
                   <button
                     type="button"
@@ -303,9 +331,7 @@ export function Layout() {
           </div>
         </header>
 
-        <main className="content">
-          <Outlet />
-        </main>
+        <main className="content">{denied && required ? <Forbidden permission={required} /> : <Outlet />}</main>
       </div>
 
       <Toaster />

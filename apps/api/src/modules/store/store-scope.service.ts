@@ -18,7 +18,7 @@ export class StoreScopeService {
   constructor(private readonly prisma: PrismaService) {}
 
   async resolve(user: AuthUser): Promise<StoreScope> {
-    if (user.role !== 'STORE') return { all: true, storeIds: [] };
+    if (user.kind !== 'STORE') return { all: true, storeIds: [] };
 
     const rows = await this.prisma.adminStore.findMany({
       where: { adminUserId: user.sub },

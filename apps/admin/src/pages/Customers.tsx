@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { api, ApiError, formatDate, money } from '../api/client';
-import { hasRole } from '../auth';
+import { can } from '../auth';
 import { toast } from '../components/toast';
 import { TagPicker, type TagOption } from '../components/TagPicker';
 import {
@@ -49,7 +49,7 @@ function errorText(err: unknown): string {
 
 export default function Customers() {
   const navigate = useNavigate();
-  const canTag = hasRole('SUPER', 'OPS', 'CS');
+  const canTag = can('customer.edit');
   const [keyword, setKeyword] = useState('');
   const [appliedKeyword, setAppliedKeyword] = useState('');
   const [tagFilter, setTagFilter] = useState('');

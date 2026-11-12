@@ -13,7 +13,7 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { IsInt, IsOptional, IsString } from 'class-validator';
 
 import { ShopService } from './shop.service';
-import { JwtAuthGuard, Roles, RolesGuard } from '../../common/auth.guards';
+import { JwtAuthGuard, RolesGuard, Permission } from '../../common/auth.guards';
 
 class UpdateShopDto {
   @IsOptional()
@@ -113,21 +113,21 @@ export class AdminShopController {
   constructor(private readonly service: ShopService) {}
 
   @Get()
-  @Roles('SUPER', 'OPS', 'CS', 'WMS')
+  @Permission('shop.view')
   @ApiOperation({ summary: '店铺设置（含偏远地区运费）' })
   detail() {
     return this.service.detail();
   }
 
   @Patch()
-  @Roles('SUPER')
+  @Permission('shop.manage')
   @ApiOperation({ summary: '修改店铺设置' })
   update(@Body() dto: UpdateShopDto) {
     return this.service.update(dto);
   }
 
   @Post('regions')
-  @Roles('SUPER')
+  @Permission('shop.manage')
   @ApiOperation({ summary: '新增偏远地区运费' })
   createRegion(@Body() dto: CreateRegionDto) {
     return this.service.createRegion(dto);
@@ -135,7 +135,7 @@ export class AdminShopController {
 
   @Delete('regions/:id')
   @HttpCode(200)
-  @Roles('SUPER')
+  @Permission('shop.manage')
   @ApiOperation({ summary: '删除偏远地区运费' })
   removeRegion(@Param('id') id: string) {
     return this.service.removeRegion(id);

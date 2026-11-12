@@ -316,7 +316,15 @@ export class MicroPageService {
     const take = Math.min(Math.max(limit, 1), 50);
     const contains = term ? { contains: term, mode: 'insensitive' as const } : undefined;
 
-    if (type === 'page' || type === 'none' || type === 'cart' || type === 'orders' || type === 'mine' || type === 'points') {
+    if (
+      type === 'page' ||
+      type === 'none' ||
+      type === 'cart' ||
+      type === 'orders' ||
+      type === 'mine' ||
+      type === 'points' ||
+      type === 'pointsmall'
+    ) {
       return {
         items:
           type === 'page'

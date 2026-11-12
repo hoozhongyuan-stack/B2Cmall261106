@@ -219,8 +219,11 @@ export class StoreConsoleService {
     return {
       sub: userId,
       account: 'store-console',
-      role: 'STORE',
       name: ctx.store.manager?.nickname ?? ctx.store.name,
+      kind: 'STORE',
+      isSuper: false,
+      roleId: null,
+      roleName: '门店',
     };
   }
 

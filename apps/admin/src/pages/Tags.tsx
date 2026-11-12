@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 
 import { api, ApiError } from '../api/client';
-import { hasRole } from '../auth';
+import { can } from '../auth';
 import { confirmAction } from '../components/confirm';
 import { toast } from '../components/toast';
 import {
@@ -35,7 +35,7 @@ function errorText(err: unknown): string {
 }
 
 export default function Tags() {
-  const canWrite = hasRole('SUPER', 'OPS');
+  const canWrite = can('tag.manage');
   const [items, setItems] = useState<TagRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState<ModalState>(CLOSED_MODAL);

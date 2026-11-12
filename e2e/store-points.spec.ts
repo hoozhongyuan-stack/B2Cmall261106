@@ -15,22 +15,28 @@ function unwrap<T>(body: unknown): T {
   return (body as Envelope<T>).data;
 }
 
+interface AdminUser {
+  id: string;
+  name: string;
+  isSuper: boolean;
+  role: { id: string; name: string } | null;
+  permissions: string[];
+}
+
 async function adminSession(
   request: APIRequestContext,
-): Promise<{ token: string; user: { id: string; name: string; role: string } }> {
+): Promise<{ token: string; user: AdminUser }> {
   const res = await request.post(`${API}/admin/auth/login`, {
     data: { account: 'admin@shanye.com', password: 'admin123' },
   });
   expect(res.ok(), await res.text()).toBeTruthy();
-  return unwrap<{ token: string; user: { id: string; name: string; role: string } }>(
-    await res.json(),
-  );
+  return unwrap<{ token: string; user: AdminUser }>(await res.json());
 }
 
 /** 直接写入后台登录态，避免 E2E 集中登录触发登录限流 */
 async function injectAdmin(
   page: import('@playwright/test').Page,
-  session: { token: string; user: { id: string; name: string; role: string } },
+  session: { token: string; user: AdminUser },
 ): Promise<void> {
   await page.addInitScript(
     ({ token, user }) => {

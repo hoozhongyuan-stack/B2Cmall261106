@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 
 import { api, ApiError, money } from '../api/client';
 import { assetPreviewUrl } from '../api/assets';
-import { hasRole } from '../auth';
+import { can } from '../auth';
 import { toast } from '../components/toast';
 import {
   BulkBar,
@@ -77,7 +77,7 @@ interface BatchResult {
 
 export default function Products() {
   const navigate = useNavigate();
-  const canWrite = hasRole('SUPER', 'OPS');
+  const canWrite = can('product.edit');
   const [query, patchQuery] = useListQuery(LIST_DEFAULTS);
   const page = Math.max(Number(query.page) || 1, 1);
   const pageSize = Number(query.pageSize) || 20;

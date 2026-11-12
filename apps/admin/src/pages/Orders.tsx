@@ -3,7 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { ORDER_STATUS_LABEL, can, type OrderStatus } from '@shanye/shared/src/orderState';
 
 import { api, ApiError, formatDate, money } from '../api/client';
-import { hasRole } from '../auth';
+import { can as canPermission } from '../auth';
 import { StoreFilter, useStoreOptions } from '../components/StoreFilter';
 import { toast } from '../components/toast';
 import {
@@ -32,6 +32,8 @@ interface OrderRow {
   id: string;
   orderNo: string;
   status: string;
+  orderType?: string;
+  pointsUsed?: number;
   payableCents: number;
   createdAt: string;
   paidAt: string | null;
@@ -235,7 +237,14 @@ export default function Orders() {
     {
       key: 'orderNo',
       title: '订单号',
-      render: (row) => <span className="mono small">{row.orderNo}</span>,
+      render: (row) => (
+        <div>
+          <div className="mono small">{row.orderNo}</div>
+          {row.orderType === 'POINTS' && (
+            <Tag tone="brand">{row.pointsUsed ?? 0} 积分兑换</Tag>
+          )}
+        </div>
+      ),
     },
     {
       key: 'customer',
@@ -314,7 +323,7 @@ export default function Orders() {
         const canShip =
           can(row.status as OrderStatus, 'ship') &&
           row.fulfillmentType === 'EXPRESS' &&
-          hasRole('SUPER', 'WMS');
+          canPermission('order.ship');
         return (
           <div
             className="row"
@@ -347,7 +356,7 @@ export default function Orders() {
         title="所有订单"
         desc="按状态筛选与关键词搜索，点击行查看订单详情"
         actions={
-          hasRole('SUPER', 'WMS') ? (
+          canPermission('order.ship') ? (
             <Link className="btn btn-ghost btn-sm" to="/orders/batch-ship">
               批量发货
             </Link>
