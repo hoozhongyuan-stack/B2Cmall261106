@@ -58,6 +58,10 @@ export default function Customers() {
   const [endDate, setEndDate] = useState('');
   const [minSpent, setMinSpent] = useState('');
   const [maxSpent, setMaxSpent] = useState('');
+  const [appliedStartDate, setAppliedStartDate] = useState('');
+  const [appliedEndDate, setAppliedEndDate] = useState('');
+  const [appliedMinSpent, setAppliedMinSpent] = useState('');
+  const [appliedMaxSpent, setAppliedMaxSpent] = useState('');
   const [levels, setLevels] = useState<{ id: string; name: string }[]>([]);
   const [tagOptions, setTagOptions] = useState<TagOption[]>([]);
   const [items, setItems] = useState<CustomerRow[]>([]);
@@ -94,10 +98,10 @@ export default function Customers() {
           keyword: appliedKeyword || undefined,
           tagId: tagFilter || undefined,
           levelId: levelFilter || undefined,
-          startDate: startDate || undefined,
-          endDate: endDate || undefined,
-          minSpentCents: minSpent ? Math.round(Number(minSpent) * 100) : undefined,
-          maxSpentCents: maxSpent ? Math.round(Number(maxSpent) * 100) : undefined,
+          startDate: appliedStartDate || undefined,
+          endDate: appliedEndDate || undefined,
+          minSpentCents: appliedMinSpent ? Math.round(Number(appliedMinSpent) * 100) : undefined,
+          maxSpentCents: appliedMaxSpent ? Math.round(Number(appliedMaxSpent) * 100) : undefined,
           page,
           pageSize: PAGE_SIZE,
         },
@@ -113,15 +117,53 @@ export default function Customers() {
 
   useEffect(() => {
     void refresh();
-  }, [appliedKeyword, tagFilter, levelFilter, startDate, endDate, minSpent, maxSpent, page]);
+  }, [
+    appliedKeyword,
+    tagFilter,
+    levelFilter,
+    appliedStartDate,
+    appliedEndDate,
+    appliedMinSpent,
+    appliedMaxSpent,
+    page,
+  ]);
 
   useEffect(() => {
     setSelected([]);
-  }, [appliedKeyword, tagFilter, levelFilter, startDate, endDate, minSpent, maxSpent, page]);
+  }, [
+    appliedKeyword,
+    tagFilter,
+    levelFilter,
+    appliedStartDate,
+    appliedEndDate,
+    appliedMinSpent,
+    appliedMaxSpent,
+    page,
+  ]);
 
   function handleSearch(event: FormEvent) {
     event.preventDefault();
     setAppliedKeyword(keyword.trim());
+    setAppliedStartDate(startDate);
+    setAppliedEndDate(endDate);
+    setAppliedMinSpent(minSpent);
+    setAppliedMaxSpent(maxSpent);
+    setPage(1);
+  }
+
+  function resetFilters() {
+    setKeyword('');
+    setAppliedKeyword('');
+    setTagFilter('');
+    setLevelFilter('');
+    setStartDate('');
+    setEndDate('');
+    setMinSpent('');
+    setMaxSpent('');
+    setAppliedStartDate('');
+    setAppliedEndDate('');
+    setAppliedMinSpent('');
+    setAppliedMaxSpent('');
     setPage(1);
   }
 
@@ -155,6 +197,7 @@ export default function Customers() {
     {
       key: 'nickname',
       title: '客户',
+      minWidth: 130,
       render: (row) => (
         <div>
           <div>{row.nickname ?? '山野顾客'}</div>
@@ -165,11 +208,14 @@ export default function Customers() {
     {
       key: 'levelName',
       title: '等级',
+      minWidth: 72,
+      nowrap: true,
       render: (row) => <span>{row.levelName ?? '普通会员'}</span>,
     },
     {
       key: 'tags',
       title: '标签',
+      minWidth: 140,
       render: (row) =>
         row.tags.length ? (
           <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
@@ -188,52 +234,72 @@ export default function Customers() {
       key: 'points',
       title: '积分',
       align: 'right',
+      minWidth: 72,
+      nowrap: true,
       render: (row) => <span className="mono">{row.points}</span>,
     },
     {
       key: 'totalSpentCents',
       title: '累计消费',
       align: 'right',
+      minWidth: 100,
+      nowrap: true,
       render: (row) => <span className="money">{money(row.totalSpentCents)}</span>,
     },
     {
       key: 'orderCount',
       title: '订单数',
       align: 'right',
+      minWidth: 72,
+      nowrap: true,
       render: (row) => <span className="mono">{row.orderCount}</span>,
     },
     {
       key: 'paidCents',
       title: '实付',
       align: 'right',
+      minWidth: 92,
+      nowrap: true,
+      className: 'col-hide-md',
       render: (row) => <span className="mono">{money(row.paidCents)}</span>,
     },
     {
       key: 'refundedCents',
       title: '退款',
       align: 'right',
+      minWidth: 90,
+      nowrap: true,
+      className: 'col-hide-lg',
       render: (row) => <span className="mono">{money(row.refundedCents)}</span>,
     },
     {
       key: 'netCents',
       title: '净消费',
       align: 'right',
+      minWidth: 92,
+      nowrap: true,
       render: (row) => <span className="money">{money(row.netCents)}</span>,
     },
     {
       key: 'lastOrderAt',
       title: '最近下单',
+      minWidth: 120,
+      nowrap: true,
+      className: 'col-hide-md',
       render: (row) => <span className="small mono">{formatDate(row.lastOrderAt)}</span>,
     },
     {
       key: 'createdAt',
       title: '注册时间',
+      minWidth: 120,
+      nowrap: true,
+      className: 'col-hide-lg',
       render: (row) => <span className="small mono">{formatDate(row.createdAt)}</span>,
     },
     {
       key: 'actions',
       title: '操作',
-      width: '160px',
+      width: '130px',
       render: (row) => (
         <div
           className="row"
@@ -272,7 +338,7 @@ export default function Customers() {
           <Toolbar>
             <input
               className="input"
-              style={{ width: 260 }}
+              style={{ width: 220 }}
               aria-label="搜索客户"
               placeholder="搜索昵称 / 手机号 / openid"
               value={keyword}
@@ -317,76 +383,56 @@ export default function Customers() {
                 </option>
               ))}
             </select>
-            <input
-              className="input"
-              type="date"
-              style={{ width: 148 }}
-              aria-label="注册开始日期"
-              value={startDate}
-              onChange={(e) => {
-                setStartDate(e.target.value);
-                setPage(1);
-              }}
-            />
-            <span className="muted small">至</span>
-            <input
-              className="input"
-              type="date"
-              style={{ width: 148 }}
-              aria-label="注册结束日期"
-              value={endDate}
-              onChange={(e) => {
-                setEndDate(e.target.value);
-                setPage(1);
-              }}
-            />
-            <input
-              className="input"
-              type="number"
-              min="0"
-              style={{ width: 100 }}
-              aria-label="最低累计消费"
-              placeholder="最低消费"
-              value={minSpent}
-              onChange={(e) => {
-                setMinSpent(e.target.value);
-                setPage(1);
-              }}
-            />
-            <span className="muted small">—</span>
-            <input
-              className="input"
-              type="number"
-              min="0"
-              style={{ width: 100 }}
-              aria-label="最高累计消费"
-              placeholder="最高消费"
-              value={maxSpent}
-              onChange={(e) => {
-                setMaxSpent(e.target.value);
-                setPage(1);
-              }}
-            />
-            <Button type="submit" variant="ghost">
-              搜索
-            </Button>
-            <Button
-              type="button"
-              variant="plain"
-              onClick={() => {
-                setKeyword('');
-                setAppliedKeyword('');
-                setTagFilter('');
-                setLevelFilter('');
-                setStartDate('');
-                setEndDate('');
-                setMinSpent('');
-                setMaxSpent('');
-                setPage(1);
-              }}
-            >
-              重置
-            </Button>
+            <span className="filter-range">
+              <input
+                className="input"
+                type="date"
+                style={{ width: 132 }}
+                aria-label="注册开始日期"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+              />
+              <span className="muted small">至</span>
+              <input
+                className="input"
+                type="date"
+                style={{ width: 132 }}
+                aria-label="注册结束日期"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+              />
+            </span>
+            <span className="filter-range">
+              <input
+                className="input"
+                type="number"
+                min="0"
+                style={{ width: 92 }}
+                aria-label="最低累计消费"
+                placeholder="最低消费"
+                value={minSpent}
+                onChange={(e) => setMinSpent(e.target.value)}
+              />
+              <span className="muted small">—</span>
+              <input
+                className="input"
+                type="number"
+                min="0"
+                style={{ width: 92 }}
+                aria-label="最高累计消费"
+                placeholder="最高消费"
+                value={maxSpent}
+                onChange={(e) => setMaxSpent(e.target.value)}
+              />
+            </span>
+            <div className="toolbar-actions">
+              <Button type="button" variant="plain" onClick={resetFilters}>
+                重置
+              </Button>
+              <Button type="submit" variant="ghost">
+                搜索
+              </Button>
+            </div>
           </Toolbar>
         </form>
 

@@ -23,6 +23,7 @@ export class AdminDashboardService {
   async overview() {
     const now = new Date();
     const todayStart = startOfLocalDay(now);
+    const yesterdayStart = startOfLocalDay(now, -1);
     const weekStart = startOfLocalDay(now, -(WEEK_DAYS - 1));
 
     const [
@@ -30,6 +31,10 @@ export class AdminDashboardService {
       paidAmountAgg,
       refundedAgg,
       newCustomerCount,
+      yesterdayPaidOrderCount,
+      yesterdayPaidAmountAgg,
+      yesterdayRefundedAgg,
+      yesterdayNewCustomerCount,
       toShipCount,
       afterSaleCount,
       pendingReviewCount,
@@ -46,6 +51,23 @@ export class AdminDashboardService {
         _sum: { amountCents: true },
       }),
       this.prisma.user.count({ where: { createdAt: { gte: todayStart } } }),
+      this.prisma.order.count({
+        where: { paidAt: { gte: yesterdayStart, lt: todayStart } },
+      }),
+      this.prisma.order.aggregate({
+        where: { paidAt: { gte: yesterdayStart, lt: todayStart } },
+        _sum: { payableCents: true },
+      }),
+      this.prisma.refund.aggregate({
+        where: {
+          status: 'SUCCESS',
+          refundedAt: { gte: yesterdayStart, lt: todayStart },
+        },
+        _sum: { amountCents: true },
+      }),
+      this.prisma.user.count({
+        where: { createdAt: { gte: yesterdayStart, lt: todayStart } },
+      }),
       this.prisma.order.count({ where: { status: 'PAID' } }),
       this.prisma.afterSale.count({ where: { status: { in: ['APPLIED', 'WAIT_SELLER_RECEIVE'] } } }),
       this.prisma.review.count({ where: { status: 'PENDING' } }),
@@ -104,6 +126,12 @@ export class AdminDashboardService {
         paidAmountCents: paidAmountAgg._sum.payableCents ?? 0,
         refundedCents: refundedAgg._sum.amountCents ?? 0,
         newCustomerCount,
+      },
+      yesterday: {
+        paidOrderCount: yesterdayPaidOrderCount,
+        paidAmountCents: yesterdayPaidAmountAgg._sum.payableCents ?? 0,
+        refundedCents: yesterdayRefundedAgg._sum.amountCents ?? 0,
+        newCustomerCount: yesterdayNewCustomerCount,
       },
       pending: { toShipCount, afterSaleCount, pendingReviewCount },
       trend: [...trendMap.values()],

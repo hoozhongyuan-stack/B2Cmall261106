@@ -157,13 +157,20 @@ export default function PointsMall() {
       title: '库存',
       align: 'right',
       minWidth: 64,
-      render: (row) => <span className="mono">{row.stock}</span>,
+      nowrap: true,
+      render: (row) =>
+        row.stock <= 5 ? (
+          <Tag tone="danger">仅剩 {row.stock}</Tag>
+        ) : (
+          <span className="mono">{row.stock}</span>
+        ),
     },
     {
       key: 'exchangedQty',
       title: '已兑',
       align: 'right',
       minWidth: 64,
+      nowrap: true,
       render: (row) => <span className="mono">{row.exchangedQty}</span>,
     },
     {
@@ -171,6 +178,7 @@ export default function PointsMall() {
       title: '每人限兑',
       align: 'right',
       minWidth: 84,
+      nowrap: true,
       render: (row) => (
         <span className="mono">{row.pointsLimitPerUser > 0 ? row.pointsLimitPerUser : '不限'}</span>
       ),

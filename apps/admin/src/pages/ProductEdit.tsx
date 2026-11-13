@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
 import { api, ApiError, toCents, toYuan } from '../api/client';
@@ -112,6 +112,14 @@ export default function ProductEdit() {
   const [loading, setLoading] = useState(!isNew);
   const [notFound, setNotFound] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [errors, setErrors] = useState<{
+    title?: string;
+    categoryId?: string;
+    sort?: string;
+  }>({});
+  const titleRef = useRef<HTMLInputElement>(null);
+  const categoryRef = useRef<HTMLSelectElement>(null);
+  const sortRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     async function loadCategories() {
@@ -219,16 +227,15 @@ export default function ProductEdit() {
       toast('当前角色没有商品编辑权限', 'error');
       return;
     }
-    if (!form.title.trim()) {
-      toast('请填写商品标题', 'error');
-      return;
-    }
-    if (!form.categoryId) {
-      toast('请选择分类', 'error');
-      return;
-    }
-    if (!Number.isInteger(Number(form.sort))) {
-      toast('排序必须为整数', 'error');
+    const nextErrors: typeof errors = {};
+    if (!form.title.trim()) nextErrors.title = '请填写商品标题';
+    if (!form.categoryId) nextErrors.categoryId = '请选择分类';
+    if (!Number.isInteger(Number(form.sort))) nextErrors.sort = '排序必须为整数';
+    setErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) {
+      if (nextErrors.title) titleRef.current?.focus();
+      else if (nextErrors.categoryId) categoryRef.current?.focus();
+      else sortRef.current?.focus();
       return;
     }
 
@@ -408,11 +415,17 @@ export default function ProductEdit() {
           <div className="grid grid-2">
             <Field label="商品标题" required>
               <input
-                className="input"
+                ref={titleRef}
+                className={`input${errors.title ? ' is-error' : ''}`}
+                aria-invalid={Boolean(errors.title)}
                 value={form.title}
                 placeholder="例如：山野土蜂蜜 500g"
-                onChange={(e) => setField('title', e.target.value)}
+                onChange={(e) => {
+                  setField('title', e.target.value);
+                  if (errors.title) setErrors((prev) => ({ ...prev, title: undefined }));
+                }}
               />
+              {errors.title && <span className="field-error">{errors.title}</span>}
             </Field>
             <Field label="副标题">
               <input
@@ -424,9 +437,14 @@ export default function ProductEdit() {
             </Field>
             <Field label="分类" required>
               <select
-                className="select"
+                ref={categoryRef}
+                className={`select${errors.categoryId ? ' is-error' : ''}`}
+                aria-invalid={Boolean(errors.categoryId)}
                 value={form.categoryId}
-                onChange={(e) => setField('categoryId', e.target.value)}
+                onChange={(e) => {
+                  setField('categoryId', e.target.value);
+                  if (errors.categoryId) setErrors((prev) => ({ ...prev, categoryId: undefined }));
+                }}
               >
                 <option value="">请选择分类</option>
                 {categories.map((root) => (
@@ -440,6 +458,7 @@ export default function ProductEdit() {
                   </optgroup>
                 ))}
               </select>
+              {errors.categoryId && <span className="field-error">{errors.categoryId}</span>}
             </Field>
             <Field label="状态">
               <select
@@ -453,11 +472,17 @@ export default function ProductEdit() {
             </Field>
             <Field label="排序" hint="数值越小越靠前">
               <input
-                className="input"
+                ref={sortRef}
+                className={`input${errors.sort ? ' is-error' : ''}`}
+                aria-invalid={Boolean(errors.sort)}
                 type="number"
                 value={form.sort}
-                onChange={(e) => setField('sort', e.target.value)}
+                onChange={(e) => {
+                  setField('sort', e.target.value);
+                  if (errors.sort) setErrors((prev) => ({ ...prev, sort: undefined }));
+                }}
               />
+              {errors.sort && <span className="field-error">{errors.sort}</span>}
             </Field>
             <Field label="商品主图" wide hint="可多选，第一张用于列表与订单，详情页自动轮播">
               <AssetPicker

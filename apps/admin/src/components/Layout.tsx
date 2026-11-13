@@ -203,11 +203,22 @@ function Forbidden({ permission }: { permission: PermissionKey }) {
   );
 }
 
+const SIDEBAR_KEY = 'shanye_admin_sidebar_expanded';
+
 export function Layout() {
   const session = getSession();
   const location = useLocation();
   const [userOpen, setUserOpen] = useState(false);
   const [, setRevision] = useState(0);
+  const [sidebarExpanded, setSidebarExpanded] = useState(() => {
+    const saved = localStorage.getItem(SIDEBAR_KEY);
+    if (saved !== null) return saved === '1';
+    return window.innerWidth >= 1280;
+  });
+
+  useEffect(() => {
+    localStorage.setItem(SIDEBAR_KEY, sidebarExpanded ? '1' : '0');
+  }, [sidebarExpanded]);
 
   useEffect(() => {
     void refreshSession().then(() => setRevision((value) => value + 1));
@@ -239,11 +250,12 @@ export function Layout() {
 
   return (
     <div className="app">
-      <aside className="sidebar">
+      <aside className={`sidebar${sidebarExpanded ? ' sidebar--expanded' : ''}`}>
         <div className="side-brand">
           <span className="brand-mark" aria-label="山野商城管理后台">
             山
           </span>
+          <span className="side-brand-name">山野商城</span>
         </div>
 
         <nav className="side-nav" aria-label="主导航">
@@ -259,6 +271,7 @@ export function Layout() {
                   title={section.group}
                 >
                   <Icon name={section.icon} />
+                  <span className="rail-label">{section.group}</span>
                 </NavLink>
                 <div className="rail-flyout">
                   <span className="flyout-title">{section.group}</span>
@@ -277,6 +290,17 @@ export function Layout() {
             );
           })}
         </nav>
+
+        <button
+          type="button"
+          className="sidebar-toggle"
+          onClick={() => setSidebarExpanded((value) => !value)}
+          aria-label={sidebarExpanded ? '收起侧栏' : '展开侧栏'}
+          title={sidebarExpanded ? '收起侧栏' : '展开侧栏'}
+        >
+          <span aria-hidden="true">{sidebarExpanded ? '«' : '»'}</span>
+          <span className="sidebar-toggle-text">收起</span>
+        </button>
       </aside>
 
       <div className="main">

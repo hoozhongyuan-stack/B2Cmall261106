@@ -174,6 +174,10 @@ export interface Column<T> {
   maxWidth?: number;
   align?: 'left' | 'right' | 'center';
   truncate?: boolean;
+  /** 响应式列显隐等附加样式 */
+  className?: string;
+  /** 日期、金额等短内容保持单行 */
+  nowrap?: boolean;
   render?: (row: T, index: number) => ReactNode;
 }
 
@@ -231,7 +235,6 @@ export function DataTable<T extends { id?: string }>({
   if (loading) return <SkeletonTable />;
   if (!rows.length) return <Empty text={empty} />;
 
-  const minWidth = columns.reduce((sum, col) => sum + (col.minWidth ?? 0), 0);
   const keyOf = (row: T, index: number) =>
     selection?.getKey?.(row) ?? (row.id as string) ?? String(index);
   const selectableKeys = rows
@@ -261,7 +264,7 @@ export function DataTable<T extends { id?: string }>({
 
   return (
     <div className="table-wrap">
-      <table className="table" style={minWidth ? { minWidth } : undefined}>
+      <table className="table">
         <thead>
           <tr>
             {selection && (
@@ -277,6 +280,7 @@ export function DataTable<T extends { id?: string }>({
             {columns.map((col) => (
               <th
                 key={col.key}
+                className={col.className}
                 style={{ width: col.width, minWidth: col.minWidth, textAlign: col.align ?? 'left' }}
               >
                 {col.title}
@@ -310,7 +314,12 @@ export function DataTable<T extends { id?: string }>({
                   return (
                     <td
                       key={col.key}
-                      style={{ textAlign: col.align ?? 'left', maxWidth: col.maxWidth }}
+                      className={`${col.className ?? ''}${col.nowrap ? ' nowrap' : ''}`.trim() || undefined}
+                      style={{
+                        textAlign: col.align ?? 'left',
+                        minWidth: col.minWidth,
+                        maxWidth: col.maxWidth,
+                      }}
                       title={col.truncate && typeof content === 'string' ? content : undefined}
                     >
                       {col.truncate ? <div className="cell-clip">{content}</div> : content}

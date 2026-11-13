@@ -237,9 +237,13 @@ export default function Orders() {
     {
       key: 'orderNo',
       title: '订单号',
+      minWidth: 150,
+      maxWidth: 170,
       render: (row) => (
         <div>
-          <div className="mono small">{row.orderNo}</div>
+          <div className="mono small cell-clip" title={row.orderNo}>
+            {row.orderNo}
+          </div>
           {row.orderType === 'POINTS' && (
             <Tag tone="brand">{row.pointsUsed ?? 0} 积分兑换</Tag>
           )}
@@ -249,6 +253,7 @@ export default function Orders() {
     {
       key: 'customer',
       title: '客户',
+      minWidth: 90,
       render: (row) => (
         <div>
           <div>{row.customer.nickname ?? '山野顾客'}</div>
@@ -259,9 +264,13 @@ export default function Orders() {
     {
       key: 'items',
       title: '商品',
+      minWidth: 150,
+      maxWidth: 180,
       render: (row) => (
         <div>
-          <div>{row.firstItemTitle || '—'}</div>
+          <div className="cell-clip" title={row.firstItemTitle || ''}>
+            {row.firstItemTitle || '—'}
+          </div>
           <div className="small muted">共 {row.itemCount} 件</div>
         </div>
       ),
@@ -270,11 +279,15 @@ export default function Orders() {
       key: 'payableCents',
       title: '应付金额',
       align: 'right',
+      minWidth: 80,
+      nowrap: true,
       render: (row) => <span className="money">{money(row.payableCents)}</span>,
     },
     {
       key: 'status',
       title: '状态',
+      minWidth: 80,
+      nowrap: true,
       render: (row) => (
         <Tag tone={statusTone(row.status)}>
           {ORDER_STATUS_LABEL[row.status as OrderStatus] ?? row.status}
@@ -284,6 +297,8 @@ export default function Orders() {
     {
       key: 'fulfillment',
       title: '门店 / 履约',
+      minWidth: 100,
+      className: 'col-hide-lg',
       render: (row) => (
         <div className="small">
           <div>{row.storeName ?? '—'}</div>
@@ -294,12 +309,18 @@ export default function Orders() {
     {
       key: 'address',
       title: '收货信息',
+      minWidth: 160,
+      maxWidth: 190,
+      className: 'col-hide-md',
       render: (row) => (
         <div className="small">
-          <div>
+          <div className="cell-clip" title={`${row.address?.receiver ?? ''} ${row.address?.phone ?? ''}`}>
             {row.address?.receiver ?? '—'} {row.address?.phone ?? ''}
           </div>
-          <div className="muted">
+          <div
+            className="muted cell-clip"
+            title={`${row.address?.region ?? ''} ${row.address?.detail ?? ''}`}
+          >
             {row.address?.region ?? ''} {row.address?.detail ?? ''}
           </div>
         </div>
@@ -308,17 +329,22 @@ export default function Orders() {
     {
       key: 'createdAt',
       title: '下单时间',
+      minWidth: 110,
+      nowrap: true,
       render: (row) => <span className="small mono">{formatDate(row.createdAt)}</span>,
     },
     {
       key: 'paidAt',
       title: '支付时间',
+      minWidth: 120,
+      nowrap: true,
+      className: 'col-hide-lg',
       render: (row) => <span className="small mono">{formatDate(row.paidAt)}</span>,
     },
     {
       key: 'actions',
       title: '操作',
-      width: '150px',
+      width: '130px',
       render: (row) => {
         const canShip =
           can(row.status as OrderStatus, 'ship') &&
@@ -371,7 +397,7 @@ export default function Orders() {
           <Toolbar>
             <input
               className="input"
-              style={{ width: 260 }}
+              style={{ width: 220 }}
               placeholder="搜索订单号 / 客户昵称"
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
@@ -401,7 +427,7 @@ export default function Orders() {
             <input
               className="input"
               type="date"
-              style={{ width: 148 }}
+              style={{ width: 132 }}
               aria-label="下单开始日期"
               value={startDate}
               onChange={(e) => {
@@ -413,7 +439,7 @@ export default function Orders() {
             <input
               className="input"
               type="date"
-              style={{ width: 148 }}
+              style={{ width: 132 }}
               aria-label="下单结束日期"
               value={endDate}
               onChange={(e) => {
@@ -425,7 +451,7 @@ export default function Orders() {
               className="input"
               type="number"
               min="0"
-              style={{ width: 96 }}
+              style={{ width: 88 }}
               aria-label="最低实付金额"
               placeholder="最低金额"
               value={minAmount}
@@ -439,7 +465,7 @@ export default function Orders() {
               className="input"
               type="number"
               min="0"
-              style={{ width: 96 }}
+              style={{ width: 88 }}
               aria-label="最高实付金额"
               placeholder="最高金额"
               value={maxAmount}
@@ -448,26 +474,28 @@ export default function Orders() {
                 setPage(1);
               }}
             />
-            <Button type="submit" variant="ghost">
-              搜索
-            </Button>
-            <Button
-              type="button"
-              variant="plain"
-              onClick={() => {
-                setKeyword('');
-                setAppliedKeyword('');
-                setStoreIds([]);
-                setFulfillmentType('');
-                setStartDate('');
-                setEndDate('');
-                setMinAmount('');
-                setMaxAmount('');
-                setPage(1);
-              }}
-            >
-              重置
-            </Button>
+            <div className="toolbar-actions">
+              <Button type="submit" variant="ghost">
+                搜索
+              </Button>
+              <Button
+                type="button"
+                variant="plain"
+                onClick={() => {
+                  setKeyword('');
+                  setAppliedKeyword('');
+                  setStoreIds([]);
+                  setFulfillmentType('');
+                  setStartDate('');
+                  setEndDate('');
+                  setMinAmount('');
+                  setMaxAmount('');
+                  setPage(1);
+                }}
+              >
+                重置
+              </Button>
+            </div>
           </Toolbar>
         </form>
 

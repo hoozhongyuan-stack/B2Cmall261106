@@ -12,6 +12,12 @@ interface DashboardData {
     refundedCents: number;
     newCustomerCount: number;
   };
+  yesterday: {
+    paidOrderCount: number;
+    paidAmountCents: number;
+    refundedCents: number;
+    newCustomerCount: number;
+  };
   pending: {
     toShipCount: number;
     afterSaleCount: number;
@@ -22,12 +28,21 @@ interface DashboardData {
 }
 
 const TREND_BAR_BASE = 140;
+const TEST_PRODUCT_TITLE = /^(E2E|契约)/i;
+
+function deltaHint(today: number, yesterday: number): string {
+  if (yesterday === 0) return today === 0 ? '与昨日持平' : '昨日为 0';
+  const diff = Math.round(((today - yesterday) / yesterday) * 100);
+  if (diff === 0) return '与昨日持平';
+  return `较昨日 ${diff > 0 ? '+' : ''}${diff}%`;
+}
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
+  const [includeTestData, setIncludeTestData] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -71,6 +86,10 @@ export default function Dashboard() {
   }
 
   const maxAmount = Math.max(...data.trend.map((item) => item.paidAmountCents), 1);
+  const hasTrend = data.trend.some((item) => item.paidAmountCents > 0 || item.orderCount > 0);
+  const topProducts = includeTestData
+    ? data.topProducts
+    : data.topProducts.filter((item) => !TEST_PRODUCT_TITLE.test(item.title));
   type TopProduct = DashboardData['topProducts'][number] & { id?: string };
   const topColumns: Column<TopProduct>[] = [
     {
@@ -97,20 +116,29 @@ export default function Dashboard() {
       <PageHeader title="数据概览" desc="今日经营表现与待处理事项" />
 
       <div className="grid grid-4">
-        <Stat label="今日支付订单" value={data.today.paidOrderCount} hint="按支付时间统计" />
+        <Stat
+          label="今日支付订单"
+          value={data.today.paidOrderCount}
+          hint={deltaHint(data.today.paidOrderCount, data.yesterday.paidOrderCount)}
+        />
         <Stat
           label="今日支付金额"
           value={money(data.today.paidAmountCents)}
-          hint="含运费，未扣除退款"
+          hint={deltaHint(data.today.paidAmountCents, data.yesterday.paidAmountCents)}
           tone="brand"
         />
         <Stat
           label="今日退款金额"
           value={money(data.today.refundedCents)}
-          hint="退款成功时间在今日"
+          hint={deltaHint(data.today.refundedCents, data.yesterday.refundedCents)}
           tone="warn"
         />
-        <Stat label="今日新增客户" value={data.today.newCustomerCount} hint="今日注册用户数" tone="ok" />
+        <Stat
+          label="今日新增客户"
+          value={data.today.newCustomerCount}
+          hint={deltaHint(data.today.newCustomerCount, data.yesterday.newCustomerCount)}
+          tone="ok"
+        />
       </div>
 
       <div className="grid grid-3" style={{ marginTop: 18 }}>
@@ -156,45 +184,67 @@ export default function Dashboard() {
       </div>
 
       <Card title="近 7 日支付趋势" extra={<span className="small muted">按支付金额等比展示</span>}>
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'flex-end',
-            gap: 14,
-            height: TREND_BAR_BASE + 96,
-            paddingTop: 8,
-          }}
-        >
-          {data.trend.map((item) => {
-            const height =
-              item.paidAmountCents > 0
-                ? Math.max((item.paidAmountCents / maxAmount) * TREND_BAR_BASE, 4)
-                : 2;
-            return (
-              <div
-                key={item.date}
-                style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}
-                title={`${item.date} · ${item.orderCount} 单 · ${money(item.paidAmountCents)}`}
-              >
-                <span className="small muted mono">{money(item.paidAmountCents)}</span>
+        {!hasTrend ? (
+          <Empty text="近 7 日暂无支付数据" />
+        ) : (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'flex-end',
+              gap: 14,
+              height: TREND_BAR_BASE + 96,
+              paddingTop: 8,
+            }}
+          >
+            {data.trend.map((item) => {
+              const height =
+                item.paidAmountCents > 0
+                  ? Math.max((item.paidAmountCents / maxAmount) * TREND_BAR_BASE, 4)
+                  : 2;
+              return (
                 <div
-                  style={{
-                    width: '100%',
-                    height,
-                    background: item.paidAmountCents > 0 ? 'var(--brand)' : 'var(--surface-2)',
-                    borderRadius: 'var(--radius-sm)',
-                  }}
-                />
-                <span className="small mono">{item.date.slice(5)}</span>
-                <span className="small muted">{item.orderCount} 单</span>
-              </div>
-            );
-          })}
-        </div>
+                  key={item.date}
+                  style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}
+                  title={`${item.date} · ${item.orderCount} 单 · ${money(item.paidAmountCents)}`}
+                >
+                  <span className="small muted mono">{money(item.paidAmountCents)}</span>
+                  <div
+                    style={{
+                      width: '100%',
+                      height,
+                      background: item.paidAmountCents > 0 ? 'var(--brand)' : 'var(--surface-2)',
+                      borderRadius: 'var(--radius-sm)',
+                    }}
+                  />
+                  <span className="small mono">{item.date.slice(5)}</span>
+                  <span className="small muted">{item.orderCount} 单</span>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </Card>
 
-      <Card title="热销商品" extra={<span className="small muted">近 7 日按销量排序</span>}>
-        <DataTable columns={topColumns} rows={data.topProducts} rowKey={(row) => row.productId} empty="近 7 日暂无成交" />
+      <Card
+        title="热销商品"
+        extra={
+          <label className="row small muted" style={{ gap: 6, cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              className="checkbox"
+              checked={includeTestData}
+              onChange={(event) => setIncludeTestData(event.target.checked)}
+            />
+            含测试数据
+          </label>
+        }
+      >
+        <DataTable
+          columns={topColumns}
+          rows={topProducts}
+          rowKey={(row) => row.productId}
+          empty="近 7 日暂无成交（可勾选含测试数据）"
+        />
       </Card>
     </>
   );

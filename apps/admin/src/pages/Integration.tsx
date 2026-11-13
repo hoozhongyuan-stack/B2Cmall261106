@@ -356,7 +356,7 @@ export default function IntegrationSettings() {
   ];
 
   return (
-    <form onSubmit={handleSave} className="integration-form">
+    <form onSubmit={handleSave} className="integration-form settings-page">
       <PageHeader
         title="小程序与支付"
         desc="小程序登录、微信支付、订阅消息与域名参数；密钥文件只存服务端，不回显内容"
@@ -391,6 +391,18 @@ export default function IntegrationSettings() {
                 onChange={(e) => setField('miniappAppId', e.target.value)}
               />
             </Field>
+            <div className="settings-note">
+              <strong>
+                当前登录方式：
+                {detail?.miniappAppSecret.configured ? '真实微信登录' : '本地模拟登录'}
+              </strong>
+              <span>
+                {detail?.miniappAppSecret.configured
+                  ? '已配置 AppSecret，小程序端通过 jscode2session 换取 openid。'
+                  : '未配置 AppSecret 时，小程序端使用本地模拟登录，仅用于联调与预览。'}
+              </span>
+              <span>密钥只保存在服务端，保存后不会回显，留空表示保持原值。</span>
+            </div>
           </div>
           <div className="field">
             <span className="field-label">

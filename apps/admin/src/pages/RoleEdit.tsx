@@ -33,6 +33,8 @@ function errorText(err: unknown): string {
   return err instanceof ApiError ? err.message : '操作失败';
 }
 
+const PERMISSION_TOTAL = PERMISSION_GROUPS.reduce((total, group) => total + group.items.length, 0);
+
 function GroupCheckbox({
   checked,
   indeterminate,
@@ -69,6 +71,8 @@ export default function RoleEdit() {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [permissions, setPermissions] = useState<Set<string>>(new Set());
+  const [keyword, setKeyword] = useState('');
+  const [onlySelected, setOnlySelected] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -159,6 +163,18 @@ export default function RoleEdit() {
     );
   }
 
+  const term = keyword.trim().toLowerCase();
+  const visibleGroups = PERMISSION_GROUPS.map((group) => ({
+    ...group,
+    items: group.items.filter((item) => {
+      if (onlySelected && !permissions.has(item.key)) return false;
+      if (!term) return true;
+      return (
+        item.name.toLowerCase().includes(term) || item.key.toLowerCase().includes(term)
+      );
+    }),
+  })).filter((group) => group.items.length > 0);
+
   return (
     <form className="role-editor" onSubmit={handleSave}>
       <PageHeader
@@ -202,44 +218,69 @@ export default function RoleEdit() {
         title="角色权限"
         extra={<span className="small muted">已选 {permissions.size} 项</span>}
       >
+        <div className="row perm-toolbar">
+          <input
+            className="input"
+            style={{ width: 260 }}
+            placeholder="搜索权限名称或标识…"
+            aria-label="搜索权限"
+            value={keyword}
+            onChange={(event) => setKeyword(event.target.value)}
+          />
+          <label className="row small muted" style={{ gap: 6, cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              className="checkbox"
+              checked={onlySelected}
+              onChange={(event) => setOnlySelected(event.target.checked)}
+            />
+            仅看已选
+          </label>
+          <span className="small muted">共 {PERMISSION_TOTAL} 项权限</span>
+        </div>
+
         <div className="perm-groups">
-          {PERMISSION_GROUPS.map((group) => {
-            const keys = group.items.map((item) => item.key);
-            const count = keys.filter((key) => permissions.has(key)).length;
-            const all = count === keys.length;
-            const some = count > 0 && !all;
-            return (
-              <section key={group.key} className="perm-group">
-                <header className="perm-group-head">
-                  <label className="row" style={{ gap: 8 }}>
-                    <GroupCheckbox
-                      checked={all}
-                      indeterminate={some}
-                      onChange={() => toggleGroup(keys as PermissionKey[])}
-                      label={group.name}
-                    />
-                    <strong>{group.name}</strong>
-                  </label>
-                  <span className="small muted">
-                    已选 {count}/{keys.length}
-                  </span>
-                </header>
-                <div className="perm-grid">
-                  {group.items.map((item) => (
-                    <label key={item.key} className="perm-item">
-                      <input
-                        type="checkbox"
-                        className="checkbox"
-                        checked={permissions.has(item.key)}
-                        onChange={() => togglePermission(item.key)}
+          {visibleGroups.length === 0 ? (
+            <div className="empty">没有匹配的权限</div>
+          ) : (
+            visibleGroups.map((group) => {
+              const keys = group.items.map((item) => item.key);
+              const count = keys.filter((key) => permissions.has(key)).length;
+              const all = count === keys.length;
+              const some = count > 0 && !all;
+              return (
+                <section key={group.key} className="perm-group">
+                  <header className="perm-group-head">
+                    <label className="row" style={{ gap: 8 }}>
+                      <GroupCheckbox
+                        checked={all}
+                        indeterminate={some}
+                        onChange={() => toggleGroup(keys as PermissionKey[])}
+                        label={group.name}
                       />
-                      <span>{item.name}</span>
+                      <strong>{group.name}</strong>
                     </label>
-                  ))}
-                </div>
-              </section>
-            );
-          })}
+                    <span className="small muted">
+                      已选 {count}/{keys.length}
+                    </span>
+                  </header>
+                  <div className="perm-grid">
+                    {group.items.map((item) => (
+                      <label key={item.key} className="perm-item">
+                        <input
+                          type="checkbox"
+                          className="checkbox"
+                          checked={permissions.has(item.key)}
+                          onChange={() => togglePermission(item.key)}
+                        />
+                        <span>{item.name}</span>
+                      </label>
+                    ))}
+                  </div>
+                </section>
+              );
+            })
+          )}
         </div>
       </Card>
 

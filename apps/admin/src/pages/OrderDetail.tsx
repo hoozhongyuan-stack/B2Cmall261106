@@ -401,14 +401,22 @@ export default function OrderDetail() {
           <KeyValue
             items={[
               { label: '商品金额', value: money(data.goodsCents) },
-              { label: '会员优惠', value: `-${money(data.memberDiscountCents)}` },
-              { label: '优惠券', value: `-${money(data.couponCents)}` },
-              { label: '运费', value: money(data.freightCents) },
+              ...(data.memberDiscountCents > 0
+                ? [{ label: '会员优惠', value: `-${money(data.memberDiscountCents)}` }]
+                : []),
+              ...(data.couponCents > 0
+                ? [{ label: '优惠券', value: `-${money(data.couponCents)}` }]
+                : []),
+              ...(data.freightCents > 0
+                ? [{ label: '运费', value: money(data.freightCents) }]
+                : []),
               ...(data.orderType === 'POINTS'
                 ? [{ label: '消耗积分', value: `${data.pointsUsed ?? 0} 积分` }]
                 : []),
               { label: '应付金额', value: <strong className="money">{money(data.payableCents)}</strong> },
-              { label: '已退款', value: money(data.refundedCents) },
+              ...(data.refundedCents > 0
+                ? [{ label: '已退款', value: money(data.refundedCents) }]
+                : []),
             ]}
           />
         </Card>
@@ -486,7 +494,9 @@ export default function OrderDetail() {
             ]}
           />
         ) : (
-          <div className="empty">尚未发货</div>
+          <div className="small muted" style={{ padding: '4px 0' }}>
+            尚未发货
+          </div>
         )}
       </Card>
 

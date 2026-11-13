@@ -66,13 +66,23 @@ h4 {
   align-items: center;
   gap: 10px;
   z-index: 30;
+  transition: width var(--motion-enter) var(--ease),
+    flex-basis var(--motion-enter) var(--ease);
 }
 
 .side-brand {
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 10px;
   padding: 0 0 10px;
+}
+
+.side-brand-name {
+  display: none;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 .brand-mark {
@@ -120,6 +130,84 @@ h4 {
 .rail-btn.on {
   background: var(--brand-soft);
   color: var(--brand);
+}
+
+.rail-label {
+  display: none;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+/* 展开态：图标 + 一级名称，二级菜单仍通过悬浮展开 */
+.sidebar--expanded {
+  width: 184px;
+  flex-basis: 184px;
+  padding: 16px 12px 20px;
+  align-items: stretch;
+}
+
+.sidebar--expanded .side-brand {
+  justify-content: flex-start;
+  padding-left: 4px;
+}
+
+.sidebar--expanded .side-brand-name {
+  display: inline;
+}
+
+.sidebar--expanded .side-nav {
+  align-items: stretch;
+}
+
+.sidebar--expanded .rail-item {
+  justify-content: stretch;
+}
+
+.sidebar--expanded .rail-btn {
+  width: 100%;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  padding: 0 12px;
+}
+
+.sidebar--expanded .rail-label {
+  display: inline;
+}
+
+.sidebar--expanded .rail-flyout {
+  left: calc(100% + 6px);
+}
+
+.sidebar-toggle {
+  margin-top: auto;
+  width: 100%;
+  height: 36px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--ink-3);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.sidebar-toggle:hover {
+  background: var(--surface-2);
+  color: var(--ink);
+}
+
+.sidebar-toggle-text {
+  display: none;
+}
+
+.sidebar--expanded .sidebar-toggle-text {
+  display: inline;
 }
 
 .rail-flyout {
@@ -549,6 +637,26 @@ h4 {
   margin-left: auto;
 }
 
+/* 成对筛选控件：日期、金额区间在换行时保持完整 */
+.filter-range {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.field-error {
+  font-size: var(--text-micro);
+  color: var(--danger);
+}
+
+.input.is-error,
+.select.is-error,
+.textarea.is-error {
+  border-color: var(--danger);
+  box-shadow: 0 0 0 3px rgba(209, 67, 54, 0.08);
+}
+
 .field {
   display: flex;
   flex-direction: column;
@@ -651,6 +759,24 @@ h4 {
   border-top: 1px solid var(--line);
   vertical-align: middle;
   color: var(--ink-2);
+}
+
+.table td.nowrap {
+  white-space: nowrap;
+}
+
+/* 窄屏列优先级：先隐藏次要列，保留核心信息与操作
+   1599 起收起长尾列，1359 起再收起次级列，避免 1440/1280 出现横向滚动 */
+@media (max-width: 1599px) {
+  .table .col-hide-lg {
+    display: none;
+  }
+}
+
+@media (max-width: 1359px) {
+  .table .col-hide-md {
+    display: none;
+  }
 }
 
 /* 操作按钮保持单行，列宽不足时由容器横向滚动，避免竖排堆叠 */
@@ -1911,6 +2037,30 @@ button:focus-visible,
   margin-bottom: 16px;
 }
 
+/* 设置类页面：统一可读宽度，避免宽屏下表单与留白失衡 */
+.settings-page {
+  width: 100%;
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+.settings-note {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  font-size: var(--text-caption);
+  color: var(--ink-3);
+  line-height: 1.7;
+}
+
+.settings-note strong {
+  font-size: var(--text-body);
+  color: var(--ink-2);
+}
+
 .pay-status {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -2027,6 +2177,11 @@ button:focus-visible,
   display: flex;
   flex-direction: column;
   gap: 14px;
+}
+
+.perm-toolbar {
+  flex-wrap: wrap;
+  margin-bottom: 14px;
 }
 
 .perm-group {

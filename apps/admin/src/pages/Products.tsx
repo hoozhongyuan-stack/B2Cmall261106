@@ -249,12 +249,14 @@ export default function Products() {
       key: 'status',
       title: '状态',
       minWidth: 76,
+      nowrap: true,
       render: (row) => <Tag tone={statusTone(row.status)}>{STATUS_LABEL[row.status] ?? row.status}</Tag>,
     },
     {
       key: 'categoryName',
       title: '分类',
       minWidth: 80,
+      nowrap: true,
       render: (row) => <span className="small">{row.categoryName}</span>,
     },
     {
@@ -262,6 +264,7 @@ export default function Products() {
       title: '价格区间',
       align: 'right',
       minWidth: 120,
+      nowrap: true,
       render: (row) => (
         <span className="money">
           {row.priceMinCents === row.priceMaxCents
@@ -275,6 +278,7 @@ export default function Products() {
       title: '库存',
       align: 'right',
       minWidth: 64,
+      nowrap: true,
       render: (row) => <span className="mono">{row.stock}</span>,
     },
     {
@@ -282,6 +286,8 @@ export default function Products() {
       title: 'SKU 数',
       align: 'right',
       minWidth: 64,
+      nowrap: true,
+      className: 'col-hide-md',
       render: (row) => <span className="mono">{row.skuCount}</span>,
     },
     {
@@ -289,6 +295,8 @@ export default function Products() {
       title: '销量',
       align: 'right',
       minWidth: 64,
+      nowrap: true,
+      className: 'col-hide-md',
       render: (row) => <span className="mono">{row.soldCount}</span>,
     },
     {

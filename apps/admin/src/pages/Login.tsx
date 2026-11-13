@@ -12,8 +12,10 @@ interface LoginResult {
 
 export function Login() {
   const navigate = useNavigate();
-  const [account, setAccount] = useState('admin@shanye.com');
-  const [password, setPassword] = useState('admin123');
+  // 仅本地开发提供演示账号，生产构建不预填、不展示任何账号信息
+  const isDev = import.meta.env.DEV;
+  const [account, setAccount] = useState(isDev ? 'admin@shanye.com' : '');
+  const [password, setPassword] = useState(isDev ? 'admin123' : '');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -80,15 +82,17 @@ export function Login() {
           <Button type="submit" loading={loading}>
             登录
           </Button>
-          <p className="login-hint">
-            种子账号：admin@shanye.com / admin123（超管）
-            <br />
-            ops@shanye.com / ops12345（商品运营）
-            <br />
-            cs@shanye.com / cs123456（客服）
-            <br />
-            wms@shanye.com / wms12345（仓储）
-          </p>
+          {isDev && (
+            <p className="login-hint">
+              本地演示账号：admin@shanye.com / admin123（超管）
+              <br />
+              ops@shanye.com / ops12345（商品运营）
+              <br />
+              cs@shanye.com / cs123456（客服）
+              <br />
+              wms@shanye.com / wms12345（仓储）
+            </p>
+          )}
         </form>
       </div>
     </div>
