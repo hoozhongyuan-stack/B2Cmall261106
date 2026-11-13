@@ -59,3 +59,25 @@
   flex-direction: column;
   gap: 20px;
 }
+
+/* 自提订单：支付成功页直接展示核销二维码 */
+.pay-pickup {
+  width: 100%;
+  margin-top: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.pay-pickup-title {
+  font-size: var(--fs-body);
+  font-weight: 600;
+}
+
+.pay-pickup-code {
+  font-size: 40px;
+  font-weight: 600;
+  letter-spacing: 8px;
+  font-family: monospace;
+}

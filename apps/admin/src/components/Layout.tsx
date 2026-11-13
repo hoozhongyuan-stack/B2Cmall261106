@@ -67,9 +67,6 @@ const MENU: MenuGroup[] = [
     items: [
       { to: '/customers', label: '客户列表', permission: 'customer.view' },
       { to: '/user-tags', label: '用户标签', permission: 'usertag.view' },
-      { to: '/levels', label: '等级规则', permission: 'level.view' },
-      { to: '/member-commerce', label: '会员卡与储值', permission: 'membercard.view' },
-      { to: '/points-rules', label: '积分规则', permission: 'points.view' },
     ],
   },
   {
@@ -77,12 +74,17 @@ const MENU: MenuGroup[] = [
     icon: 'promotion',
     items: [
       { to: '/coupons', label: '优惠券', permission: 'coupon.view' },
-      { to: '/marketing/promotions', label: '满减与秒杀', permission: 'promotion.view' },
+      { to: '/marketing/full-reduction', label: '满减活动', permission: 'promotion.view' },
+      { to: '/marketing/seckill', label: '秒杀活动', permission: 'promotion.view' },
       { to: '/marketing/points-mall', label: '积分商城', permission: 'pointsmall.view' },
+      { to: '/levels', label: '等级规则', permission: 'level.view' },
+      { to: '/members/cards', label: '会员卡', permission: 'membercard.view' },
+      { to: '/members/stored-value', label: '储值管理', permission: 'membercard.view' },
+      { to: '/points-rules', label: '积分规则', permission: 'points.view' },
     ],
   },
   {
-    group: '门店履约',
+    group: '门店',
     icon: 'store',
     items: [
       { to: '/settings/stores', label: '门店管理', permission: 'store.view' },

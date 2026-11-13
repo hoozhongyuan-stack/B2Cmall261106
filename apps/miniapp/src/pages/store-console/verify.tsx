@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 
 import { api, showError } from '../../api/client';
 import { money } from '../../utils/format';
+import { scanQrFromImage } from '../../utils/scan';
 
 import './verify.css';
 
@@ -24,6 +25,8 @@ export default function Page() {
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<PickupResult | null>(null);
+  const [inputFocus, setInputFocus] = useState(false);
+  const isH5 = process.env.TARO_ENV === 'h5';
 
   useEffect(() => {
     if (router.params.focus === '1') {
@@ -36,6 +39,30 @@ export default function Page() {
   });
 
   async function scan() {
+    if (isH5) {
+      try {
+        const text = await scanQrFromImage();
+        if (!text) {
+          setInputFocus(true);
+          await Taro.showToast({ title: '未识别到二维码，请重试或手动输入', icon: 'none' });
+          return;
+        }
+        const digits = text.replace(/\D/g, '').slice(-8);
+        if (!digits) {
+          setInputFocus(true);
+          await Taro.showToast({ title: '未识别到核销码', icon: 'none' });
+          return;
+        }
+        setCode(digits);
+        await submit(digits);
+      } catch (err) {
+        const message = (err as { errMsg?: string })?.errMsg ?? '';
+        if (message.includes('cancel')) return;
+        setInputFocus(true);
+        await Taro.showToast({ title: '无法读取二维码，请手动输入', icon: 'none' });
+      }
+      return;
+    }
     try {
       const scanResult = await Taro.scanCode({ scanType: ['barCode', 'qrCode'] });
       const digits = scanResult.result.replace(/\D/g, '').slice(-8);
@@ -45,8 +72,18 @@ export default function Page() {
       }
       setCode(digits);
       await submit(digits);
-    } catch {
-      /* 用户取消扫码：静默 */
+    } catch (err) {
+      const message = (err as { errMsg?: string })?.errMsg ?? '';
+      if (message.includes('cancel')) return;
+      if (message.includes('auth') || message.includes('permission')) {
+        await Taro.showModal({
+          title: '需要相机权限',
+          content: '请在设置中允许使用摄像头后重试，或手动输入 8 位核销码。',
+          showCancel: false,
+        });
+        return;
+      }
+      await Taro.showToast({ title: '扫码失败，请重试或手动输入', icon: 'none' });
     }
   }
 
@@ -123,6 +160,7 @@ export default function Page() {
           className="verify-input"
           type="number"
           maxlength={8}
+          focus={inputFocus}
           value={code}
           placeholder="例如 12345678"
           onInput={(event) => setCode(event.detail.value.replace(/\D/g, ''))}
@@ -138,6 +176,7 @@ export default function Page() {
       <View className="verify-scan" onClick={() => (busy ? undefined : void scan())}>
         <Text className="verify-scan-icon">⌗</Text>
         <Text>扫码核销</Text>
+        {isH5 && <Text className="muted tiny">预览环境可拍照 / 选图识别</Text>}
       </View>
 
       <Text className="muted tiny verify-note">

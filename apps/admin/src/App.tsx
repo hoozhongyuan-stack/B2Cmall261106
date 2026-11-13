@@ -40,8 +40,10 @@ const MicroPageEditor = lazy(() => import('./pages/MicroPageEditor'));
 const TabbarSettings = lazy(() => import('./pages/TabbarSettings'));
 const PopupAds = lazy(() => import('./pages/PopupAds'));
 const ExpressSettings = lazy(() => import('./pages/ExpressSettings'));
-const MemberCommerce = lazy(() => import('./pages/MemberCommerce'));
-const Promotions = lazy(() => import('./pages/Promotions'));
+const MemberCards = lazy(() => import('./pages/MemberCards'));
+const StoredValue = lazy(() => import('./pages/StoredValue'));
+const FullReduction = lazy(() => import('./pages/FullReduction'));
+const Seckill = lazy(() => import('./pages/Seckill'));
 const PointsMall = lazy(() => import('./pages/PointsMall'));
 const Analytics = lazy(() => import('./pages/Analytics'));
 const Stores = lazy(() => import('./pages/Stores'));
@@ -84,10 +86,17 @@ export function App() {
           <Route path="user-tags" element={<UserTags />} />
           <Route path="customers/:id" element={<CustomerDetail />} />
           <Route path="levels" element={<Levels />} />
-          <Route path="member-commerce" element={<MemberCommerce />} />
+          <Route path="members/cards" element={<MemberCards />} />
+          <Route path="members/stored-value" element={<StoredValue />} />
+          <Route path="member-commerce" element={<Navigate to="/members/cards" replace />} />
           <Route path="points-rules" element={<PointsRules />} />
           <Route path="coupons" element={<Coupons />} />
-          <Route path="marketing/promotions" element={<Promotions />} />
+          <Route path="marketing/full-reduction" element={<FullReduction />} />
+          <Route path="marketing/seckill" element={<Seckill />} />
+          <Route
+            path="marketing/promotions"
+            element={<Navigate to="/marketing/full-reduction" replace />}
+          />
           <Route path="marketing/points-mall" element={<PointsMall />} />
           <Route path="analytics" element={<Analytics />} />
           <Route path="coupons/new" element={<CouponNew />} />

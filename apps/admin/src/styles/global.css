@@ -1431,6 +1431,128 @@ button:focus-visible,
   padding: 0;
 }
 
+/* ---------------- 活动设置 ---------------- */
+
+/* 分段选择：适用范围等少量互斥选项 */
+.seg {
+  display: inline-flex;
+  padding: 3px;
+  gap: 2px;
+  background: var(--surface-2);
+  border-radius: 999px;
+}
+
+.seg-item {
+  border: none;
+  background: transparent;
+  color: var(--ink-3);
+  font-size: 12px;
+  line-height: 1;
+  padding: 7px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.seg-item.on {
+  background: var(--surface);
+  color: var(--ink);
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgba(22, 24, 26, 0.08);
+}
+
+/* 多选范围选择器：搜索 + 勾选，替代原生 multiple select */
+.scope-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.scope-picker-head {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.scope-picker-head .input {
+  flex: 1;
+  min-width: 0;
+}
+
+.scope-picker-selected {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.scope-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px 3px 10px;
+  border-radius: 999px;
+  background: var(--brand-soft);
+  color: var(--brand);
+  font-size: 12px;
+}
+
+.scope-chip button {
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  padding: 0;
+  font-size: 13px;
+  line-height: 1;
+}
+
+.scope-picker-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 280px;
+  overflow-y: auto;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+}
+
+.scope-group-name {
+  font-size: 12px;
+  color: var(--ink-3);
+  margin-bottom: 6px;
+}
+
+.scope-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+}
+
+.scope-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.scope-picker-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--ink-3);
+}
+
+.scope-picker-foot button {
+  border: none;
+  background: transparent;
+  color: var(--brand);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 0;
+}
+
 /* ---------------- 门店多选筛选 ---------------- */
 
 .filter-pop {
