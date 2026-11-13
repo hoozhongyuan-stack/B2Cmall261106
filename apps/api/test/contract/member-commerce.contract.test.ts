@@ -15,6 +15,7 @@ let userToken = '';
 let superToken = '';
 let addressId = '';
 let skuId = '';
+let productId = '';
 let orderId = '';
 let balanceBeforePay = 0;
 
@@ -53,6 +54,7 @@ beforeAll(async () => {
   });
   addressId = address?.id ?? '';
   skuId = sku?.id ?? '';
+  productId = sku?.productId ?? '';
   if (!addressId || !skuId) throw new Error('种子数据缺少地址或 SKU');
 });
 
@@ -184,5 +186,65 @@ describe('会员卡与储值', () => {
     const recharges = await api('/admin/recharge-orders', {}, superToken);
     expect(recharges.status).toBe(200);
     expect(recharges.body.data.items.length).toBeGreaterThan(0);
+  });
+
+  it('个人资料可维护昵称与头像', async () => {
+    const nickname = `契约昵称${Date.now().toString().slice(-6)}`;
+    const updated = await api(
+      '/member/profile',
+      { method: 'PATCH', body: JSON.stringify({ nickname }) },
+      userToken,
+    );
+    expect(updated.status).toBe(200);
+    expect(updated.body.data.nickname).toBe(nickname);
+
+    const empty = await api(
+      '/member/profile',
+      { method: 'PATCH', body: JSON.stringify({ nickname: '   ' }) },
+      userToken,
+    );
+    expect(empty.status).toBe(400);
+
+    // 头像上传后保存素材 key
+    const png = Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+      'base64',
+    );
+    const form = new FormData();
+    form.append('file', new Blob([png], { type: 'image/png' }), 'avatar.png');
+    const upload = await fetch(`${BASE}/member/avatar`, {
+      method: 'POST',
+      headers: { authorization: `Bearer ${userToken}` },
+      body: form,
+    });
+    const uploadBody = (await upload.json()) as {
+      data?: { key?: string };
+    };
+    expect(upload.status).toBe(200);
+    expect(uploadBody.data?.key).toBeTruthy();
+
+    const saved = await api(
+      '/member/profile',
+      { method: 'PATCH', body: JSON.stringify({ avatarKey: uploadBody.data?.key }) },
+      userToken,
+    );
+    expect(saved.status).toBe(200);
+    expect(saved.body.data.avatarKey).toBe(uploadBody.data?.key);
+
+    const profile = await api('/member/profile', {}, userToken);
+    expect(profile.body.data.avatarKey).toBe(uploadBody.data?.key);
+  });
+
+  it('商品详情返回会员卡 VIP 价信息', async () => {
+    const anonymous = await api(`/products/${productId}`, {}, '');
+    expect(anonymous.status).toBe(200);
+    expect(anonymous.body.data.memberCard.planName).toBeTruthy();
+    expect(anonymous.body.data.memberCard.discountRate).toBeLessThan(1);
+    expect(anonymous.body.data.memberCard.active).toBe(false);
+
+    // 当前用户已购卡：返回生效状态与实际折扣
+    const logged = await api(`/products/${productId}`, {}, userToken);
+    expect(logged.body.data.memberCard.active).toBe(true);
+    expect(logged.body.data.memberCard.userRate).toBe(0.95);
   });
 });

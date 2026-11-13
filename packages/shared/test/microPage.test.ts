@@ -61,6 +61,13 @@ describe('微页面共享定义', () => {
     expect(isMicroPagePathAllowed('/pages/points-mall/index')).toBe(true);
   });
 
+  it('内置页面包含圈子广场，可被微页面与底部导航选择', () => {
+    expect(MICRO_LINK_TYPES).toContain('circle');
+    expect(MICRO_LINK_LABELS.circle).toBe('圈子广场');
+    expect(MICRO_INNER_PAGE_PATHS).toContain('/pages/circle/index');
+    expect(isMicroPagePathAllowed('/pages/circle/index')).toBe(true);
+  });
+
   it('内置页面允许查询参数，但路径必须在白名单内', () => {
     expect(isMicroPagePathAllowed('/pages/orders/index')).toBe(true);
     expect(isMicroPagePathAllowed('/pages/orders/index?status=PAID')).toBe(true);

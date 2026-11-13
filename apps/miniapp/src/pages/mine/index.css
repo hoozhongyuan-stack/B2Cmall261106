@@ -14,6 +14,18 @@
   justify-content: center;
   font-size: var(--fs-amount);
   font-weight: 600;
+  overflow: hidden;
+}
+
+.mine-avatar-img {
+  width: 104px;
+  height: 104px;
+}
+
+.mine-edit {
+  font-size: var(--fs-caption);
+  color: rgba(255, 255, 255, 0.82);
+  text-decoration: underline;
 }
 
 .mine-nickname {
@@ -109,11 +121,6 @@
 .mine-store-arrow {
   font-size: var(--fs-section);
   color: rgba(255, 255, 255, 0.86);
-}
-
-.mine-shop {
-  display: block;
-  text-align: center;
 }
 
 .mine-logout {

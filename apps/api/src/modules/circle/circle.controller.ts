@@ -24,6 +24,7 @@ import {
 
 import { CircleService } from './circle.service';
 import { CirclePostService, type PostAuditAction } from './circle-post.service';
+import { CircleInteractionService } from './circle-interaction.service';
 import {
   CurrentUser as AdminCurrentUser,
   JwtAuthGuard,
@@ -135,6 +136,11 @@ class AuditPostDto {
   note?: string;
 }
 
+class HandleReportDto {
+  @IsIn(['HIDE', 'DISMISS'])
+  action!: 'HIDE' | 'DISMISS';
+}
+
 @ApiTags('admin-circle')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -143,6 +149,7 @@ export class AdminCircleController {
   constructor(
     private readonly circle: CircleService,
     private readonly posts: CirclePostService,
+    private readonly interactions: CircleInteractionService,
   ) {}
 
   @Get('categories')
@@ -229,6 +236,32 @@ export class AdminCircleController {
     @AdminCurrentUser() admin: AuthUser,
   ) {
     return this.posts.auditPost(id, dto.action, dto.note, admin.sub);
+  }
+
+  @Get('reports')
+  @Permission('circle.audit')
+  @ApiOperation({ summary: '举报列表（含状态计数与目标内容预览）' })
+  listReports(
+    @Query('status') status?: string,
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
+  ) {
+    return this.interactions.listReportsAdmin({
+      status,
+      page: Number(page) || 1,
+      pageSize: Number(pageSize) || 20,
+    });
+  }
+
+  @Patch('reports/:id')
+  @Permission('circle.audit')
+  @ApiOperation({ summary: '处理举报：下架目标内容或驳回举报' })
+  handleReport(
+    @Param('id') id: string,
+    @Body() dto: HandleReportDto,
+    @AdminCurrentUser() admin: AuthUser,
+  ) {
+    return this.interactions.handleReport(id, dto.action, admin.sub);
   }
 
   @Get('settings')

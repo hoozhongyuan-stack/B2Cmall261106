@@ -107,7 +107,7 @@ paths:
   /products/{id}:
     get:
       tags: [catalog]
-      summary: 商品详情
+      summary: 商品详情（含会员卡 VIP 价提示；登录用户返回是否已持卡）
       parameters:
         - { name: id, in: path, required: true, schema: { type: string } }
       responses:
@@ -800,6 +800,64 @@ paths:
                 type: object
                 properties:
                   data: { $ref: '#/components/schemas/MemberProfile' }
+    patch:
+      tags: [member]
+      summary: 维护个人资料：昵称与头像
+      security: [{ userToken: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                nickname: { type: string, maxLength: 20 }
+                avatarKey: { type: string, nullable: true, description: 素材库 key，传 null 清除 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      nickname: { type: string, nullable: true }
+                      avatarKey: { type: string, nullable: true }
+        '400': { $ref: '#/components/responses/BadRequest' }
+
+  /member/avatar:
+    post:
+      tags: [member]
+      summary: 上传头像（单张图片，≤5MB，返回素材 key）
+      security: [{ userToken: [] }]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file: { type: string, format: binary }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      id: { type: string }
+                      key: { type: string }
+                      url: { type: string }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
 
   /member/points:
     get:
@@ -4597,6 +4655,31 @@ paths:
         '429': { $ref: '#/components/responses/TooManyRequests' }
 
   /circle/posts:
+    get:
+      tags: [circle]
+      summary: 圈子信息流（推荐 / 最新 / 关注，游标分页）
+      parameters:
+        - { name: tab, in: query, required: false, schema: { type: string, enum: [recommend, latest, follow] } }
+        - { name: categoryId, in: query, required: false, schema: { type: string } }
+        - { name: topicId, in: query, required: false, schema: { type: string } }
+        - { name: cursor, in: query, required: false, schema: { type: string } }
+        - { name: pageSize, in: query, required: false, schema: { type: integer, maximum: 20 } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      nextCursor: { type: string, nullable: true }
+                      needLogin: { type: boolean }
+                      items:
+                        type: array
+                        items: { $ref: '#/components/schemas/CircleFeedPost' }
     post:
       tags: [circle]
       summary: 发布圈子内容（限频、内容安全、按审核模式落状态）
@@ -4644,6 +4727,343 @@ paths:
                       items:
                         type: array
                         items: { $ref: '#/components/schemas/CircleMyPost' }
+
+  /circle/posts/{id}:
+    get:
+      tags: [circle]
+      summary: 帖子详情（返回点赞 / 收藏 / 关注状态）
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/CirclePostDetail' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [circle]
+      summary: 作者删除自己的内容
+      security: [{ userToken: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { description: OK }
+        '403': { description: 非作者 }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /circle/posts/{id}/like:
+    post:
+      tags: [circle]
+      summary: 点赞（幂等）
+      security: [{ userToken: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '201':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      liked: { type: boolean }
+                      likeCount: { type: integer }
+    delete:
+      tags: [circle]
+      summary: 取消点赞（幂等）
+      security: [{ userToken: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { description: OK }
+
+  /circle/posts/{id}/favorite:
+    post:
+      tags: [circle]
+      summary: 收藏（幂等）
+      security: [{ userToken: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '201':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      favorited: { type: boolean }
+                      favoriteCount: { type: integer }
+    delete:
+      tags: [circle]
+      summary: 取消收藏（幂等）
+      security: [{ userToken: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { description: OK }
+
+  /circle/posts/{id}/comments:
+    get:
+      tags: [circle]
+      summary: 评论列表（一级评论 + 回复）
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      total: { type: integer }
+                      items:
+                        type: array
+                        items: { $ref: '#/components/schemas/CircleComment' }
+
+  /circle/comments:
+    post:
+      tags: [circle]
+      summary: 发表评论 / 回复（限频与内容安全校验）
+      security: [{ userToken: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CircleCommentInput' }
+      responses:
+        '201':
+          description: 创建成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/CircleComment' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+
+  /circle/comments/{id}:
+    delete:
+      tags: [circle]
+      summary: 删除自己的评论（作者与楼主可删）
+      security: [{ userToken: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { description: OK }
+
+  /circle/reports:
+    post:
+      tags: [circle]
+      summary: 举报帖子 / 评论 / 用户（重复举报拦截，3 次自动隐藏）
+      security: [{ userToken: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CircleReportInput' }
+      responses:
+        '201': { description: OK }
+        '409': { description: 重复举报 }
+
+  /circle/users/{id}:
+    get:
+      tags: [circle]
+      summary: 用户主页（内容数、粉丝数与关注状态）
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/CircleUserProfile' }
+
+  /circle/users/{id}/posts:
+    get:
+      tags: [circle]
+      summary: 用户已发布内容
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      items:
+                        type: array
+                        items: { $ref: '#/components/schemas/CircleFeedPost' }
+
+  /circle/users/{id}/follow:
+    post:
+      tags: [circle]
+      summary: 关注用户（幂等）
+      security: [{ userToken: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '201': { description: OK }
+    delete:
+      tags: [circle]
+      summary: 取消关注（幂等）
+      security: [{ userToken: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { description: OK }
+
+  /circle/me/favorites:
+    get:
+      tags: [circle]
+      summary: 我收藏的内容
+      security: [{ userToken: [] }]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      items:
+                        type: array
+                        items: { $ref: '#/components/schemas/CircleFeedPost' }
+
+  /circle/me/likes:
+    get:
+      tags: [circle]
+      summary: 我点赞的内容
+      security: [{ userToken: [] }]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      items:
+                        type: array
+                        items: { $ref: '#/components/schemas/CircleFeedPost' }
+
+  /circle/notifications:
+    get:
+      tags: [circle]
+      summary: 互动消息（含未读数）
+      security: [{ userToken: [] }]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      unread: { type: integer }
+                      items:
+                        type: array
+                        items: { $ref: '#/components/schemas/CircleNotification' }
+
+  /circle/notifications/read:
+    post:
+      tags: [circle]
+      summary: 标记互动消息已读（单条或全部）
+      security: [{ userToken: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ids:
+                  type: array
+                  items: { type: string }
+                all: { type: boolean }
+      responses:
+        '201': { description: OK }
+
+  /admin/circle/reports:
+    get:
+      tags: [admin-circle]
+      summary: 举报列表（含状态计数与目标内容预览）
+      security: [{ adminToken: [] }]
+      parameters:
+        - { name: status, in: query, required: false, schema: { type: string, enum: [PENDING, RESOLVED, REJECTED] } }
+        - { name: page, in: query, required: false, schema: { type: integer, default: 1 } }
+        - { name: pageSize, in: query, required: false, schema: { type: integer, default: 20 } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      total: { type: integer }
+                      page: { type: integer }
+                      pageSize: { type: integer }
+                      counts:
+                        type: object
+                        additionalProperties: { type: integer }
+                      items:
+                        type: array
+                        items: { $ref: '#/components/schemas/CircleReportAdmin' }
+
+  /admin/circle/reports/{id}:
+    patch:
+      tags: [admin-circle]
+      summary: 处理举报（下架目标内容或驳回）
+      security: [{ adminToken: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [action]
+              properties:
+                action: { type: string, enum: [HIDE, DISMISS] }
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/BadRequest' }
 
   /admin/circle/posts:
     get:
@@ -6265,3 +6685,153 @@ components:
         topics:
           type: array
           items: { $ref: '#/components/schemas/CircleTopicBrief' }
+
+    CircleFeedPost:
+      type: object
+      required: [id, content, author, category]
+      properties:
+        id: { type: string }
+        content: { type: string }
+        images:
+          type: array
+          items: { type: string }
+        pinned: { type: boolean }
+        featured: { type: boolean }
+        likeCount: { type: integer }
+        commentCount: { type: integer }
+        favoriteCount: { type: integer }
+        viewCount: { type: integer }
+        liked: { type: boolean }
+        favorited: { type: boolean }
+        followingAuthor: { type: boolean }
+        createdAt: { type: string, format: date-time }
+        publishedAt: { type: string, format: date-time, nullable: true }
+        author:
+          type: object
+          properties:
+            id: { type: string }
+            nickname: { type: string, nullable: true }
+            avatarKey: { type: string, nullable: true }
+        category: { $ref: '#/components/schemas/CircleCategoryBrief' }
+        topics:
+          type: array
+          items: { $ref: '#/components/schemas/CircleTopicBrief' }
+
+    CirclePostDetail:
+      allOf:
+        - $ref: '#/components/schemas/CircleFeedPost'
+        - type: object
+          properties:
+            viewerId: { type: string, nullable: true }
+            isOwner: { type: boolean }
+            products:
+              type: array
+              items:
+                type: object
+                properties:
+                  id: { type: string }
+                  title: { type: string }
+                  mainImageKey: { type: string, nullable: true }
+                  priceMinCents: { type: integer }
+
+    CircleComment:
+      type: object
+      required: [id, content, author]
+      properties:
+        id: { type: string }
+        parentId: { type: string, nullable: true }
+        content: { type: string }
+        createdAt: { type: string, format: date-time }
+        author:
+          type: object
+          properties:
+            id: { type: string }
+            nickname: { type: string, nullable: true }
+            avatarKey: { type: string, nullable: true }
+        replies:
+          type: array
+          items: { $ref: '#/components/schemas/CircleComment' }
+
+    CircleCommentInput:
+      type: object
+      required: [postId, content]
+      properties:
+        postId: { type: string }
+        content: { type: string, maxLength: 500 }
+        parentId: { type: string }
+
+    CircleReportInput:
+      type: object
+      required: [targetType, targetId, reason]
+      properties:
+        targetType: { type: string, enum: [POST, COMMENT, USER] }
+        targetId: { type: string }
+        reason: { type: string }
+        detail: { type: string, maxLength: 200 }
+
+    CircleUserProfile:
+      type: object
+      required: [id, postCount, followerCount, followingCount, isSelf, isFollowing]
+      properties:
+        id: { type: string }
+        nickname: { type: string, nullable: true }
+        avatarKey: { type: string, nullable: true }
+        postCount: { type: integer }
+        followerCount: { type: integer }
+        followingCount: { type: integer }
+        isSelf: { type: boolean }
+        isFollowing: { type: boolean }
+
+    CircleNotification:
+      type: object
+      required: [id, type, text, read]
+      properties:
+        id: { type: string }
+        type: { type: string, enum: [LIKE, COMMENT, REPLY, FOLLOW, SYSTEM] }
+        text: { type: string }
+        read: { type: boolean }
+        createdAt: { type: string, format: date-time }
+        actor:
+          type: object
+          nullable: true
+          properties:
+            id: { type: string }
+            nickname: { type: string, nullable: true }
+            avatarKey: { type: string, nullable: true }
+        post:
+          type: object
+          nullable: true
+          properties:
+            id: { type: string }
+            excerpt: { type: string }
+            image: { type: string, nullable: true }
+
+    CircleReportAdmin:
+      type: object
+      required: [id, targetType, targetId, reason, status]
+      properties:
+        id: { type: string }
+        targetType: { type: string, enum: [POST, COMMENT, USER] }
+        targetId: { type: string }
+        reason: { type: string }
+        detail: { type: string, nullable: true }
+        status: { type: string, enum: [PENDING, RESOLVED, REJECTED] }
+        createdAt: { type: string, format: date-time }
+        handledAt: { type: string, format: date-time, nullable: true }
+        reporter:
+          type: object
+          properties:
+            id: { type: string }
+            nickname: { type: string, nullable: true }
+        target:
+          type: object
+          nullable: true
+          properties:
+            content: { type: string }
+            status: { type: string }
+            image: { type: string, nullable: true }
+            author:
+              type: object
+              properties:
+                id: { type: string }
+                nickname: { type: string, nullable: true }

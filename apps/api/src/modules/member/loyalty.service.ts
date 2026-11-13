@@ -11,10 +11,14 @@ import {
 } from '@shanye/shared';
 
 import { PrismaService, type TxClient } from '../../prisma/prisma.module';
+import { AssetService } from '../assets/asset.service';
 
 @Injectable()
 export class LoyaltyService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly assets: AssetService,
+  ) {}
 
   /**
    * 支付成功入账（同一事务内）：
@@ -165,6 +169,36 @@ export class LoyaltyService {
         expired: count('EXPIRED'),
       },
     };
+  }
+
+  /** 个人资料：昵称与头像维护（头像必须来自素材库） */
+  async updateProfile(
+    userId: string,
+    input: { nickname?: string; avatarKey?: string | null },
+  ) {
+    const data: { nickname?: string; avatarKey?: string | null } = {};
+
+    if (input.nickname !== undefined) {
+      const nickname = input.nickname.trim();
+      if (!nickname) throw new BadRequestException('昵称不能为空');
+      if (nickname.length > 20) throw new BadRequestException('昵称不能超过 20 个字符');
+      data.nickname = nickname;
+    }
+
+    if (input.avatarKey !== undefined) {
+      const key = (input.avatarKey ?? '').trim();
+      await this.assets.assertReference(key);
+      data.avatarKey = key || null;
+    }
+
+    if (!Object.keys(data).length) throw new BadRequestException('没有需要保存的内容');
+
+    const user = await this.prisma.user.update({
+      where: { id: userId },
+      data,
+      select: { nickname: true, avatarKey: true },
+    });
+    return user;
   }
 
   async ledger(userId: string, take = 50) {

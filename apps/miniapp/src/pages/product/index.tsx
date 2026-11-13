@@ -36,6 +36,14 @@ interface ProductDetail {
   category: string;
   tags: string[];
   skus: Sku[];
+  memberCard: {
+    planName: string;
+    priceCents: number;
+    durationDays: number;
+    discountRate: number;
+    active: boolean;
+    userRate: number;
+  } | null;
   reviewSummary: {
     count: number;
     avgRating: number;
@@ -104,6 +112,14 @@ export default function Page() {
   const seckill = sku?.seckill ?? null;
   const displayPrice = seckill ? seckill.priceCents : (sku?.priceCents ?? 0);
   const comparePrice = seckill ? (sku?.priceCents ?? 0) : (sku?.originCents ?? 0);
+  const memberCard = product.memberCard;
+  const vipPrice =
+    memberCard && !seckill && displayPrice > 0
+      ? Math.round(displayPrice * memberCard.userRate)
+      : 0;
+  const vipRateText = memberCard
+    ? (memberCard.discountRate * 10).toFixed(1).replace(/\.0$/, '')
+    : '';
   const canBuy = Boolean(sku) && available > 0 && sku?.status === 'ON_SALE';
   const reviews = reviewData?.items.slice(0, 3) ?? [];
   const buyerShows = (reviewData?.items ?? []).flatMap((item) => item.images ?? []).slice(0, 9);
@@ -178,6 +194,28 @@ export default function Page() {
           <Text className="muted tiny">
             {seckill.promotionName} · 仅剩 {seckill.stockLeft} 件 · 每人限购 {seckill.limitPerUser} 件
           </Text>
+        )}
+        {memberCard && !seckill && displayPrice > 0 && (
+          memberCard.active ? (
+            <View className="vip-line">
+              <Text className="vip-badge">VIP</Text>
+              <Text className="vip-line-text">
+                会员价 {money(vipPrice)}
+                {vipPrice < displayPrice ? `，已省 ${money(displayPrice - vipPrice)}` : ''}
+              </Text>
+            </View>
+          ) : (
+            <View
+              className="vip-cta"
+              onClick={() => void Taro.navigateTo({ url: '/pages/member-card/index' })}
+            >
+              <Text className="vip-badge">VIP</Text>
+              <Text className="grow small vip-cta-text">
+                开通「{memberCard.planName}」享 {vipRateText} 折，本商品约 {money(vipPrice)}
+              </Text>
+              <Text className="vip-cta-link">去开通 ›</Text>
+            </View>
+          )
         )}
         <Text className="title product-title">{product.title}</Text>
         {product.subtitle && <Text className="muted small product-subtitle">{product.subtitle}</Text>}

@@ -129,13 +129,14 @@ async function validateLink(
   if (!(MICRO_LINK_TYPES as readonly string[]).includes(type)) fail(label, '不支持的跳转类型');
   if (type === 'none') return { type: 'none', value: null };
 
-  // 固定去向不需要选择目标（购物车 / 订单 / 我的 / 积分中心 / 积分商城）
+  // 固定去向不需要选择目标（购物车 / 订单 / 我的 / 积分中心 / 积分商城 / 圈子）
   if (
     type === 'cart' ||
     type === 'orders' ||
     type === 'mine' ||
     type === 'points' ||
-    type === 'pointsmall'
+    type === 'pointsmall' ||
+    type === 'circle'
   ) {
     return { type, value: null };
   }

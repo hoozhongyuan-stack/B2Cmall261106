@@ -166,3 +166,45 @@
   font-size: var(--fs-display);
   line-height: 1.2;
 }
+
+.vip-line,
+.vip-cta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+  padding: 16px;
+  border-radius: var(--radius-sm);
+}
+
+.vip-line {
+  background: var(--gold-soft);
+}
+
+.vip-cta {
+  background: var(--gold-soft);
+}
+
+.vip-badge {
+  flex: 0 0 auto;
+  padding: 4px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--gold);
+  color: var(--on-brand);
+  font-size: var(--fs-caption);
+}
+
+.vip-line-text {
+  font-size: var(--fs-secondary);
+  color: var(--gold);
+}
+
+.vip-cta-text {
+  color: var(--ink-2);
+}
+
+.vip-cta-link {
+  flex: 0 0 auto;
+  font-size: var(--fs-secondary);
+  color: var(--gold);
+}

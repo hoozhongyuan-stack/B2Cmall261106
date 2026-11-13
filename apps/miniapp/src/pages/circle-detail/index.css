@@ -1,0 +1,126 @@
+.circle-detail-author {
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.circle-detail-content {
+  display: block;
+  font-size: var(--fs-body);
+  line-height: 1.7;
+  white-space: pre-wrap;
+  margin-bottom: 24px;
+}
+
+.circle-detail-swiper {
+  height: 560px;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  margin-bottom: 24px;
+}
+
+.circle-detail-image {
+  width: 100%;
+  height: 560px;
+  background: var(--surface-2);
+}
+
+.circle-detail-products {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  margin-bottom: 24px;
+}
+
+.circle-product-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.circle-product-thumb {
+  width: 96px;
+  height: 96px;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  flex: 0 0 auto;
+}
+
+.circle-detail-stats {
+  display: flex;
+  gap: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.circle-comment-title {
+  margin: 0 0 16px;
+}
+
+.circle-comment {
+  padding: 16px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.circle-comment:last-child {
+  border-bottom: none;
+}
+
+.circle-comment-head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.circle-comment-name {
+  font-size: var(--fs-secondary);
+  color: var(--ink-2);
+}
+
+.circle-comment-content {
+  font-size: var(--fs-body);
+  color: var(--ink);
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.circle-reply {
+  margin-top: 16px;
+  padding: 16px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+
+.circle-action-bar {
+  align-items: center;
+  gap: 16px;
+}
+
+.circle-action {
+  flex: 0 0 auto;
+  font-size: var(--fs-secondary);
+  color: var(--ink-2);
+}
+
+.circle-action--on {
+  color: var(--brand);
+}
+
+.circle-comment-input-wrap {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.circle-reply-hint {
+  display: flex;
+  justify-content: space-between;
+  padding-bottom: 8px;
+}
+
+.circle-action-bar .btn--disabled {
+  opacity: 0.45;
+}

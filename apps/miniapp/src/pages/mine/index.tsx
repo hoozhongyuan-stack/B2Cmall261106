@@ -1,11 +1,11 @@
-import { Text, View } from '@tarojs/components';
+import { Image, Text, View } from '@tarojs/components';
 import Taro, { useDidShow } from '@tarojs/taro';
 import { tokens } from '@shanye/tokens';
 import { useState } from 'react';
 
 import { api, clearConsent, clearToken, showError } from '../../api/client';
 import { AppTabBar } from '../../components/AppTabBar';
-import { Cell, Loading, SectionHeader } from '../../components/common';
+import { Cell, Loading, SectionHeader, imageSrc } from '../../components/common';
 import { money } from '../../utils/format';
 
 import './index.css';
@@ -100,8 +100,19 @@ export default function Page() {
     <View className="page page--flush">
       <View className="hero mine-hero">
         <View className="row">
-          <View className="mine-avatar">
-            <Text>{(profile?.nickname ?? '山').slice(0, 1)}</Text>
+          <View
+            className="mine-avatar"
+            onClick={() => Taro.navigateTo({ url: '/pages/profile/index' })}
+          >
+            {profile?.avatarKey ? (
+              <Image
+                className="mine-avatar-img"
+                src={imageSrc(profile.avatarKey)}
+                mode="aspectFill"
+              />
+            ) : (
+              <Text>{(profile?.nickname ?? '山').slice(0, 1)}</Text>
+            )}
           </View>
           <View className="grow col">
             <Text className="mine-nickname">{profile?.nickname ?? '山野顾客'}</Text>
@@ -109,6 +120,12 @@ export default function Page() {
               <Text className="mine-level">{profile?.level?.name ?? '普通会员'}</Text>
               <Text className="muted tiny">
                 累计消费 {money(profile?.totalSpentCents ?? 0)}
+              </Text>
+              <Text
+                className="mine-edit"
+                onClick={() => Taro.navigateTo({ url: '/pages/profile/index' })}
+              >
+                编辑资料
               </Text>
             </View>
           </View>
@@ -181,6 +198,11 @@ export default function Page() {
 
         <View className="list mine-menu">
           <Cell
+            title="个人资料"
+            value="昵称与头像"
+            onClick={() => Taro.navigateTo({ url: '/pages/profile/index' })}
+          />
+          <Cell
             title="我的优惠券"
             value={`${profile?.coupons.unused ?? 0} 张可用`}
             onClick={() => Taro.navigateTo({ url: '/pages/coupon/index?tab=mine' })}
@@ -198,6 +220,11 @@ export default function Page() {
           <Cell
             title="我的评价"
             onClick={() => Taro.navigateTo({ url: '/pages/review/mine/index' })}
+          />
+          <Cell
+            title="圈子广场"
+            value="逛内容 · 找灵感"
+            onClick={() => Taro.navigateTo({ url: '/pages/circle/index' })}
           />
           <Cell
             title="我的圈子"
@@ -225,11 +252,6 @@ export default function Page() {
             <Text className="grow small mine-logout-text">退出登录</Text>
           </View>
         </View>
-
-        <Text className="muted tiny mine-shop">
-          {shop?.shopName ?? '山野'}
-          {shop?.intro ? ` · ${shop.intro}` : ''}
-        </Text>
       </View>
       <AppTabBar />
     </View>

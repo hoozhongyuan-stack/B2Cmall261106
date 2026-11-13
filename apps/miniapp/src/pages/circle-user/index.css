@@ -1,0 +1,65 @@
+.circle-user {
+  background: var(--canvas);
+  min-height: 100vh;
+}
+
+.circle-user-hero {
+  background: var(--surface);
+  padding: 40px 24px 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.circle-user-avatar {
+  width: 128px;
+  height: 128px;
+  border-radius: 50%;
+  background: var(--sand);
+  color: var(--brand-deep);
+  font-size: var(--fs-title);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.circle-user-avatar-img {
+  width: 128px;
+  height: 128px;
+}
+
+.circle-user-name {
+  font-size: var(--fs-section);
+  color: var(--ink);
+}
+
+.circle-user-stats {
+  display: flex;
+  gap: 48px;
+}
+
+.circle-user-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.circle-user-stat-value {
+  font-size: var(--fs-section);
+  color: var(--ink);
+}
+
+.circle-user-follow {
+  height: 64px;
+  font-size: var(--fs-secondary);
+  border-radius: var(--radius-pill);
+  padding: 0 40px;
+}
+
+.circle-user-posts {
+  padding: 0 24px;
+}

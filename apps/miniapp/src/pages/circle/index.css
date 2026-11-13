@@ -1,0 +1,98 @@
+.circle-page {
+  background: var(--canvas);
+  min-height: 100vh;
+}
+
+.circle-top {
+  background: var(--surface);
+  padding: 24px 24px 8px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.circle-top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.circle-top-title {
+  font-size: var(--fs-title);
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.circle-top-icon {
+  position: relative;
+  font-size: var(--fs-secondary);
+  color: var(--ink-2);
+  padding: 8px 4px;
+}
+
+.circle-badge {
+  position: absolute;
+  top: 0;
+  right: -8px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--brand);
+}
+
+.circle-publish-btn {
+  height: 64px;
+  font-size: var(--fs-secondary);
+  border-radius: var(--radius-pill);
+  padding: 0 28px;
+}
+
+.circle-tabs {
+  padding: 8px 0 0;
+}
+
+.circle-chips {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding: 8px 0 16px;
+  white-space: nowrap;
+}
+
+.circle-chip {
+  flex: 0 0 auto;
+  padding: 8px 24px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--line-2);
+  color: var(--ink-2);
+  font-size: var(--fs-secondary);
+}
+
+.circle-chip--on {
+  border-color: var(--brand);
+  background: var(--brand-soft);
+  color: var(--brand);
+}
+
+.circle-topics {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 16px;
+}
+
+.circle-topics .tag {
+  flex: 0 0 auto;
+  height: 44px;
+}
+
+.circle-feed {
+  padding: 24px;
+}
+
+.circle-more {
+  text-align: center;
+  color: var(--ink-3);
+  font-size: var(--fs-caption);
+  padding: 16px 0 32px;
+}

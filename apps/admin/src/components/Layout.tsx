@@ -75,6 +75,7 @@ const MENU: MenuGroup[] = [
     icon: 'circle',
     items: [
       { to: '/circle/posts', label: '内容审核', permission: 'circle.audit' },
+      { to: '/circle/reports', label: '举报处理', permission: 'circle.audit' },
       { to: '/circle/taxonomy', label: '类目与话题', permission: 'circle.view' },
       { to: '/circle/settings', label: '圈子设置', permission: 'circle.view' },
     ],

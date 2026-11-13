@@ -294,6 +294,34 @@ describe('微页面：草稿与发布', () => {
       value: null,
     });
 
+    // 圈子广场同为固定去向，不需要目标值
+    await api(
+      `/admin/micro-pages/${page.id}`,
+      {
+        method: 'PUT',
+        body: JSON.stringify({
+          components: [
+            {
+              ...textComponent('去圈子'),
+              props: { ...textComponent('去圈子').props, link: { type: 'circle', value: '' } },
+            },
+          ],
+        }),
+      },
+      admin,
+    );
+    const publishedCircle = await api(
+      `/admin/micro-pages/${page.id}/publish`,
+      { method: 'POST' },
+      admin,
+    );
+    expect(publishedCircle.status, JSON.stringify(publishedCircle.body)).toBe(200);
+    const publicCircle = await api(`/micro-pages/${page.code}`);
+    expect(publicCircle.body.data.components[0].props.link).toEqual({
+      type: 'circle',
+      value: null,
+    });
+
     // 搜索 / 优惠券 / 门店允许不选具体目标，直接进入列表页
     await api(
       `/admin/micro-pages/${page.id}`,
@@ -471,9 +499,9 @@ describe('微页面：首页与删除保护', () => {
             { key: 'cart', text: '购物车', link: { type: 'page', value: '/pages/cart/index' } },
             { key: 'mine', text: '我的', link: { type: 'page', value: '/pages/mine/index' } },
             {
-              key: 'service',
-              text: '售后',
-              link: { type: 'page', value: '/pages/after-sale/list/index' },
+              key: 'circle',
+              text: '圈子',
+              link: { type: 'circle', value: '' },
             },
           ],
         }),
@@ -482,6 +510,7 @@ describe('微页面：首页与删除保护', () => {
     );
     expect(saved.status).toBe(200);
     expect(saved.body.data.items).toHaveLength(5);
+    expect(saved.body.data.items[4].link).toEqual({ type: 'circle', value: null });
 
     const shell = await api('/shop/shell');
     expect(shell.body.data.tabbar.items[0].key).toBe('home');

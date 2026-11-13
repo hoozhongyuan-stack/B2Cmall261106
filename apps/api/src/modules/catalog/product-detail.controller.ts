@@ -1,7 +1,12 @@
-import { Controller, Get, Param, NotFoundException } from '@nestjs/common';
+import { Controller, Get, Param, NotFoundException, UseGuards } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import { PrismaService } from '../../prisma/prisma.module';
+import {
+  OptionalCurrentUser,
+  OptionalUserJwtGuard,
+  type MiniappUser,
+} from '../../common/user-auth.guard';
 
 @ApiTags('catalog')
 @Controller('products')
@@ -9,8 +14,9 @@ export class ProductDetailController {
   constructor(private readonly prisma: PrismaService) {}
 
   @Get(':id')
-  @ApiOperation({ summary: '商品详情：SKU、标签、评价摘要' })
-  async detail(@Param('id') id: string) {
+  @UseGuards(OptionalUserJwtGuard)
+  @ApiOperation({ summary: '商品详情：SKU、标签、评价摘要与会员卡权益' })
+  async detail(@Param('id') id: string, @OptionalCurrentUser() user?: MiniappUser) {
     const product = await this.prisma.product.findUnique({
       where: { id },
       include: {
@@ -21,7 +27,7 @@ export class ProductDetailController {
     });
     if (!product) throw new NotFoundException('商品不存在或已下架');
 
-    const [reviews, reviewAgg, seckillRows] = await Promise.all([
+    const [reviews, reviewAgg, seckillRows, memberCard] = await Promise.all([
       this.prisma.review.findMany({
         where: { status: 'SHOWN', orderItem: { sku: { productId: id } } },
         orderBy: { createdAt: 'desc' },
@@ -44,6 +50,7 @@ export class ProductDetailController {
         },
         include: { promotion: true },
       }),
+      this.memberCardBenefit(user?.sub),
     ]);
 
     const seckillMap = new Map<
@@ -106,6 +113,44 @@ export class ProductDetailController {
           createdAt: r.createdAt,
         })),
       },
+      memberCard,
+    };
+  }
+
+  /**
+   * 会员卡权益（公开可读）：后台存在折扣会员卡方案时返回，
+   * 用于商品详情展示「VIP 价」引导开通；登录用户额外返回是否已持卡。
+   */
+  private async memberCardBenefit(userId?: string) {
+    const plan = await this.prisma.memberCardPlan.findFirst({
+      where: { enabled: true, discountRate: { lt: 1 } },
+      orderBy: [{ discountRate: 'asc' }, { priceCents: 'asc' }],
+      select: { name: true, priceCents: true, durationDays: true, discountRate: true },
+    });
+    if (!plan) return null;
+
+    let levelRate = 1;
+    let card: { discountRate: number } | null = null;
+    if (userId) {
+      const [user, activeCard] = await Promise.all([
+        this.prisma.user.findUnique({ where: { id: userId }, include: { level: true } }),
+        this.prisma.memberCard.findFirst({
+          where: { userId, status: 'ACTIVE', expireAt: { gt: new Date() } },
+          orderBy: { expireAt: 'desc' },
+          select: { discountRate: true },
+        }),
+      ]);
+      levelRate = user?.level?.discountRate ?? 1;
+      card = activeCard;
+    }
+
+    return {
+      planName: plan.name,
+      priceCents: plan.priceCents,
+      durationDays: plan.durationDays,
+      discountRate: plan.discountRate,
+      active: Boolean(card),
+      userRate: Math.min(levelRate, card?.discountRate ?? 1),
     };
   }
 }

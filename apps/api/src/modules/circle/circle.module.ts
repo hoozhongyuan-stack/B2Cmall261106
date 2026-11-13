@@ -4,15 +4,17 @@ import { JwtModule } from '@nestjs/jwt';
 
 import { AdminCircleController } from './circle.controller';
 import { CircleMemberController } from './circle-member.controller';
+import { CircleInteractionController } from './circle-interaction.controller';
 import { CircleService } from './circle.service';
 import { CirclePostService } from './circle-post.service';
+import { CircleInteractionService } from './circle-interaction.service';
 import { CircleContentSecurityService } from './circle-content-security.service';
 import { AssetModule } from '../assets/asset.module';
 import { IntegrationModule } from '../integration/integration.module';
 import { JwtAuthGuard, RolesGuard } from '../../common/auth.guards';
 import { UserJwtGuard } from '../../common/user-auth.guard';
 
-/** 圈子（品牌内容社区）：类目、话题、设置、会员发帖与内容审核 */
+/** 圈子（品牌内容社区）：配置、发帖审核、信息流互动、举报与消息 */
 @Module({
   imports: [
     AssetModule,
@@ -26,10 +28,11 @@ import { UserJwtGuard } from '../../common/user-auth.guard';
       }),
     }),
   ],
-  controllers: [AdminCircleController, CircleMemberController],
+  controllers: [AdminCircleController, CircleMemberController, CircleInteractionController],
   providers: [
     CircleService,
     CirclePostService,
+    CircleInteractionService,
     CircleContentSecurityService,
     JwtAuthGuard,
     RolesGuard,
