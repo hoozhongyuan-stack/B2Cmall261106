@@ -1,0 +1,38 @@
+.circle-search {
+  background: var(--canvas);
+  min-height: 100vh;
+}
+
+.circle-search-bar {
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.circle-search-btn {
+  height: 72px;
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-secondary);
+  padding: 0 28px;
+  flex: 0 0 auto;
+}
+
+.circle-search-title {
+  margin: 0 0 12px;
+}
+
+.circle-search-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.circle-search-topics {
+  margin-bottom: 24px;
+}
+
+.circle-search-more {
+  text-align: center;
+  color: var(--ink-3);
+  font-size: var(--fs-caption);
+  padding: 16px 0 32px;
+}

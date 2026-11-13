@@ -72,6 +72,45 @@ export class CircleInteractionService {
     });
   }
 
+  /** 圈子搜索：已发布内容（正文 / 话题名）+ 相关话题 */
+  async search(userId: string | undefined, keyword: string, cursor?: string, pageSize = 10) {
+    const word = (keyword ?? '').trim();
+    if (!word) return { items: [], nextCursor: null, topics: [] };
+    const take = Math.min(Math.max(Number(pageSize) || 10, 1), 20);
+
+    const where = {
+      status: 'PUBLISHED' as const,
+      OR: [
+        { content: { contains: word, mode: 'insensitive' as const } },
+        { topics: { some: { topic: { name: { contains: word, mode: 'insensitive' as const } } } } },
+      ],
+    };
+
+    const [rows, topics] = await Promise.all([
+      this.prisma.circlePost.findMany({
+        where,
+        orderBy: [{ publishedAt: 'desc' }, { id: 'desc' }],
+        take,
+        ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+        include: this.postInclude(),
+      }),
+      this.prisma.circleTopic.findMany({
+        where: { enabled: true, name: { contains: word, mode: 'insensitive' } },
+        orderBy: [{ pinned: 'desc' }, { postCount: 'desc' }],
+        take: 5,
+        select: { id: true, name: true, postCount: true, coverKey: true },
+      }),
+    ]);
+
+    const ids = rows.map((row) => row.id);
+    const [liked, favorited] = await this.flags(userId, ids);
+    return {
+      topics,
+      items: rows.map((post) => this.postView(post, liked.has(post.id), favorited.has(post.id))),
+      nextCursor: rows.length === take ? rows[rows.length - 1].id : null,
+    };
+  }
+
   /** 帖子详情：仅已发布可被非作者查看；返回互动状态并累加浏览数 */
   async detail(userId: string | undefined, id: string) {
     const post = await this.prisma.circlePost.findUnique({
@@ -718,6 +757,197 @@ export class CircleInteractionService {
       });
       return { ok: true };
     });
+  }
+
+  /* ---------------- 后台内容管理 ---------------- */
+
+  /** 圈子数据看板：内容供给、互动与治理概览 */
+  async adminStats() {
+    const today = dayStart();
+    const [
+      statusRows,
+      commentCount,
+      hiddenCommentCount,
+      likeCount,
+      favoriteCount,
+      authors,
+      pendingReports,
+      todayPosts,
+      todayComments,
+      topPosts,
+      hotTopics,
+    ] = await Promise.all([
+      this.prisma.circlePost.groupBy({ by: ['status'], _count: { _all: true } }),
+      this.prisma.circleComment.count(),
+      this.prisma.circleComment.count({ where: { hidden: true } }),
+      this.prisma.circleLike.count(),
+      this.prisma.circleFavorite.count(),
+      this.prisma.circlePost.findMany({
+        where: { status: 'PUBLISHED' },
+        distinct: ['userId'],
+        select: { userId: true },
+      }),
+      this.prisma.circleReport.count({ where: { status: 'PENDING' } }),
+      this.prisma.circlePost.count({ where: { createdAt: { gte: today } } }),
+      this.prisma.circleComment.count({ where: { createdAt: { gte: today } } }),
+      this.prisma.circlePost.findMany({
+        where: { status: 'PUBLISHED' },
+        orderBy: [{ likeCount: 'desc' }, { publishedAt: 'desc' }],
+        take: 5,
+        select: {
+          id: true,
+          content: true,
+          likeCount: true,
+          commentCount: true,
+          publishedAt: true,
+          user: { select: { id: true, nickname: true } },
+        },
+      }),
+      this.prisma.circleTopic.findMany({
+        orderBy: [{ postCount: 'desc' }, { pinned: 'desc' }],
+        take: 5,
+        select: { id: true, name: true, postCount: true, enabled: true },
+      }),
+    ]);
+
+    const posts: Record<string, number> = {
+      ALL: 0,
+      PENDING: 0,
+      PUBLISHED: 0,
+      REJECTED: 0,
+      HIDDEN: 0,
+    };
+    for (const row of statusRows) {
+      posts[row.status] = row._count._all;
+      posts.ALL += row._count._all;
+    }
+
+    return {
+      posts,
+      comments: { total: commentCount, hidden: hiddenCommentCount },
+      likes: likeCount,
+      favorites: favoriteCount,
+      authors: authors.length,
+      pendingReports,
+      today: { posts: todayPosts, comments: todayComments },
+      topPosts: topPosts.map((post) => ({
+        id: post.id,
+        content: post.content,
+        likeCount: post.likeCount,
+        commentCount: post.commentCount,
+        publishedAt: post.publishedAt,
+        author: post.user,
+      })),
+      hotTopics,
+    };
+  }
+
+  /** 评论管理：按帖子 / 关键词 / 是否隐藏筛选 */
+  async listCommentsAdmin(query: {
+    keyword?: string;
+    postId?: string;
+    hidden?: string;
+    page?: number;
+    pageSize?: number;
+  }) {
+    const page = Math.max(Number(query.page) || 1, 1);
+    const pageSize = Math.min(Math.max(Number(query.pageSize) || 20, 1), 100);
+    const keyword = query.keyword?.trim();
+    const hidden =
+      query.hidden === 'true' ? true : query.hidden === 'false' ? false : undefined;
+
+    const where = {
+      ...(query.postId ? { postId: query.postId } : {}),
+      ...(hidden !== undefined ? { hidden } : {}),
+      ...(keyword
+        ? {
+            OR: [
+              { content: { contains: keyword, mode: 'insensitive' as const } },
+              { user: { nickname: { contains: keyword, mode: 'insensitive' as const } } },
+            ],
+          }
+        : {}),
+    };
+
+    const [rows, total, hiddenTotal, allTotal] = await Promise.all([
+      this.prisma.circleComment.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+        include: {
+          user: { select: { id: true, nickname: true, avatarKey: true } },
+          post: { select: { id: true, content: true, mediaJson: true } },
+        },
+      }),
+      this.prisma.circleComment.count({ where }),
+      this.prisma.circleComment.count({ where: { hidden: true } }),
+      this.prisma.circleComment.count(),
+    ]);
+
+    return {
+      total,
+      page,
+      pageSize,
+      counts: { ALL: allTotal, SHOWN: allTotal - hiddenTotal, HIDDEN: hiddenTotal },
+      items: rows.map((row) => ({
+        id: row.id,
+        content: row.content,
+        hidden: row.hidden,
+        parentId: row.parentId,
+        createdAt: row.createdAt,
+        author: row.user,
+        post: {
+          id: row.post.id,
+          excerpt: (row.post.content ?? '').slice(0, MAX_CONTENT_EXCERPT),
+          image: this.mediaKeys(row.post.mediaJson)[0] ?? null,
+        },
+      })),
+    };
+  }
+
+  /** 显示 / 隐藏评论，并同步帖子评论数 */
+  async setCommentHidden(id: string, hidden: boolean) {
+    const comment = await this.prisma.circleComment.findUnique({
+      where: { id },
+      select: { id: true, postId: true, hidden: true },
+    });
+    if (!comment) throw new NotFoundException('评论不存在');
+    if (comment.hidden === hidden) return { ok: true };
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.circleComment.update({ where: { id }, data: { hidden } });
+      if (hidden) {
+        await tx.circlePost.updateMany({
+          where: { id: comment.postId, commentCount: { gt: 0 } },
+          data: { commentCount: { decrement: 1 } },
+        });
+      } else {
+        await tx.circlePost.update({
+          where: { id: comment.postId },
+          data: { commentCount: { increment: 1 } },
+        });
+      }
+    });
+    return { ok: true };
+  }
+
+  /** 置顶 / 精选 */
+  async setPostFlags(id: string, input: { pinned?: boolean; featured?: boolean }) {
+    const exists = await this.prisma.circlePost.findUnique({
+      where: { id },
+      select: { id: true },
+    });
+    if (!exists) throw new NotFoundException('内容不存在');
+    const post = await this.prisma.circlePost.update({
+      where: { id },
+      data: {
+        ...(input.pinned !== undefined ? { pinned: input.pinned } : {}),
+        ...(input.featured !== undefined ? { featured: input.featured } : {}),
+      },
+      select: { id: true, pinned: true, featured: true },
+    });
+    return post;
   }
 
   /* ---------------- 内部 ---------------- */

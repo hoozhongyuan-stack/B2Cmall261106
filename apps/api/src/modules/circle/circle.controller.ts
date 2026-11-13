@@ -141,6 +141,21 @@ class HandleReportDto {
   action!: 'HIDE' | 'DISMISS';
 }
 
+class ToggleCommentDto {
+  @IsBoolean()
+  hidden!: boolean;
+}
+
+class PostFlagsDto {
+  @IsOptional()
+  @IsBoolean()
+  pinned?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  featured?: boolean;
+}
+
 @ApiTags('admin-circle')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -236,6 +251,46 @@ export class AdminCircleController {
     @AdminCurrentUser() admin: AuthUser,
   ) {
     return this.posts.auditPost(id, dto.action, dto.note, admin.sub);
+  }
+
+  @Patch('posts/:id/flags')
+  @Permission('circle.audit')
+  @ApiOperation({ summary: '内容置顶 / 精选' })
+  setPostFlags(@Param('id') id: string, @Body() dto: PostFlagsDto) {
+    return this.interactions.setPostFlags(id, dto);
+  }
+
+  @Get('comments')
+  @Permission('circle.audit')
+  @ApiOperation({ summary: '评论管理（含显示 / 隐藏计数，可按帖子与关键词筛选）' })
+  listComments(
+    @Query('keyword') keyword?: string,
+    @Query('postId') postId?: string,
+    @Query('hidden') hidden?: string,
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
+  ) {
+    return this.interactions.listCommentsAdmin({
+      keyword,
+      postId,
+      hidden,
+      page: Number(page) || 1,
+      pageSize: Number(pageSize) || 20,
+    });
+  }
+
+  @Patch('comments/:id')
+  @Permission('circle.audit')
+  @ApiOperation({ summary: '显示 / 隐藏评论（同步帖子评论数）' })
+  toggleComment(@Param('id') id: string, @Body() dto: ToggleCommentDto) {
+    return this.interactions.setCommentHidden(id, dto.hidden);
+  }
+
+  @Get('stats')
+  @Permission('circle.view')
+  @ApiOperation({ summary: '圈子数据看板：内容供给、互动、治理与热门内容' })
+  stats() {
+    return this.interactions.adminStats();
   }
 
   @Get('reports')

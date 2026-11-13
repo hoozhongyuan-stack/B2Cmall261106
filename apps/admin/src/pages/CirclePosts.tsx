@@ -134,6 +134,19 @@ export default function CirclePosts() {
     }
   }
 
+  async function toggleFlag(row: PostRow, key: 'pinned' | 'featured') {
+    try {
+      await api(`/admin/circle/posts/${row.id}/flags`, {
+        method: 'PATCH',
+        body: { [key]: !row[key] },
+      });
+      toast(key === 'pinned' ? (row.pinned ? '已取消置顶' : '已置顶') : row.featured ? '已取消精选' : '已设为精选');
+      await load();
+    } catch (err) {
+      toast(errorText(err), 'error');
+    }
+  }
+
   async function submitReject() {
     if (!rejectTarget) return;
     if (!rejectNote.trim()) {
@@ -239,23 +252,37 @@ export default function CirclePosts() {
     {
       key: 'status',
       title: '状态',
-      minWidth: 90,
+      minWidth: 140,
       render: (row) => (
-        <Tag tone={STATUS_META[row.status]?.tone ?? 'muted'}>
-          {STATUS_META[row.status]?.label ?? row.status}
-        </Tag>
+        <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
+          <Tag tone={STATUS_META[row.status]?.tone ?? 'muted'}>
+            {STATUS_META[row.status]?.label ?? row.status}
+          </Tag>
+          {row.pinned && <Tag tone="gold">置顶</Tag>}
+          {row.featured && <Tag tone="brand">精选</Tag>}
+        </div>
       ),
     },
     {
       key: 'action',
       title: '操作',
       align: 'right',
-      width: '210px',
+      width: '330px',
       render: (row) => (
-        <div className="row" style={{ gap: 6, justifyContent: 'flex-end' }}>
+        <div className="row" style={{ gap: 6, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
           <Button size="sm" variant="ghost" onClick={() => setPreview(row)}>
             查看
           </Button>
+          {canAudit && row.status === 'PUBLISHED' && (
+            <>
+              <Button size="sm" variant="ghost" onClick={() => void toggleFlag(row, 'pinned')}>
+                {row.pinned ? '取消置顶' : '置顶'}
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => void toggleFlag(row, 'featured')}>
+                {row.featured ? '取消精选' : '精选'}
+              </Button>
+            </>
+          )}
           {canAudit && row.status !== 'PUBLISHED' && (
             <Button size="sm" variant="ghost" onClick={() => void audit(row, 'APPROVE')}>
               通过

@@ -9689,6 +9689,52 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/circle/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 圈子搜索（已发布内容与相关话题，游标分页） */
+        get: {
+            parameters: {
+                query: {
+                    keyword: string;
+                    cursor?: string;
+                    pageSize?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: {
+                                nextCursor?: string | null;
+                                topics?: components["schemas"]["CircleTopicBrief"][];
+                                items?: components["schemas"]["CircleFeedPost"][];
+                            };
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/circle/posts/{id}": {
         parameters: {
             query?: never;
@@ -10345,6 +10391,183 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/circle/posts/{id}/flags": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** 内容置顶 / 精选 */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        pinned?: boolean;
+                        featured?: boolean;
+                    };
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                404: components["responses"]["NotFound"];
+            };
+        };
+        trace?: never;
+    };
+    "/admin/circle/comments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 评论管理（含显示 / 隐藏计数） */
+        get: {
+            parameters: {
+                query?: {
+                    keyword?: string;
+                    postId?: string;
+                    hidden?: "true" | "false";
+                    page?: number;
+                    pageSize?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: {
+                                total?: number;
+                                page?: number;
+                                pageSize?: number;
+                                counts?: {
+                                    [key: string]: number;
+                                };
+                                items?: components["schemas"]["CircleCommentAdmin"][];
+                            };
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/circle/comments/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** 显示 / 隐藏评论 */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        hidden: boolean;
+                    };
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                404: components["responses"]["NotFound"];
+            };
+        };
+        trace?: never;
+    };
+    "/admin/circle/stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 圈子数据看板（内容供给、互动、治理与热门内容） */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: components["schemas"]["CircleStats"];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -11976,6 +12199,59 @@ export interface components {
                     nickname?: string | null;
                 };
             } | null;
+        };
+        CircleCommentAdmin: {
+            id: string;
+            content: string;
+            hidden: boolean;
+            parentId?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            author: {
+                id?: string;
+                nickname?: string | null;
+                avatarKey?: string | null;
+            };
+            post: {
+                id?: string;
+                excerpt?: string;
+                image?: string | null;
+            };
+        };
+        CircleStats: {
+            posts: {
+                [key: string]: number;
+            };
+            comments: {
+                total?: number;
+                hidden?: number;
+            };
+            likes: number;
+            favorites: number;
+            authors: number;
+            pendingReports: number;
+            today: {
+                posts?: number;
+                comments?: number;
+            };
+            topPosts?: {
+                id?: string;
+                content?: string;
+                likeCount?: number;
+                commentCount?: number;
+                /** Format: date-time */
+                publishedAt?: string | null;
+                author?: {
+                    id?: string;
+                    nickname?: string | null;
+                };
+            }[];
+            hotTopics?: {
+                id?: string;
+                name?: string;
+                postCount?: number;
+                enabled?: boolean;
+            }[];
         };
     };
     responses: {

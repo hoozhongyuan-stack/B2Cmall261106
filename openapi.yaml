@@ -4728,6 +4728,33 @@ paths:
                         type: array
                         items: { $ref: '#/components/schemas/CircleMyPost' }
 
+  /circle/search:
+    get:
+      tags: [circle]
+      summary: 圈子搜索（已发布内容与相关话题，游标分页）
+      parameters:
+        - { name: keyword, in: query, required: true, schema: { type: string } }
+        - { name: cursor, in: query, required: false, schema: { type: string } }
+        - { name: pageSize, in: query, required: false, schema: { type: integer, maximum: 20 } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      nextCursor: { type: string, nullable: true }
+                      topics:
+                        type: array
+                        items: { $ref: '#/components/schemas/CircleTopicBrief' }
+                      items:
+                        type: array
+                        items: { $ref: '#/components/schemas/CircleFeedPost' }
+
   /circle/posts/{id}:
     get:
       tags: [circle]
@@ -5014,6 +5041,93 @@ paths:
                 all: { type: boolean }
       responses:
         '201': { description: OK }
+
+  /admin/circle/posts/{id}/flags:
+    patch:
+      tags: [admin-circle]
+      summary: 内容置顶 / 精选
+      security: [{ adminToken: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                pinned: { type: boolean }
+                featured: { type: boolean }
+      responses:
+        '200': { description: OK }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /admin/circle/comments:
+    get:
+      tags: [admin-circle]
+      summary: 评论管理（含显示 / 隐藏计数）
+      security: [{ adminToken: [] }]
+      parameters:
+        - { name: keyword, in: query, required: false, schema: { type: string } }
+        - { name: postId, in: query, required: false, schema: { type: string } }
+        - { name: hidden, in: query, required: false, schema: { type: string, enum: ['true', 'false'] } }
+        - { name: page, in: query, required: false, schema: { type: integer, default: 1 } }
+        - { name: pageSize, in: query, required: false, schema: { type: integer, default: 20 } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      total: { type: integer }
+                      page: { type: integer }
+                      pageSize: { type: integer }
+                      counts:
+                        type: object
+                        additionalProperties: { type: integer }
+                      items:
+                        type: array
+                        items: { $ref: '#/components/schemas/CircleCommentAdmin' }
+
+  /admin/circle/comments/{id}:
+    patch:
+      tags: [admin-circle]
+      summary: 显示 / 隐藏评论
+      security: [{ adminToken: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [hidden]
+              properties:
+                hidden: { type: boolean }
+      responses:
+        '200': { description: OK }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /admin/circle/stats:
+    get:
+      tags: [admin-circle]
+      summary: 圈子数据看板（内容供给、互动、治理与热门内容）
+      security: [{ adminToken: [] }]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/CircleStats' }
 
   /admin/circle/reports:
     get:
@@ -6835,3 +6949,71 @@ components:
               properties:
                 id: { type: string }
                 nickname: { type: string, nullable: true }
+
+    CircleCommentAdmin:
+      type: object
+      required: [id, content, hidden, author, post]
+      properties:
+        id: { type: string }
+        content: { type: string }
+        hidden: { type: boolean }
+        parentId: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time }
+        author:
+          type: object
+          properties:
+            id: { type: string }
+            nickname: { type: string, nullable: true }
+            avatarKey: { type: string, nullable: true }
+        post:
+          type: object
+          properties:
+            id: { type: string }
+            excerpt: { type: string }
+            image: { type: string, nullable: true }
+
+    CircleStats:
+      type: object
+      required: [posts, comments, likes, favorites, authors, pendingReports, today]
+      properties:
+        posts:
+          type: object
+          additionalProperties: { type: integer }
+        comments:
+          type: object
+          properties:
+            total: { type: integer }
+            hidden: { type: integer }
+        likes: { type: integer }
+        favorites: { type: integer }
+        authors: { type: integer }
+        pendingReports: { type: integer }
+        today:
+          type: object
+          properties:
+            posts: { type: integer }
+            comments: { type: integer }
+        topPosts:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string }
+              content: { type: string }
+              likeCount: { type: integer }
+              commentCount: { type: integer }
+              publishedAt: { type: string, format: date-time, nullable: true }
+              author:
+                type: object
+                properties:
+                  id: { type: string }
+                  nickname: { type: string, nullable: true }
+        hotTopics:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string }
+              name: { type: string }
+              postCount: { type: integer }
+              enabled: { type: boolean }

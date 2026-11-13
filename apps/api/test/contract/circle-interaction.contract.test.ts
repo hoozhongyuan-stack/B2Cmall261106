@@ -22,6 +22,7 @@ let adminToken = '';
 let categoryId = '';
 let postId = '';
 let rootCommentId = '';
+let replyCommentId = '';
 
 async function api(path: string, init: RequestInit = {}, token = '') {
   const res = await fetch(`${BASE}${path}`, {
@@ -141,6 +142,7 @@ describe('圈子信息流、互动与治理', () => {
       author.token,
     );
     expect(reply.status).toBe(201);
+    replyCommentId = reply.body.data.id;
 
     const list = await api(`/circle/posts/${postId}/comments`);
     expect(list.body.data.total).toBe(2);
@@ -185,6 +187,63 @@ describe('圈子信息流、互动与治理', () => {
     expect(removed.status).toBe(200);
     const list = await api(`/circle/posts/${postId}/comments`);
     expect(list.body.data.total).toBe(1);
+  });
+
+  it('圈子搜索命中正文，空关键词返回空', async () => {
+    const hit = await api(`/circle/search?keyword=${encodeURIComponent('M3 契约内容')}`);
+    expect(hit.status).toBe(200);
+    expect(hit.body.data.items.some((item: { id: string }) => item.id === postId)).toBe(true);
+
+    const miss = await api(`/circle/search?keyword=${encodeURIComponent('不存在的内容xyz')}`);
+    expect(miss.status).toBe(200);
+    expect(miss.body.data.items).toHaveLength(0);
+
+    const empty = await api('/circle/search?keyword=');
+    expect(empty.status).toBe(200);
+    expect(empty.body.data.items).toHaveLength(0);
+  });
+
+  it('后台数据看板与置顶、评论管理可用', async () => {
+    const stats = await api('/admin/circle/stats', {}, adminToken);
+    expect(stats.status).toBe(200);
+    expect(stats.body.data.posts.PUBLISHED).toBeGreaterThanOrEqual(1);
+    expect(stats.body.data.likes).toBeGreaterThanOrEqual(1);
+    expect(stats.body.data.comments.total).toBeGreaterThanOrEqual(1);
+    expect(stats.body.data.today.posts).toBeGreaterThanOrEqual(1);
+
+    const pinned = await api(
+      `/admin/circle/posts/${postId}/flags`,
+      { method: 'PATCH', body: JSON.stringify({ pinned: true, featured: true }) },
+      adminToken,
+    );
+    expect(pinned.status).toBe(200);
+    expect(pinned.body.data.pinned).toBe(true);
+    expect(pinned.body.data.featured).toBe(true);
+
+    const list = await api('/admin/circle/comments?hidden=false', {}, adminToken);
+    expect(list.status).toBe(200);
+    expect(list.body.data.items.some((item: { id: string }) => item.id === replyCommentId)).toBe(
+      true,
+    );
+
+    const hide = await api(
+      `/admin/circle/comments/${replyCommentId}`,
+      { method: 'PATCH', body: JSON.stringify({ hidden: true }) },
+      adminToken,
+    );
+    expect(hide.status).toBe(200);
+
+    const afterHide = await api(`/circle/posts/${postId}/comments`);
+    expect(afterHide.body.data.total).toBe(0);
+
+    const show = await api(
+      `/admin/circle/comments/${replyCommentId}`,
+      { method: 'PATCH', body: JSON.stringify({ hidden: false }) },
+      adminToken,
+    );
+    expect(show.status).toBe(200);
+    const afterShow = await api(`/circle/posts/${postId}/comments`);
+    expect(afterShow.body.data.total).toBe(1);
   });
 
   it('重复举报拦截，3 次举报自动隐藏', async () => {

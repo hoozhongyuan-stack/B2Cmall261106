@@ -78,6 +78,18 @@ export class CircleInteractionController {
     });
   }
 
+  @Get('search')
+  @UseGuards(OptionalUserJwtGuard)
+  @ApiOperation({ summary: '圈子搜索：已发布内容与相关话题' })
+  search(
+    @OptionalCurrentUser() user: MiniappUser | undefined,
+    @Query('keyword') keyword = '',
+    @Query('cursor') cursor?: string,
+    @Query('pageSize') pageSize?: string,
+  ) {
+    return this.interactions.search(user?.sub, keyword, cursor, Number(pageSize) || 10);
+  }
+
   @Get('posts/:id')
   @UseGuards(OptionalUserJwtGuard)
   @ApiOperation({ summary: '帖子详情（返回点赞 / 收藏 / 关注状态）' })

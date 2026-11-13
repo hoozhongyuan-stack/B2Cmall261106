@@ -22,6 +22,7 @@ export default defineAppConfig({
     'pages/review/create/index',
     'pages/review/mine/index',
     'pages/circle/index',
+    'pages/circle-search/index',
     'pages/circle-detail/index',
     'pages/circle-user/index',
     'pages/circle-notifications/index',

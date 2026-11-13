@@ -1,5 +1,5 @@
 import { Text, View } from '@tarojs/components';
-import Taro, { useDidShow, usePullDownRefresh, useReachBottom } from '@tarojs/taro';
+import Taro, { useDidShow, usePullDownRefresh, useReachBottom, useRouter } from '@tarojs/taro';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { api, getToken, showError } from '../../api/client';
@@ -35,11 +35,12 @@ const TABS: { value: Tab; label: string }[] = [
 ];
 
 export default function Page() {
+  const router = useRouter();
   const [tab, setTab] = useState<Tab>('recommend');
   const [categories, setCategories] = useState<Category[]>([]);
   const [topics, setTopics] = useState<Topic[]>([]);
-  const [categoryId, setCategoryId] = useState('');
-  const [topicId, setTopicId] = useState('');
+  const [categoryId, setCategoryId] = useState(router.params.categoryId ?? '');
+  const [topicId, setTopicId] = useState(router.params.topicId ?? '');
   const [items, setItems] = useState<CirclePostItem[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -128,6 +129,12 @@ export default function Page() {
         <View className="circle-top-bar">
           <Text className="circle-top-title">山野圈子</Text>
           <View className="row" style={{ gap: 16 }}>
+            <View
+              className="circle-top-icon"
+              onClick={() => Taro.navigateTo({ url: '/pages/circle-search/index' })}
+            >
+              <Text>搜索</Text>
+            </View>
             <View
               className="circle-top-icon"
               onClick={() => Taro.navigateTo({ url: '/pages/circle-notifications/index' })}

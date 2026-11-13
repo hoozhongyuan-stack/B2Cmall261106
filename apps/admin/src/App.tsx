@@ -44,7 +44,9 @@ const MemberCards = lazy(() => import('./pages/MemberCards'));
 const StoredValue = lazy(() => import('./pages/StoredValue'));
 const CircleTaxonomy = lazy(() => import('./pages/CircleTaxonomy'));
 const CirclePosts = lazy(() => import('./pages/CirclePosts'));
+const CircleComments = lazy(() => import('./pages/CircleComments'));
 const CircleReports = lazy(() => import('./pages/CircleReports'));
+const CircleStats = lazy(() => import('./pages/CircleStats'));
 const CircleSettings = lazy(() => import('./pages/CircleSettings'));
 const FullReduction = lazy(() => import('./pages/FullReduction'));
 const Seckill = lazy(() => import('./pages/Seckill'));
@@ -95,7 +97,9 @@ export function App() {
           <Route path="member-commerce" element={<Navigate to="/members/cards" replace />} />
           <Route path="circle/taxonomy" element={<CircleTaxonomy />} />
           <Route path="circle/posts" element={<CirclePosts />} />
+          <Route path="circle/comments" element={<CircleComments />} />
           <Route path="circle/reports" element={<CircleReports />} />
+          <Route path="circle/stats" element={<CircleStats />} />
           <Route path="circle/settings" element={<CircleSettings />} />
           <Route path="points-rules" element={<PointsRules />} />
           <Route path="coupons" element={<Coupons />} />
