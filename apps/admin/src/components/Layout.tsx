@@ -14,6 +14,7 @@ type IconName =
   | 'product'
   | 'order'
   | 'customer'
+  | 'circle'
   | 'promotion'
   | 'store'
   | 'decoration'
@@ -67,6 +68,15 @@ const MENU: MenuGroup[] = [
     items: [
       { to: '/customers', label: '客户列表', permission: 'customer.view' },
       { to: '/user-tags', label: '用户标签', permission: 'usertag.view' },
+    ],
+  },
+  {
+    group: '圈子',
+    icon: 'circle',
+    items: [
+      { to: '/circle/posts', label: '内容审核', permission: 'circle.audit' },
+      { to: '/circle/taxonomy', label: '类目与话题', permission: 'circle.view' },
+      { to: '/circle/settings', label: '圈子设置', permission: 'circle.view' },
     ],
   },
   {
@@ -136,6 +146,7 @@ const ICON_PATHS: Record<IconName, string[]> = {
     'M20 19a3 3 0 0 0-3-3',
     'M17 11a2.5 2.5 0 1 0 0-5',
   ],
+  circle: ['M4 5h16v11H8l-4 4V5z', 'M8 9h8', 'M8 12h5'],
   promotion: ['M4 12l8-8 6 6-8 8H4v-6z', 'M15 7.5h.01'],
   store: ['M4 9l1-5h14l1 5', 'M4 9h16v11H4z', 'M9 20v-6h6v6'],
   decoration: ['M4 4h16v16H4z', 'M4 9h16', 'M9 20V9', 'M13 13h4', 'M13 16h4'],

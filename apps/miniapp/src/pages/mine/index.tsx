@@ -200,6 +200,11 @@ export default function Page() {
             onClick={() => Taro.navigateTo({ url: '/pages/review/mine/index' })}
           />
           <Cell
+            title="我的圈子"
+            value="发布与审核状态"
+            onClick={() => Taro.navigateTo({ url: '/pages/circle-me/index' })}
+          />
+          <Cell
             title="售后记录"
             onClick={() => Taro.navigateTo({ url: '/pages/after-sale/list/index' })}
           />

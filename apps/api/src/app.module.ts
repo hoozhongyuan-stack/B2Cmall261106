@@ -27,6 +27,7 @@ import { PickupModule } from './modules/pickup/pickup.module';
 import { DeliveryModule } from './modules/delivery/delivery.module';
 import { SearchModule } from './modules/search/search.module';
 import { StoreConsoleModule } from './modules/store-console/store-console.module';
+import { CircleModule } from './modules/circle/circle.module';
 
 @Module({
   imports: [
@@ -52,6 +53,7 @@ import { StoreConsoleModule } from './modules/store-console/store-console.module
     DeliveryModule,
     SearchModule,
     StoreConsoleModule,
+    CircleModule,
   ],
   controllers: [CatalogController, ProductDetailController],
   providers: [

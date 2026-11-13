@@ -102,6 +102,7 @@ model Product {
   category Category     @relation(fields: [categoryId], references: [id])
   skus     Sku[]
   tags     ProductTag[]
+  circlePostProducts CirclePostProduct[]
 
   @@index([categoryId, status])
   @@index([channel, status])
@@ -485,6 +486,15 @@ model User {
   consents           UserConsent[]
   pointsSignIns      PointsSignIn[]
   pointsShareDailies PointsShareDaily[]
+  circlePosts            CirclePost[]
+  circleComments         CircleComment[]
+  circleLikes            CircleLike[]
+  circleFavorites        CircleFavorite[]
+  circleFollowing        CircleFollow[]         @relation("CircleFollowFollower")
+  circleFollowers        CircleFollow[]         @relation("CircleFollowFollowing")
+  circleNotifications    CircleNotification[]   @relation("CircleNotificationUser")
+  circleActorNotifications CircleNotification[] @relation("CircleNotificationActor")
+  circleReports          CircleReport[]
 
   @@index([levelId])
 }
@@ -1180,4 +1190,223 @@ model StoreStockLog {
 
   @@index([storeId, createdAt])
   @@index([skuId])
+}
+
+// ==================== 圈子（品牌内容社区） ====================
+
+enum CirclePostStatus {
+  PENDING // 待审核
+  PUBLISHED
+  REJECTED // 审核拒绝
+  HIDDEN // 违规或作者删除后隐藏
+}
+
+enum CircleReportStatus {
+  PENDING
+  RESOLVED
+  REJECTED
+}
+
+/// 圈子类目：平台维护，帖子必选其一
+model CircleCategory {
+  id        String   @id @default(cuid())
+  name      String
+  iconKey   String?
+  sort      Int      @default(0)
+  enabled   Boolean  @default(true)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  posts  CirclePost[]
+  topics CircleTopic[]
+
+  @@index([enabled, sort])
+}
+
+/// 圈子话题：平台创建，用于内容聚合与运营活动
+model CircleTopic {
+  id          String    @id @default(cuid())
+  name        String
+  description String?
+  coverKey    String?
+  categoryId  String?
+  startAt     DateTime? @db.Timestamptz(3)
+  endAt       DateTime? @db.Timestamptz(3)
+  pinned      Boolean   @default(false)
+  enabled     Boolean   @default(true)
+  sort        Int       @default(0)
+  /// 已发布帖子数（冗余计数，审核通过 +1）
+  postCount   Int       @default(0)
+  createdAt   DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime  @updatedAt @db.Timestamptz(3)
+
+  category CircleCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  posts    CirclePostTopic[]
+
+  @@index([enabled, pinned, sort])
+  @@index([categoryId])
+}
+
+/// 用户发布的图文内容
+model CirclePost {
+  id            String           @id @default(cuid())
+  userId        String
+  categoryId    String
+  content       String           @db.Text
+  /// [{ key, width, height }]，1~9 张
+  mediaJson     Json
+  status        CirclePostStatus @default(PUBLISHED)
+  auditNote     String?
+  auditedBy     String?
+  auditedAt     DateTime?        @db.Timestamptz(3)
+  pinned        Boolean          @default(false)
+  featured      Boolean          @default(false)
+  likeCount     Int              @default(0)
+  commentCount  Int              @default(0)
+  favoriteCount Int              @default(0)
+  viewCount     Int              @default(0)
+  /// 发帖积分发放时间：为空表示尚未奖励，避免重复发放
+  rewardedAt    DateTime?        @db.Timestamptz(3)
+  publishedAt   DateTime?        @db.Timestamptz(3)
+  createdAt     DateTime         @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime         @updatedAt @db.Timestamptz(3)
+
+  user     User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category CircleCategory     @relation(fields: [categoryId], references: [id])
+  topics   CirclePostTopic[]
+  products CirclePostProduct[]
+  comments  CircleComment[]
+  likes     CircleLike[]
+  favorites CircleFavorite[]
+
+  @@index([status, publishedAt])
+  @@index([categoryId, status, publishedAt])
+  @@index([userId, createdAt])
+}
+
+model CirclePostTopic {
+  postId  String
+  topicId String
+  sort    Int    @default(0)
+
+  post  CirclePost  @relation(fields: [postId], references: [id], onDelete: Cascade)
+  topic CircleTopic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+
+  @@id([postId, topicId])
+  @@index([topicId])
+}
+
+model CirclePostProduct {
+  postId    String
+  productId String
+  sort      Int    @default(0)
+
+  post    CirclePost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  product Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@id([postId, productId])
+  @@index([productId])
+}
+
+model CircleComment {
+  id        String   @id @default(cuid())
+  postId    String
+  userId    String
+  /// 一级回复指向的评论
+  parentId  String?
+  content   String   @db.Text
+  hidden    Boolean  @default(false)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+
+  post CirclePost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([postId, createdAt])
+  @@index([userId])
+}
+
+model CircleLike {
+  postId    String
+  userId    String
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+
+  post CirclePost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([postId, userId])
+  @@index([userId])
+}
+
+model CircleFavorite {
+  postId    String
+  userId    String
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+
+  post CirclePost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([postId, userId])
+  @@index([userId])
+}
+
+model CircleFollow {
+  followerId  String
+  followingId String
+  createdAt   DateTime @default(now()) @db.Timestamptz(3)
+
+  follower  User @relation("CircleFollowFollower", fields: [followerId], references: [id], onDelete: Cascade)
+  following User @relation("CircleFollowFollowing", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@id([followerId, followingId])
+  @@index([followingId])
+}
+
+model CircleReport {
+  id         String             @id @default(cuid())
+  /// POST | COMMENT | USER
+  targetType String
+  targetId   String
+  reporterId String
+  /// 广告引流 | 违法违规 | 色情低俗 | 人身攻击 | 虚假信息 | 其他
+  reason     String
+  detail     String?
+  status     CircleReportStatus @default(PENDING)
+  handledBy  String?
+  handledAt  DateTime?          @db.Timestamptz(3)
+  createdAt  DateTime           @default(now()) @db.Timestamptz(3)
+
+  reporter User @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+
+  @@index([status, createdAt])
+  @@index([targetType, targetId])
+}
+
+model CircleNotification {
+  id        String   @id @default(cuid())
+  userId    String
+  /// LIKE | COMMENT | REPLY | FOLLOW | SYSTEM
+  type      String
+  actorId   String?
+  postId    String?
+  commentId String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+
+  user  User  @relation("CircleNotificationUser", fields: [userId], references: [id], onDelete: Cascade)
+  actor User? @relation("CircleNotificationActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([userId, read, createdAt])
+}
+
+/// 圈子设置（单例）
+model CircleSetting {
+  id                   String   @id @default("singleton")
+  enabled              Boolean  @default(true)
+  /// HYBRID：机审后发布，命中风险自动隐藏待审；REVIEW：先审后发
+  auditMode            String   @default("HYBRID")
+  dailyPostLimit       Int      @default(5)
+  dailyCommentLimit    Int      @default(30)
+  postPoints           Int      @default(10)
+  postPointsDailyLimit Int      @default(1)
+  updatedAt            DateTime @updatedAt @db.Timestamptz(3)
 }

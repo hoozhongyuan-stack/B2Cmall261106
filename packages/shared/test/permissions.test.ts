@@ -10,7 +10,7 @@ import {
 
 describe('权限目录', () => {
   it('分组与权限 key 唯一且格式统一', () => {
-    expect(PERMISSION_GROUPS.length).toBe(9);
+    expect(PERMISSION_GROUPS.length).toBe(10);
     const keys = ALL_PERMISSIONS;
     expect(new Set(keys).size).toBe(keys.length);
     for (const key of keys) expect(key).toMatch(/^[a-z]+\.[a-z]+$/);

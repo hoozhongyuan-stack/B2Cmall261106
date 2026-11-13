@@ -4372,6 +4372,333 @@ paths:
                   data: { $ref: '#/components/schemas/PopupAd' }
         '400': { $ref: '#/components/responses/BadRequest' }
 
+  /admin/circle/categories:
+    get:
+      tags: [admin-circle]
+      summary: 圈子类目列表
+      security: [{ adminToken: [] }]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      items:
+                        type: array
+                        items: { $ref: '#/components/schemas/CircleCategory' }
+    post:
+      tags: [admin-circle]
+      summary: 新建圈子类目
+      security: [{ adminToken: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CircleCategoryInput' }
+      responses:
+        '201': { description: 创建成功 }
+        '400': { $ref: '#/components/responses/BadRequest' }
+
+  /admin/circle/categories/{id}:
+    patch:
+      tags: [admin-circle]
+      summary: 编辑 / 启停圈子类目
+      security: [{ adminToken: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CircleCategoryInput' }
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [admin-circle]
+      summary: 删除圈子类目（有内容时禁止）
+      security: [{ adminToken: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /admin/circle/topics:
+    get:
+      tags: [admin-circle]
+      summary: 圈子话题列表
+      security: [{ adminToken: [] }]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      items:
+                        type: array
+                        items: { $ref: '#/components/schemas/CircleTopic' }
+    post:
+      tags: [admin-circle]
+      summary: 新建圈子话题
+      security: [{ adminToken: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CircleTopicInput' }
+      responses:
+        '201': { description: 创建成功 }
+        '400': { $ref: '#/components/responses/BadRequest' }
+
+  /admin/circle/topics/{id}:
+    patch:
+      tags: [admin-circle]
+      summary: 编辑 / 启停圈子话题
+      security: [{ adminToken: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CircleTopicInput' }
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [admin-circle]
+      summary: 删除圈子话题（有内容时禁止）
+      security: [{ adminToken: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /admin/circle/settings:
+    get:
+      tags: [admin-circle]
+      summary: 圈子设置
+      security: [{ adminToken: [] }]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/CircleSettings' }
+    patch:
+      tags: [admin-circle]
+      summary: 保存圈子设置
+      security: [{ adminToken: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CircleSettingsInput' }
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/BadRequest' }
+
+
+  /circle/categories:
+    get:
+      tags: [circle]
+      summary: 圈子启用类目（含圈子开关）
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      enabled: { type: boolean }
+                      items:
+                        type: array
+                        items: { $ref: '#/components/schemas/CircleCategoryBrief' }
+
+  /circle/topics:
+    get:
+      tags: [circle]
+      summary: 圈子话题（启用且未结束，可按类目筛选）
+      parameters:
+        - { name: categoryId, in: query, required: false, schema: { type: string } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      items:
+                        type: array
+                        items: { $ref: '#/components/schemas/CircleTopicBrief' }
+
+  /circle/images:
+    post:
+      tags: [circle]
+      summary: 圈子图片上传（multipart，最多 9 张，单张 ≤5MB）
+      security: [{ userToken: [] }]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [files]
+              properties:
+                files:
+                  type: array
+                  items: { type: string, format: binary }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      items:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id: { type: string }
+                            key: { type: string }
+                            url: { type: string }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /circle/posts:
+    post:
+      tags: [circle]
+      summary: 发布圈子内容（限频、内容安全、按审核模式落状态）
+      security: [{ userToken: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CirclePostInput' }
+      responses:
+        '201':
+          description: 创建成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      id: { type: string }
+                      status: { type: string, enum: [PENDING, PUBLISHED] }
+                      points: { type: integer }
+                      message: { type: string }
+        '400': { $ref: '#/components/responses/BadRequest' }
+
+  /circle/me/posts:
+    get:
+      tags: [circle]
+      summary: 我的圈子内容（含审核状态与拒绝原因）
+      security: [{ userToken: [] }]
+      parameters:
+        - { name: status, in: query, required: false, schema: { type: string, enum: [PENDING, PUBLISHED, REJECTED, HIDDEN] } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      items:
+                        type: array
+                        items: { $ref: '#/components/schemas/CircleMyPost' }
+
+  /admin/circle/posts:
+    get:
+      tags: [admin-circle]
+      summary: 圈子内容审核队列（含各状态数量，分页，可关键词筛选）
+      security: [{ adminToken: [] }]
+      parameters:
+        - { name: status, in: query, required: false, schema: { type: string, enum: [PENDING, PUBLISHED, REJECTED, HIDDEN] } }
+        - { name: keyword, in: query, required: false, schema: { type: string } }
+        - { name: page, in: query, required: false, schema: { type: integer, default: 1 } }
+        - { name: pageSize, in: query, required: false, schema: { type: integer, default: 20 } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      total: { type: integer }
+                      page: { type: integer }
+                      pageSize: { type: integer }
+                      counts:
+                        type: object
+                        additionalProperties: { type: integer }
+                      items:
+                        type: array
+                        items: { $ref: '#/components/schemas/CirclePostAdmin' }
+
+  /admin/circle/posts/{id}/audit:
+    patch:
+      tags: [admin-circle]
+      summary: 审核圈子内容（通过 / 拒绝 / 隐藏）
+      security: [{ adminToken: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [action]
+              properties:
+                action: { type: string, enum: [APPROVE, REJECT, HIDE] }
+                note: { type: string, maxLength: 200, description: 拒绝时必填 }
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+
 components:
   securitySchemes:
     userToken:
@@ -5770,3 +6097,171 @@ components:
         enabled: { type: boolean }
         startAt: { type: string, format: date-time, nullable: true }
         endAt: { type: string, format: date-time, nullable: true }
+
+    CircleCategory:
+      type: object
+      required: [id, name, sort, enabled, postCount]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        iconKey: { type: string, nullable: true }
+        sort: { type: integer }
+        enabled: { type: boolean }
+        postCount: { type: integer }
+        createdAt: { type: string, format: date-time }
+
+    CircleCategoryInput:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string, maxLength: 20 }
+        iconKey: { type: string, nullable: true }
+        sort: { type: integer }
+        enabled: { type: boolean }
+
+    CircleTopic:
+      type: object
+      required: [id, name, pinned, enabled, sort, postCount]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        description: { type: string, nullable: true }
+        coverKey: { type: string, nullable: true }
+        categoryId: { type: string, nullable: true }
+        categoryName: { type: string, nullable: true }
+        startAt: { type: string, format: date-time, nullable: true }
+        endAt: { type: string, format: date-time, nullable: true }
+        pinned: { type: boolean }
+        enabled: { type: boolean }
+        sort: { type: integer }
+        postCount: { type: integer }
+
+    CircleTopicInput:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string, maxLength: 30 }
+        description: { type: string, nullable: true, maxLength: 200 }
+        coverKey: { type: string, nullable: true }
+        categoryId: { type: string, nullable: true }
+        startAt: { type: string, format: date-time, nullable: true }
+        endAt: { type: string, format: date-time, nullable: true }
+        pinned: { type: boolean }
+        enabled: { type: boolean }
+        sort: { type: integer }
+
+    CircleSettings:
+      type: object
+      required: [enabled, auditMode, dailyPostLimit, dailyCommentLimit, postPoints, postPointsDailyLimit]
+      properties:
+        enabled: { type: boolean }
+        auditMode: { type: string, enum: [HYBRID, REVIEW] }
+        dailyPostLimit: { type: integer }
+        dailyCommentLimit: { type: integer }
+        postPoints: { type: integer }
+        postPointsDailyLimit: { type: integer }
+        updatedAt: { type: string, format: date-time }
+
+    CircleSettingsInput:
+      type: object
+      properties:
+        enabled: { type: boolean }
+        auditMode: { type: string, enum: [HYBRID, REVIEW] }
+        dailyPostLimit: { type: integer, minimum: 0, maximum: 100 }
+        dailyCommentLimit: { type: integer, minimum: 0, maximum: 200 }
+        postPoints: { type: integer, minimum: 0, maximum: 10000 }
+        postPointsDailyLimit: { type: integer, minimum: 0, maximum: 20 }
+
+    CircleCategoryBrief:
+      type: object
+      required: [id, name]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        iconKey: { type: string, nullable: true }
+
+    CircleTopicBrief:
+      type: object
+      required: [id, name, pinned, postCount]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        coverKey: { type: string, nullable: true }
+        description: { type: string, nullable: true }
+        categoryId: { type: string, nullable: true }
+        pinned: { type: boolean }
+        postCount: { type: integer }
+
+    CirclePostInput:
+      type: object
+      required: [categoryId]
+      properties:
+        content: { type: string, maxLength: 1000 }
+        categoryId: { type: string }
+        images:
+          type: array
+          maxItems: 9
+          items: { type: string }
+        topicIds:
+          type: array
+          maxItems: 3
+          items: { type: string }
+        productIds:
+          type: array
+          maxItems: 3
+          items: { type: string }
+
+    CircleMyPost:
+      type: object
+      required: [id, content, status, category]
+      properties:
+        id: { type: string }
+        content: { type: string }
+        images:
+          type: array
+          items: { type: string }
+        status: { type: string, enum: [PENDING, PUBLISHED, REJECTED, HIDDEN] }
+        auditNote: { type: string, nullable: true }
+        category: { $ref: '#/components/schemas/CircleCategoryBrief' }
+        topics:
+          type: array
+          items: { $ref: '#/components/schemas/CircleTopicBrief' }
+        likeCount: { type: integer }
+        commentCount: { type: integer }
+        favoriteCount: { type: integer }
+        viewCount: { type: integer }
+        createdAt: { type: string, format: date-time }
+        publishedAt: { type: string, format: date-time, nullable: true }
+
+    CirclePostAdmin:
+      type: object
+      required: [id, content, status, author, category]
+      properties:
+        id: { type: string }
+        content: { type: string }
+        images:
+          type: array
+          items: { type: string }
+        status: { type: string, enum: [PENDING, PUBLISHED, REJECTED, HIDDEN] }
+        auditNote: { type: string, nullable: true }
+        pinned: { type: boolean }
+        featured: { type: boolean }
+        likeCount: { type: integer }
+        commentCount: { type: integer }
+        favoriteCount: { type: integer }
+        viewCount: { type: integer }
+        productCount: { type: integer }
+        rewardedAt: { type: string, format: date-time, nullable: true }
+        createdAt: { type: string, format: date-time }
+        publishedAt: { type: string, format: date-time, nullable: true }
+        auditedAt: { type: string, format: date-time, nullable: true }
+        author:
+          type: object
+          properties:
+            id: { type: string }
+            nickname: { type: string, nullable: true }
+            avatarKey: { type: string, nullable: true }
+        category: { $ref: '#/components/schemas/CircleCategoryBrief' }
+        topics:
+          type: array
+          items: { $ref: '#/components/schemas/CircleTopicBrief' }

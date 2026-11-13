@@ -18,6 +18,7 @@ const ROUTES: [RegExp, PermissionKey][] = [
   [/^\/user-tags/, 'usertag.view'],
   [/^\/levels/, 'level.view'],
   [/^\/members\//, 'membercard.view'],
+  [/^\/circle/, 'circle.view'],
   [/^\/points-rules/, 'points.view'],
   [/^\/coupons\/new$/, 'coupon.edit'],
   [/^\/coupons\/[^/]+\/claims$/, 'coupon.view'],

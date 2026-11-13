@@ -118,14 +118,14 @@ async function main(): Promise<void> {
       name: '商品运营',
       description: '商品、营销、装修与门店运营',
       permissions: [
-        'aftersale.view', 'analytics.view', 'asset.manage', 'asset.view', 'category.manage', 'category.view', 'coupon.edit', 'coupon.view', 'customer.edit', 'customer.view', 'dashboard.view', 'delivery.manage', 'express.manage', 'express.view', 'level.manage', 'level.view', 'log.view', 'membercard.manage', 'membercard.view', 'micropage.manage', 'micropage.view', 'miniapp.view', 'notification.manage', 'order.refund', 'order.view', 'pickup.verify', 'points.manage', 'points.view', 'popupad.manage', 'popupad.view', 'product.edit', 'product.stock', 'product.view', 'promotion.manage', 'promotion.view', 'review.manage', 'store.edit', 'store.view', 'system.view', 'tabbar.manage', 'tabbar.view', 'tag.manage', 'tag.view', 'usertag.manage', 'usertag.view', 'integration.view', 'shop.view', 'freight.manage', 'pointsmall.manage', 'pointsmall.view',
+        'aftersale.view', 'analytics.view', 'asset.manage', 'asset.view', 'category.manage', 'category.view', 'coupon.edit', 'coupon.view', 'customer.edit', 'customer.view', 'dashboard.view', 'delivery.manage', 'express.manage', 'express.view', 'level.manage', 'level.view', 'log.view', 'membercard.manage', 'membercard.view', 'micropage.manage', 'micropage.view', 'miniapp.view', 'notification.manage', 'order.refund', 'order.view', 'pickup.verify', 'points.manage', 'points.view', 'popupad.manage', 'popupad.view', 'product.edit', 'product.stock', 'product.view', 'promotion.manage', 'promotion.view', 'review.manage', 'store.edit', 'store.view', 'system.view', 'tabbar.manage', 'tabbar.view', 'tag.manage', 'tag.view', 'usertag.manage', 'usertag.view', 'integration.view', 'shop.view', 'freight.manage', 'pointsmall.manage', 'pointsmall.view', 'circle.audit', 'circle.manage', 'circle.view',
       ],
     },
     {
       name: '客服',
       description: '订单查看、售后审核与客户服务',
       permissions: [
-        'aftersale.audit', 'aftersale.view', 'analytics.view', 'category.view', 'coupon.view', 'customer.edit', 'customer.view', 'dashboard.view', 'delivery.manage', 'express.view', 'level.view', 'log.view', 'membercard.view', 'order.edit', 'order.refund', 'order.view', 'pickup.verify', 'points.view', 'product.stock', 'product.view', 'promotion.view', 'review.manage', 'store.view', 'tag.view', 'usertag.view', 'asset.view', 'integration.view', 'micropage.view', 'popupad.view', 'shop.view', 'tabbar.view', 'freight.manage', 'pointsmall.view',
+        'aftersale.audit', 'aftersale.view', 'analytics.view', 'category.view', 'coupon.view', 'customer.edit', 'customer.view', 'dashboard.view', 'delivery.manage', 'express.view', 'level.view', 'log.view', 'membercard.view', 'order.edit', 'order.refund', 'order.view', 'pickup.verify', 'points.view', 'product.stock', 'product.view', 'promotion.view', 'review.manage', 'store.view', 'tag.view', 'usertag.view', 'asset.view', 'integration.view', 'micropage.view', 'popupad.view', 'shop.view', 'tabbar.view', 'freight.manage', 'pointsmall.view', 'circle.audit', 'circle.view',
       ],
     },
     {

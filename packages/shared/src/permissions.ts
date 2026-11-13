@@ -56,6 +56,15 @@ export const PERMISSION_GROUPS = [
     ],
   },
   {
+    key: 'circle',
+    name: '圈子',
+    items: [
+      { key: 'circle.view', name: '圈子内容查看' },
+      { key: 'circle.audit', name: '内容审核 / 举报处理' },
+      { key: 'circle.manage', name: '类目 / 话题 / 圈子设置' },
+    ],
+  },
+  {
     key: 'marketing',
     name: '营销',
     items: [
@@ -157,6 +166,8 @@ export const PERMISSION_DEPENDENCIES: Partial<Record<PermissionKey, PermissionKe
   'usertag.manage': ['usertag.view'],
   'level.manage': ['level.view'],
   'membercard.manage': ['membercard.view'],
+  'circle.audit': ['circle.view'],
+  'circle.manage': ['circle.view'],
   'points.manage': ['points.view'],
   'coupon.edit': ['coupon.view'],
   'promotion.manage': ['promotion.view'],

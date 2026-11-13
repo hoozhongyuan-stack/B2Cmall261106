@@ -9032,6 +9032,644 @@ export interface paths {
         };
         trace?: never;
     };
+    "/admin/circle/categories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 圈子类目列表 */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: {
+                                items?: components["schemas"]["CircleCategory"][];
+                            };
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** 新建圈子类目 */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CircleCategoryInput"];
+                };
+            };
+            responses: {
+                /** @description 创建成功 */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                400: components["responses"]["BadRequest"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/circle/categories/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** 删除圈子类目（有内容时禁止） */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                400: components["responses"]["BadRequest"];
+                404: components["responses"]["NotFound"];
+            };
+        };
+        options?: never;
+        head?: never;
+        /** 编辑 / 启停圈子类目 */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CircleCategoryInput"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                400: components["responses"]["BadRequest"];
+                404: components["responses"]["NotFound"];
+            };
+        };
+        trace?: never;
+    };
+    "/admin/circle/topics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 圈子话题列表 */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: {
+                                items?: components["schemas"]["CircleTopic"][];
+                            };
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** 新建圈子话题 */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CircleTopicInput"];
+                };
+            };
+            responses: {
+                /** @description 创建成功 */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                400: components["responses"]["BadRequest"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/circle/topics/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** 删除圈子话题（有内容时禁止） */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                400: components["responses"]["BadRequest"];
+                404: components["responses"]["NotFound"];
+            };
+        };
+        options?: never;
+        head?: never;
+        /** 编辑 / 启停圈子话题 */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CircleTopicInput"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                400: components["responses"]["BadRequest"];
+                404: components["responses"]["NotFound"];
+            };
+        };
+        trace?: never;
+    };
+    "/admin/circle/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 圈子设置 */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: components["schemas"]["CircleSettings"];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** 保存圈子设置 */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CircleSettingsInput"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                400: components["responses"]["BadRequest"];
+            };
+        };
+        trace?: never;
+    };
+    "/circle/categories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 圈子启用类目（含圈子开关） */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: {
+                                enabled?: boolean;
+                                items?: components["schemas"]["CircleCategoryBrief"][];
+                            };
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/circle/topics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 圈子话题（启用且未结束，可按类目筛选） */
+        get: {
+            parameters: {
+                query?: {
+                    categoryId?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: {
+                                items?: components["schemas"]["CircleTopicBrief"][];
+                            };
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/circle/images": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 圈子图片上传（multipart，最多 9 张，单张 ≤5MB） */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "multipart/form-data": {
+                        files: string[];
+                    };
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: {
+                                items?: {
+                                    id?: string;
+                                    key?: string;
+                                    url?: string;
+                                }[];
+                            };
+                        };
+                    };
+                };
+                429: components["responses"]["TooManyRequests"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/circle/posts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 发布圈子内容（限频、内容安全、按审核模式落状态） */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CirclePostInput"];
+                };
+            };
+            responses: {
+                /** @description 创建成功 */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: {
+                                id?: string;
+                                /** @enum {string} */
+                                status?: "PENDING" | "PUBLISHED";
+                                points?: number;
+                                message?: string;
+                            };
+                        };
+                    };
+                };
+                400: components["responses"]["BadRequest"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/circle/me/posts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 我的圈子内容（含审核状态与拒绝原因） */
+        get: {
+            parameters: {
+                query?: {
+                    status?: "PENDING" | "PUBLISHED" | "REJECTED" | "HIDDEN";
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: {
+                                items?: components["schemas"]["CircleMyPost"][];
+                            };
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/circle/posts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 圈子内容审核队列（含各状态数量，分页，可关键词筛选） */
+        get: {
+            parameters: {
+                query?: {
+                    status?: "PENDING" | "PUBLISHED" | "REJECTED" | "HIDDEN";
+                    keyword?: string;
+                    page?: number;
+                    pageSize?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data?: {
+                                total?: number;
+                                page?: number;
+                                pageSize?: number;
+                                counts?: {
+                                    [key: string]: number;
+                                };
+                                items?: components["schemas"]["CirclePostAdmin"][];
+                            };
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/circle/posts/{id}/audit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** 审核圈子内容（通过 / 拒绝 / 隐藏） */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        action: "APPROVE" | "REJECT" | "HIDE";
+                        /** @description 拒绝时必填 */
+                        note?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                400: components["responses"]["BadRequest"];
+                404: components["responses"]["NotFound"];
+            };
+        };
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -10215,6 +10853,140 @@ export interface components {
             startAt?: string | null;
             /** Format: date-time */
             endAt?: string | null;
+        };
+        CircleCategory: {
+            id: string;
+            name: string;
+            iconKey?: string | null;
+            sort: number;
+            enabled: boolean;
+            postCount: number;
+            /** Format: date-time */
+            createdAt?: string;
+        };
+        CircleCategoryInput: {
+            name: string;
+            iconKey?: string | null;
+            sort?: number;
+            enabled?: boolean;
+        };
+        CircleTopic: {
+            id: string;
+            name: string;
+            description?: string | null;
+            coverKey?: string | null;
+            categoryId?: string | null;
+            categoryName?: string | null;
+            /** Format: date-time */
+            startAt?: string | null;
+            /** Format: date-time */
+            endAt?: string | null;
+            pinned: boolean;
+            enabled: boolean;
+            sort: number;
+            postCount: number;
+        };
+        CircleTopicInput: {
+            name: string;
+            description?: string | null;
+            coverKey?: string | null;
+            categoryId?: string | null;
+            /** Format: date-time */
+            startAt?: string | null;
+            /** Format: date-time */
+            endAt?: string | null;
+            pinned?: boolean;
+            enabled?: boolean;
+            sort?: number;
+        };
+        CircleSettings: {
+            enabled: boolean;
+            /** @enum {string} */
+            auditMode: "HYBRID" | "REVIEW";
+            dailyPostLimit: number;
+            dailyCommentLimit: number;
+            postPoints: number;
+            postPointsDailyLimit: number;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        CircleSettingsInput: {
+            enabled?: boolean;
+            /** @enum {string} */
+            auditMode?: "HYBRID" | "REVIEW";
+            dailyPostLimit?: number;
+            dailyCommentLimit?: number;
+            postPoints?: number;
+            postPointsDailyLimit?: number;
+        };
+        CircleCategoryBrief: {
+            id: string;
+            name: string;
+            iconKey?: string | null;
+        };
+        CircleTopicBrief: {
+            id: string;
+            name: string;
+            coverKey?: string | null;
+            description?: string | null;
+            categoryId?: string | null;
+            pinned: boolean;
+            postCount: number;
+        };
+        CirclePostInput: {
+            content?: string;
+            categoryId: string;
+            images?: string[];
+            topicIds?: string[];
+            productIds?: string[];
+        };
+        CircleMyPost: {
+            id: string;
+            content: string;
+            images?: string[];
+            /** @enum {string} */
+            status: "PENDING" | "PUBLISHED" | "REJECTED" | "HIDDEN";
+            auditNote?: string | null;
+            category: components["schemas"]["CircleCategoryBrief"];
+            topics?: components["schemas"]["CircleTopicBrief"][];
+            likeCount?: number;
+            commentCount?: number;
+            favoriteCount?: number;
+            viewCount?: number;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            publishedAt?: string | null;
+        };
+        CirclePostAdmin: {
+            id: string;
+            content: string;
+            images?: string[];
+            /** @enum {string} */
+            status: "PENDING" | "PUBLISHED" | "REJECTED" | "HIDDEN";
+            auditNote?: string | null;
+            pinned?: boolean;
+            featured?: boolean;
+            likeCount?: number;
+            commentCount?: number;
+            favoriteCount?: number;
+            viewCount?: number;
+            productCount?: number;
+            /** Format: date-time */
+            rewardedAt?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            publishedAt?: string | null;
+            /** Format: date-time */
+            auditedAt?: string | null;
+            author: {
+                id?: string;
+                nickname?: string | null;
+                avatarKey?: string | null;
+            };
+            category: components["schemas"]["CircleCategoryBrief"];
+            topics?: components["schemas"]["CircleTopicBrief"][];
         };
     };
     responses: {

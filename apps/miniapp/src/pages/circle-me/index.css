@@ -1,0 +1,63 @@
+.circle-tabs {
+  padding-top: 0;
+}
+
+.circle-publish {
+  margin-bottom: 24px;
+}
+
+.circle-post {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.circle-content {
+  white-space: pre-wrap;
+  line-height: 1.6;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+}
+
+.circle-thumbs {
+  display: flex;
+  gap: 12px;
+}
+
+.circle-thumb {
+  width: 160px;
+  height: 160px;
+  border-radius: 12px;
+  background: var(--surface-2);
+}
+
+.circle-thumb--more {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-3);
+  font-size: var(--fs-secondary);
+  background: var(--surface-2);
+}
+
+.circle-note {
+  display: block;
+  color: var(--warn);
+  background: var(--warn-soft);
+  border-radius: 10px;
+  padding: 12px 16px;
+}
+
+.circle-status--rejected {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.circle-meta {
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+}

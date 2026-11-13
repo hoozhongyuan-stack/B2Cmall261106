@@ -21,6 +21,8 @@ export default defineAppConfig({
     'pages/after-sale/detail/index',
     'pages/review/create/index',
     'pages/review/mine/index',
+    'pages/circle-me/index',
+    'pages/circle-publish/index',
     'pages/mine/index',
     'pages/about/index',
     'pages/member/index',
