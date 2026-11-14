@@ -1,7 +1,8 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { api, ApiError } from '../api/client';
+import { assetPreviewUrl } from '../api/assets';
 import { saveSession, type AdminSession } from '../auth';
 import { Button, Field } from '../components/ui';
 
@@ -9,6 +10,18 @@ interface LoginResult {
   token: string;
   user: AdminSession;
 }
+
+interface ShopBrand {
+  shopName: string;
+  intro: string;
+  logoKey: string | null;
+}
+
+const DEFAULT_BRAND: ShopBrand = {
+  shopName: '山野商城',
+  intro: '把山野好物送到每一户人家',
+  logoKey: null,
+};
 
 export function Login() {
   const navigate = useNavigate();
@@ -18,6 +31,20 @@ export function Login() {
   const [password, setPassword] = useState(isDev ? 'admin123' : '');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  // 品牌区信息来自「店铺设置」，登录页无需鉴权即可读取
+  const [brand, setBrand] = useState<ShopBrand>(DEFAULT_BRAND);
+
+  useEffect(() => {
+    api<ShopBrand>('/shop')
+      .then((shop) =>
+        setBrand({
+          shopName: shop.shopName || DEFAULT_BRAND.shopName,
+          intro: shop.intro || DEFAULT_BRAND.intro,
+          logoKey: shop.logoKey ?? null,
+        }),
+      )
+      .catch(() => undefined);
+  }, []);
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -41,15 +68,17 @@ export function Login() {
     <div className="login">
       <aside className="login-hero">
         <div className="row">
-          <span className="brand-mark">山</span>
-          <strong>山野商城</strong>
+          {brand.logoKey ? (
+            <span className="brand-mark brand-mark--image">
+              <img src={assetPreviewUrl(brand.logoKey)} alt={brand.shopName} />
+            </span>
+          ) : (
+            <span className="brand-mark">{brand.shopName.slice(0, 1)}</span>
+          )}
+          <strong>{brand.shopName}</strong>
         </div>
         <div>
-          <h1>
-            把山野好物
-            <br />
-            送到每一户人家
-          </h1>
+          <h1>{brand.intro}</h1>
           <p>商品、订单、售后与会员经营，都在同一张工作台上完成。</p>
         </div>
         <span className="small">商家运营后台 · 请使用分配给你的账号登录</span>

@@ -1295,6 +1295,17 @@ button:focus-visible,
   color: var(--brand);
 }
 
+.login-hero .brand-mark--image {
+  padding: 0;
+  overflow: hidden;
+}
+
+.login-hero .brand-mark--image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 .login-panel {
   display: grid;
   place-items: center;

@@ -13,6 +13,7 @@ import {
   Modal,
   PageHeader,
   Pagination,
+  RowActions,
   Tag,
   Toolbar,
   type Column,
@@ -42,6 +43,23 @@ interface CustomerRow {
 }
 
 type TagMode = 'add' | 'remove';
+type GrantType = 'coupon' | 'card' | 'level';
+
+interface CouponOption {
+  id: string;
+  name: string;
+  faceValueCents: number;
+  thresholdCents: number;
+}
+
+interface CardPlanOption {
+  id: string;
+  name: string;
+  priceCents: number;
+  durationDays: number;
+  discountRate: number;
+  enabled: boolean;
+}
 
 function errorText(err: unknown): string {
   return err instanceof ApiError ? err.message : '加载失败';
@@ -72,6 +90,14 @@ export default function Customers() {
   const [tagMode, setTagMode] = useState<TagMode | null>(null);
   const [pickedTags, setPickedTags] = useState<string[]>([]);
   const [savingTags, setSavingTags] = useState(false);
+  const [grantType, setGrantType] = useState<GrantType | null>(null);
+  const [grantTargets, setGrantTargets] = useState<string[]>([]);
+  const [couponOptions, setCouponOptions] = useState<CouponOption[]>([]);
+  const [cardPlans, setCardPlans] = useState<CardPlanOption[]>([]);
+  const [couponId, setCouponId] = useState('');
+  const [planId, setPlanId] = useState('');
+  const [levelId, setLevelId] = useState('');
+  const [savingGrant, setSavingGrant] = useState(false);
   const PAGE_SIZE = 20;
 
   async function loadOptions() {
@@ -87,6 +113,14 @@ export default function Customers() {
     void loadOptions();
     api<{ id: string; name: string }[]>('/admin/member-levels')
       .then((result) => setLevels(result))
+      .catch(() => undefined);
+    api<{ items: CouponOption[] }>('/admin/coupons', {
+      query: { enabled: 'true', pageSize: 100 },
+    })
+      .then((result) => setCouponOptions(result.items))
+      .catch(() => undefined);
+    api<{ items: CardPlanOption[] }>('/admin/member-card-plans')
+      .then((result) => setCardPlans(result.items.filter((item) => item.enabled)))
       .catch(() => undefined);
   }, []);
 
@@ -188,6 +222,61 @@ export default function Customers() {
       toast(errorText(err), 'error');
     } finally {
       setSavingTags(false);
+    }
+  }
+
+  function openGrant(type: GrantType, userIds: string[]) {
+    if (!userIds.length) return;
+    setGrantTargets(userIds);
+    setGrantType(type);
+    if (type === 'coupon') setCouponId(couponOptions[0]?.id ?? '');
+    if (type === 'card') setPlanId(cardPlans[0]?.id ?? '');
+    if (type === 'level') setLevelId('');
+  }
+
+  async function submitGrant() {
+    if (!grantType) return;
+    setSavingGrant(true);
+    try {
+      if (grantType === 'coupon') {
+        if (!couponId) throw new Error('请选择优惠券');
+        const result = await api<{ granted: number; skipped: { reason: string }[] }>(
+          '/admin/customers/batch/coupons',
+          { method: 'POST', body: { userIds: grantTargets, couponId } },
+        );
+        toast(
+          `已发放 ${result.granted} 人${
+            result.skipped.length ? `，跳过 ${result.skipped.length} 人（已达限领或库存不足）` : ''
+          }`,
+          result.skipped.length ? 'error' : 'success',
+        );
+      } else if (grantType === 'card') {
+        if (!planId) throw new Error('请选择会员卡方案');
+        const result = await api<{ granted: number; skipped: { reason: string }[] }>(
+          '/admin/customers/batch/member-cards',
+          { method: 'POST', body: { userIds: grantTargets, planId } },
+        );
+        toast(
+          `已为 ${result.granted} 人发放会员卡${
+            result.skipped.length ? `，跳过 ${result.skipped.length} 人` : ''
+          }`,
+          result.skipped.length ? 'error' : 'success',
+        );
+      } else {
+        const result = await api<{ updated: number }>('/admin/customers/batch/levels', {
+          method: 'POST',
+          body: { userIds: grantTargets, levelId: levelId || null },
+        });
+        toast(`已调整 ${result.updated} 位客户的会员等级`);
+      }
+      setGrantType(null);
+      setGrantTargets([]);
+      setSelected([]);
+      await refresh();
+    } catch (err) {
+      toast(err instanceof ApiError || err instanceof Error ? err.message : '操作失败', 'error');
+    } finally {
+      setSavingGrant(false);
     }
   }
 
@@ -301,26 +390,27 @@ export default function Customers() {
       title: '操作',
       width: '130px',
       render: (row) => (
-        <div
-          className="row"
-          style={{ justifyContent: 'flex-end', gap: 6 }}
-          onClick={(event) => event.stopPropagation()}
-        >
-          <Button size="sm" variant="ghost" onClick={() => navigate(`/customers/${row.id}`)}>
-            查看
-          </Button>
-          {canTag && (
-            <Button
-              size="sm"
-              onClick={() => {
-                setSelected([row.id]);
-                setPickedTags([]);
-                setTagMode('add');
-              }}
-            >
-              打标签
-            </Button>
-          )}
+        <div onClick={(event) => event.stopPropagation()}>
+          <RowActions
+            primary={{ label: '查看', onClick: () => navigate(`/customers/${row.id}`) }}
+            actions={
+              canTag
+                ? [
+                    { label: '发放优惠券', onClick: () => openGrant('coupon', [row.id]) },
+                    { label: '发放会员卡', onClick: () => openGrant('card', [row.id]) },
+                    { label: '调整会员等级', onClick: () => openGrant('level', [row.id]) },
+                    {
+                      label: '打标签',
+                      onClick: () => {
+                        setSelected([row.id]);
+                        setPickedTags([]);
+                        setTagMode('add');
+                      },
+                    },
+                  ]
+                : []
+            }
+          />
         </div>
       ),
     },
@@ -330,7 +420,7 @@ export default function Customers() {
     <>
       <PageHeader
         title="客户列表"
-        desc="查看客户等级、标签与消费统计，勾选客户后可批量打标签"
+        desc="查看客户等级、标签与消费统计；单行或勾选后可发放优惠券、发放会员卡、调整会员等级与打标签"
       />
 
       <Card>
@@ -449,9 +539,12 @@ export default function Customers() {
 
       <BulkBar
         count={selected.length}
-        hint="批量打标签"
+        hint="批量操作"
         onClear={() => setSelected([])}
         actions={[
+          { label: '发放优惠券', onClick: () => openGrant('coupon', selected) },
+          { label: '发放会员卡', onClick: () => openGrant('card', selected) },
+          { label: '调整会员等级', onClick: () => openGrant('level', selected) },
           { label: '添加标签', onClick: () => setTagMode('add') },
           { label: '移除标签', onClick: () => setTagMode('remove'), danger: true },
         ]}
@@ -485,6 +578,112 @@ export default function Customers() {
           已选 {selected.length} 位客户，标签支持多选。
         </p>
         <TagPicker options={tagOptions} selected={pickedTags} onChange={setPickedTags} />
+      </Modal>
+
+      <Modal
+        open={grantType !== null}
+        title={
+          grantType === 'coupon'
+            ? '发放优惠券'
+            : grantType === 'card'
+              ? '发放会员卡'
+              : '调整会员等级'
+        }
+        onClose={() => {
+          setGrantType(null);
+          setGrantTargets([]);
+        }}
+        footer={
+          <>
+            <Button
+              variant="plain"
+              onClick={() => {
+                setGrantType(null);
+                setGrantTargets([]);
+              }}
+            >
+              取消
+            </Button>
+            <Button loading={savingGrant} onClick={() => void submitGrant()}>
+              确认发放
+            </Button>
+          </>
+        }
+      >
+        <p className="small muted" style={{ marginTop: 0 }}>
+          已选 {grantTargets.length} 位客户。
+        </p>
+
+        {grantType === 'coupon' && (
+          <label className="field">
+            <span className="field-label">选择优惠券</span>
+            {couponOptions.length ? (
+              <select
+                className="select"
+                value={couponId}
+                onChange={(event) => setCouponId(event.target.value)}
+              >
+                {couponOptions.map((coupon) => (
+                  <option key={coupon.id} value={coupon.id}>
+                    {coupon.name}（满 {money(coupon.thresholdCents)} 减{' '}
+                    {money(coupon.faceValueCents)}）
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <span className="small muted">暂无启用中的优惠券，请先在「营销 → 优惠券」创建</span>
+            )}
+          </label>
+        )}
+
+        {grantType === 'card' && (
+          <label className="field">
+            <span className="field-label">选择会员卡方案</span>
+            {cardPlans.length ? (
+              <select
+                className="select"
+                value={planId}
+                onChange={(event) => setPlanId(event.target.value)}
+              >
+                {cardPlans.map((plan) => (
+                  <option key={plan.id} value={plan.id}>
+                    {plan.name}（{plan.durationDays} 天 · 折扣 {plan.discountRate * 10} 折）
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <span className="small muted">
+                暂无启用中的会员卡方案，请先在「会员 → 会员卡」创建
+              </span>
+            )}
+          </label>
+        )}
+
+        {grantType === 'level' && (
+          <label className="field">
+            <span className="field-label">调整到</span>
+            <select
+              className="select"
+              value={levelId}
+              onChange={(event) => setLevelId(event.target.value)}
+            >
+              <option value="">清除人工等级（按累计消费自动匹配）</option>
+              {levels.map((level) => (
+                <option key={level.id} value={level.id}>
+                  {level.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+
+        <p className="small muted">
+          {grantType === 'card'
+            ? '发放后立即生效，原生效卡会自动标记为已替换；不扣减客户储值余额。'
+            : grantType === 'coupon'
+              ? '已达每人限领或券已领完的客户会自动跳过。'
+              : '人工等级会覆盖按累计消费自动匹配的结果，后续按消费升级时可能被重新计算。'}
+        </p>
       </Modal>
     </>
   );

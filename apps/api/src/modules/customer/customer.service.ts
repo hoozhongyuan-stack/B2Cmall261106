@@ -216,4 +216,61 @@ export class CustomerService {
       })),
     };
   }
+
+  /** 后台批量发放会员卡：不扣储值，直接按方案生成权益快照 */
+  async grantMemberCards(userIds: string[], planId: string) {
+    const plan = await this.prisma.memberCardPlan.findUnique({ where: { id: planId } });
+    if (!plan || !plan.enabled) throw new NotFoundException('会员卡方案不存在或已下架');
+
+    const targets = await this.prisma.user.findMany({
+      where: { id: { in: [...new Set(userIds)] } },
+      select: { id: true },
+    });
+    const valid = new Set(targets.map((user) => user.id));
+    const granted: string[] = [];
+    const skipped: { userId: string; reason: string }[] = [];
+
+    for (const userId of userIds) {
+      if (!valid.has(userId)) {
+        skipped.push({ userId, reason: '客户不存在' });
+        continue;
+      }
+      const now = new Date();
+      await this.prisma.$transaction(async (tx) => {
+        await tx.memberCard.updateMany({
+          where: { userId, status: 'ACTIVE', expireAt: { gt: now } },
+          data: { status: 'REPLACED' },
+        });
+        await tx.memberCard.create({
+          data: {
+            userId,
+            planId: plan.id,
+            planName: plan.name,
+            discountRate: plan.discountRate,
+            pointsRate: plan.pointsRate,
+            freeShipping: plan.freeShipping,
+            startAt: now,
+            expireAt: new Date(now.getTime() + plan.durationDays * 86_400_000),
+            status: 'ACTIVE',
+          },
+        });
+      });
+      granted.push(userId);
+    }
+
+    return { granted: granted.length, skipped };
+  }
+
+  /** 后台调整会员等级：levelId 为空表示清除人工等级 */
+  async setLevels(userIds: string[], levelId: string | null) {
+    if (levelId) {
+      const level = await this.prisma.memberLevel.findUnique({ where: { id: levelId } });
+      if (!level) throw new NotFoundException('会员等级不存在');
+    }
+    const result = await this.prisma.user.updateMany({
+      where: { id: { in: [...new Set(userIds)] } },
+      data: { levelId: levelId || null },
+    });
+    return { updated: result.count };
+  }
 }

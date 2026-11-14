@@ -1192,6 +1192,110 @@ paths:
         '200': { description: OK }
         '400': { $ref: '#/components/responses/BadRequest' }
 
+  /admin/customers/batch/coupons:
+    post:
+      tags: [admin-customers]
+      summary: 批量发放优惠券（单人操作传单个 userIds）
+      security: [{ adminToken: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [userIds, couponId]
+              properties:
+                userIds: { type: array, minItems: 1, items: { type: string } }
+                couponId: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      granted: { type: integer }
+                      skipped:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            userId: { type: string }
+                            reason: { type: string }
+        '400': { $ref: '#/components/responses/BadRequest' }
+
+  /admin/customers/batch/member-cards:
+    post:
+      tags: [admin-customers]
+      summary: 批量发放会员卡（不扣储值，替换当前生效卡）
+      security: [{ adminToken: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [userIds, planId]
+              properties:
+                userIds: { type: array, minItems: 1, items: { type: string } }
+                planId: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      granted: { type: integer }
+                      skipped:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            userId: { type: string }
+                            reason: { type: string }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /admin/customers/batch/levels:
+    post:
+      tags: [admin-customers]
+      summary: 批量调整会员等级（levelId 为空表示清除）
+      security: [{ adminToken: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [userIds]
+              properties:
+                userIds: { type: array, minItems: 1, items: { type: string } }
+                levelId: { type: string, nullable: true }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      updated: { type: integer }
+        '404': { $ref: '#/components/responses/NotFound' }
+
   /admin/customers/{id}:
     get:
       tags: [admin-customers]
